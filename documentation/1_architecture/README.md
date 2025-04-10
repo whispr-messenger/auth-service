@@ -8,6 +8,6 @@
 - Contenu : Modèles de données, schémas, relations, indices, contraintes.
 - Format recommandé : Document avec schémas SQL/NoSQL et diagrammes ER.
 ## 1.3 Politique de Sécurité
-- Rôle : Document détaillant les mesures de sécurité implémentées.
+- Rôle : Document détaillant les mesures de sécurité implémentées.d
 - Contenu : Chiffrement, hachage, gestion des secrets, détection d'intrusion.
 - Format recommandé : Document structuré avec sections par domaine de sécurité
