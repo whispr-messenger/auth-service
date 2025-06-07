@@ -1,15 +1,29 @@
 # Authentication Service (`auth-service`) - System Design Document
 
+## 0. Sommaire
+1. [Introduction](#1-introduction)
+2. [Architecture Globale](#2-architecture-globale)
+3. [Choix Technologiques](#3-choix-technologiques)
+4. [Composants Principaux](#4-composants-principaux)
+5. [Scaling et Performance](#5-scaling-et-performances)
+6. [Monitoring et Observabilité](#6-monitoring-et-observabilité)
+7. [Gestion des erreurs et Résilience](#7-gestion-des-erreurs-et-résilience)
+8. [Évolution et Maintenance](#8-évolution-et-maintenance)
+9. [Considérations Opérationnelles](#9-considérations-opérationnelles)
+
+
 ## 1. Introduction
 
 ### 1.1 Objectif du Document
-Ce document décrit l'architecture et la conception technique du service d'authentification (Identity Service) de l'application Whispr. Il sert de référence pour l'équipe de développement et les parties prenantes du projet.
+Ce document décrit l'architecture et la conception technique du service d'authentification (`auth-service`) de l'application Whispr. Il sert de référence pour l'équipe de développement et les parties prenantes du projet.
 
 ### 1.2 Périmètre du Service
-L'Identity Service est responsable de toutes les fonctionnalités liées à l'authentification des utilisateurs, à la gestion des sessions, à l'authentification à deux facteurs, et à la gestion des clés de chiffrement pour le protocole Signal (E2E).
+Le service `auth` est responsable de toutes les fonctionnalités liées à l'authentification des utilisateurs, à la gestion des sessions, à l'authentification à deux facteurs, et à la gestion des clés de chiffrement pour le protocole Signal (E2E).
 
 ### 1.3 Relations avec les Autres Services
-Ce service est fondamental dans l'architecture Whispr car il fournit l'authentification et l'autorisation pour tous les autres microservices. Il communique principalement avec:
+Ce service est fondamental dans l'architecture Whispr car il fournit **l'authentification** et **l'autorisation** pour tous les autres microservices. 
+
+Il communique principalement avec:
 - **user-service**: pour la gestion des profils utilisateurs (via gRPC)
 - **notification-service**: pour l'envoi des notifications push
 - **Service SMS externe**: pour l'envoi des codes de vérification (Twilio, Vonage, etc.)
@@ -91,7 +105,6 @@ src/
 │   ├── auth/                  # Module d'authentification
 │   ├── verification/          # Module de vérification
 │   ├── twoFactor/             # Module 2FA
-│   ├── devices/               # Module de gestion des appareils
 │   └── keyManagement/         # Module de gestion des clés
 ├── shared/                    # Code partagé entre modules
 │   ├── guards/                # Guards d'authentification
@@ -108,7 +121,6 @@ Les Controllers NestJS exposent les endpoints RESTful:
 - **AuthController**: endpoints d'enregistrement et login
 - **VerificationController**: endpoints de vérification par SMS
 - **TwoFactorController**: endpoints de gestion 2FA
-- **DeviceController**: endpoints de gestion des appareils
 - **KeyController**: endpoints de gestion des clés Signal
 
 Avantages:
@@ -122,7 +134,6 @@ Providers NestJS contenant la logique métier:
 - **AuthService**: gestion des processus d'authentification
 - **VerificationService**: vérification par SMS
 - **TwoFactorService**: gestion de l'authentification à deux facteurs
-- **DeviceService**: gestion des appareils connectés
 - **KeyManagementService**: gestion des clés pour le protocole Signal
 
 Avantages:
@@ -134,7 +145,6 @@ Avantages:
 
 Gère les accès aux données via TypeORM:
 - **UserRepository**: opérations liées aux utilisateurs
-- **DeviceRepository**: opérations liées aux appareils
 - **KeyRepository**: opérations liées aux clés cryptographiques
 - **VerificationRepository**: gestion des codes de vérification temporaires
 
@@ -159,8 +169,7 @@ Centralise les fonctionnalités de sécurité:
 - **CacheModule**: intégration Redis pour le cache et les données temporaires
 - **ThrottlerModule**: limitation de débit intégrée
 - **JwtModule**: gestion des tokens JWT
-- **GrpcModule**: communication avec les autres microservices# Identity Service (auth-service) - System Design Document
-
+- **GrpcModule**: communication avec les autres microservices
 
 ## 5. Scaling et Performances
 
@@ -246,7 +255,7 @@ Centralise les fonctionnalités de sécurité:
 - Rollback automatique en cas d'échec
 - Fenêtres de maintenance planifiées (si nécessaire)
 
-### 11.3 Documentation Technique
+### 8.3 Documentation Technique
 
 - Documentation OpenAPI générée automatiquement via @nestjs/swagger et décorateurs
 - Exemples de code pour l'intégration
@@ -254,21 +263,21 @@ Centralise les fonctionnalités de sécurité:
 - Guide de dépannage pour les problèmes courants
 - Documentation automatique des DTO et entités via décorateurs Swagger
 
-## 12. Considérations Opérationnelles
+## 9. Considérations Opérationnelles
 
-### 12.1 DevOps
+### 9.1 DevOps
 
 - Pipeline CI/CD via GitHub Actions
 - Intégration continue avec tests automatisés
 - Déploiement continu en environnement de développement et staging via ArgoCD
 
-### 12.2 Environnements
+### 9.2 Environnements
 
 - Développement, Staging, Production
 - Isolation complète des données entre environnements
 - Parité des configurations entre environnements
 
-### 12.3 Support
+### 9.3 Support
 
 - Logs centralisés pour le diagnostic
 - Outils de tracing des requêtes

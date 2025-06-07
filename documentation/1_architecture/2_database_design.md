@@ -1,5 +1,36 @@
 # Conception de la Base de Données - Service d'Authentification
 
+## Sommaire
+
+- [1. Introduction et Principes de Conception](#1-introduction-et-principes-de-conception)
+  - [1.1 Objectif](#11-objectif)
+  - [1.2 Principes Architecturaux](#12-principes-architecturaux)
+  - [1.3 Technologie](#13-technologie)
+- [2. Schéma PostgreSQL du Service d'Authentification](#2-schéma-postgresql-du-service-dauthentification)
+  - [2.1 Vue d'Ensemble](#21-vue-densemble)
+  - [2.2 Description des Tables](#22-description-des-tables)
+- [3. Données Temporaires dans Redis](#3-données-temporaires-dans-redis)
+  - [3.1 Vue d'Ensemble](#31-vue-densemble)
+  - [3.2 Description des Structures Redis](#32-description-des-structures-redis)
+- [4. Relations avec les Autres Services](#4-relations-avec-les-autres-services)
+  - [4.1 Démarcation des Responsabilités](#41-démarcation-des-responsabilités)
+  - [4.2 Synchronisation des Données](#42-synchronisation-des-données)
+- [5. Considérations de Sécurité](#5-considérations-de-sécurité)
+  - [5.1 Chiffrement des Données Sensibles](#51-chiffrement-des-données-sensibles)
+  - [5.2 Hachage des Secrets](#52-hachage-des-secrets)
+  - [5.3 Audit et Logging](#53-audit-et-logging)
+- [6. Considérations de Performance](#6-considérations-de-performance)
+  - [6.1 Indexation](#61-indexation)
+  - [6.2 Partitionnement](#62-partitionnement)
+  - [6.3 Optimisations Redis](#63-optimisations-redis)
+- [7. Migrations et Évolution du Schéma](#7-migrations-et-évolution-du-schéma)
+  - [7.1 Stratégie de Migration](#71-stratégie-de-migration)
+- [8. Scripts SQL d'Initialisation](#8-scripts-sql-dinitialisation)
+  - [8.1 Création du Schéma PostgreSQL](#81-création-du-schéma-postgresql)
+- [9. Communication Inter-Services](#9-communication-inter-services)
+  - [9.1 Événements et Synchronisation](#91-événements-et-synchronisation)
+  - [9.2 Gestion des Références Externes](#92-gestion-des-références-externes)
+
 ## 1. Introduction et Principes de Conception
 
 ### 1.1 Objectif
@@ -21,11 +52,11 @@ Ce document décrit la structure de la base de données du service d'authentific
 
 ```mermaid
 erDiagram
-    USERS_AUTH ||--o{ DEVICES : "possède"
     USERS_AUTH ||--o{ PREKEYS : "possède"
     USERS_AUTH ||--o{ SIGNED_PREKEYS : "possède"
     USERS_AUTH ||--o{ IDENTITY_KEYS : "possède"
     USERS_AUTH ||--o{ BACKUP_CODES : "possède"
+    USERS_AUTH ||--o{ LOGIN_HISTORY : "possède"
     
     USERS_AUTH {
         uuid id PK
@@ -33,19 +64,6 @@ erDiagram
         string twoFactorSecret
         boolean twoFactorEnabled
         timestamp lastAuthenticatedAt
-        timestamp createdAt
-        timestamp updatedAt
-    }
-    DEVICES {
-        uuid id PK
-        uuid userId FK
-        string deviceName
-        string deviceType
-        string fcmToken
-        string publicKey
-        timestamp lastActive
-        string ipAddress
-        boolean isVerified
         timestamp createdAt
         timestamp updatedAt
     }
@@ -86,7 +104,7 @@ erDiagram
     LOGIN_HISTORY {
         uuid id PK
         uuid userId FK
-        uuid deviceId FK
+        uuid deviceId
         string ipAddress
         string userAgent
         timestamp createdAt
@@ -114,29 +132,7 @@ Stocke les informations minimales nécessaires pour l'authentification des utili
 - UNIQUE sur `phoneNumber`
 - INDEX sur `phoneNumber` pour les recherches fréquentes
 
-#### 2.2.2 DEVICES
-Stocke les informations sur les appareils associés à un compte utilisateur.
-
-| Colonne | Type | Description | Contraintes |
-|---------|------|-------------|-------------|
-| id | UUID | Identifiant unique de l'appareil | PK, NOT NULL |
-| userId | UUID | Référence à l'utilisateur propriétaire | FK (USERS_AUTH.id), NOT NULL |
-| deviceName | VARCHAR(100) | Nom de l'appareil | NOT NULL |
-| deviceType | VARCHAR(20) | Type d'appareil (iOS, Android, Web) | NOT NULL |
-| fcmToken | VARCHAR(255) | Token pour les notifications push | NULL |
-| publicKey | TEXT | Clé publique de l'appareil pour le chiffrement | NOT NULL |
-| lastActive | TIMESTAMP | Dernière activité de l'appareil | NOT NULL |
-| ipAddress | VARCHAR(45) | Dernière adresse IP connue | NULL |
-| isVerified | BOOLEAN | Indique si l'appareil a été vérifié | NOT NULL, DEFAULT FALSE |
-| createdAt | TIMESTAMP | Date/heure d'ajout de l'appareil | NOT NULL |
-| updatedAt | TIMESTAMP | Date/heure de la dernière mise à jour | NOT NULL |
-
-**Indices**:
-- PRIMARY KEY sur `id`
-- INDEX sur `userId` pour les jointures fréquentes
-- INDEX sur `lastActive` pour faciliter le nettoyage des appareils inactifs
-
-#### 2.2.3 PREKEYS
+#### 2.2.2 PREKEYS
 Stocke les clés préalables (pre-keys) pour le protocole Signal.
 
 | Colonne | Type | Description | Contraintes |
@@ -154,7 +150,7 @@ Stocke les clés préalables (pre-keys) pour le protocole Signal.
 - UNIQUE sur `(userId, keyId)` pour éviter les doublons
 - INDEX sur `userId` pour les recherches
 
-#### 2.2.4 SIGNED_PREKEYS
+#### 2.2.3 SIGNED_PREKEYS
 Stocke les clés préalables signées pour le protocole Signal.
 
 | Colonne | Type | Description | Contraintes |
@@ -172,7 +168,7 @@ Stocke les clés préalables signées pour le protocole Signal.
 - UNIQUE sur `(userId, keyId)` pour éviter les doublons
 - INDEX sur `userId` pour les recherches
 
-#### 2.2.5 IDENTITY_KEYS
+#### 2.2.4 IDENTITY_KEYS
 Stocke les clés d'identité pour le protocole Signal.
 
 | Colonne | Type | Description | Contraintes |
@@ -188,7 +184,7 @@ Stocke les clés d'identité pour le protocole Signal.
 - PRIMARY KEY sur `id`
 - UNIQUE sur `userId` (un utilisateur a une seule clé d'identité active)
 
-#### 2.2.6 BACKUP_CODES
+#### 2.2.5 BACKUP_CODES
 Stocke les codes de secours pour l'authentification 2FA.
 
 | Colonne | Type | Description | Contraintes |
@@ -204,14 +200,14 @@ Stocke les codes de secours pour l'authentification 2FA.
 - PRIMARY KEY sur `id`
 - INDEX sur `userId` pour les recherches
 
-#### 2.2.7 LOGIN_HISTORY
+#### 2.2.6 LOGIN_HISTORY
 Enregistre l'historique des connexions.
 
 | Colonne | Type | Description | Contraintes |
 |---------|------|-------------|-------------|
 | id | UUID | Identifiant unique de l'entrée | PK, NOT NULL |
 | userId | UUID | Référence à l'utilisateur | FK (USERS_AUTH.id), NOT NULL |
-| deviceId | UUID | Référence à l'appareil utilisé | FK (DEVICES.id), NULL |
+| deviceId | UUID | Identifiant de l'appareil utilisé (référence externe) | NULL |
 | ipAddress | VARCHAR(45) | Adresse IP de la connexion | NOT NULL |
 | userAgent | TEXT | User-agent du client | NULL |
 | createdAt | TIMESTAMP | Date/heure de la tentative | NOT NULL |
@@ -221,6 +217,8 @@ Enregistre l'historique des connexions.
 - PRIMARY KEY sur `id`
 - INDEX sur `userId` pour les recherches
 - INDEX sur `createdAt` pour les requêtes temporelles
+
+**Note**: Le `deviceId` est conservé pour l'audit et la traçabilité mais ne fait plus référence à une table locale. Les informations sur les appareils sont maintenant gérées par le service de notification.
 
 ## 3. Données Temporaires dans Redis
 
@@ -280,7 +278,7 @@ Stocke les informations de session active.
 **TTL**: Variable (selon la durée de validité du token)  
 **Champs**:
 - `userId`: ID de l'utilisateur
-- `deviceId`: ID de l'appareil
+- `deviceId`: ID de l'appareil (référence externe)
 - `tokenFamily`: Famille de tokens pour le refresh
 - `lastActive`: Dernière activité
 - `expiresAt`: Horodatage d'expiration
@@ -303,32 +301,39 @@ Compteurs pour la limitation de débit.
 **TTL**: Variable selon le type de limite  
 **Valeur**: Nombre de tentatives
 
-## 4. Relations avec le Service Utilisateur
+## 4. Relations avec les Autres Services
 
 ### 4.1 Démarcation des Responsabilités
 
 ```mermaid
 graph LR
     subgraph "auth-service (PostgreSQL)"
-        A[USERS_AUTH] --> B[DEVICES]
-        A --> C[Clés E2E]
+        A[USERS_AUTH] --> C[Clés E2E]
         A --> D[2FA & Sécurité]
+        A --> E[LOGIN_HISTORY]
     end
     
     subgraph "user-service (PostgreSQL)"
-        E[USERS] --> F[Profil]
-        E --> G[Préférences]
-        E --> H[Relations sociales]
+        F[USERS] --> G[Profil]
+        F --> H[Préférences]
+        F --> I[Relations sociales]
     end
     
-    A -.->|Même ID| E
+    subgraph "notification-service"
+        J[DEVICES] --> K[FCM Tokens]
+        J --> L[Push Config]
+    end
+    
+    A -.->|Même ID| F
+    A -.->|deviceId ref| J
 ```
 
-### 4.2 Synchronisation des Données Utilisateur
+### 4.2 Synchronisation des Données
 
 - **ID Utilisateur**: Même UUID utilisé dans les deux services
 - **Création**: Création atomique dans auth-service suivi d'un événement pour user-service
 - **Modification du numéro de téléphone**: Nécessite mise à jour dans les deux services
+- **Appareils**: Les informations sur les appareils sont maintenant gérées par le notification-service
 
 ## 5. Considérations de Sécurité
 
@@ -371,7 +376,6 @@ graph LR
 - Support pour la compatibilité descendante
 - Tests automatisés des migrations
 
-
 ## 8. Scripts SQL d'Initialisation
 
 ### 8.1 Création du Schéma PostgreSQL
@@ -386,21 +390,6 @@ CREATE TABLE users_auth (
     two_factor_secret VARCHAR(255),
     two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     last_authenticated_at TIMESTAMP,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
--- Table des appareils
-CREATE TABLE devices (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users_auth(id) ON DELETE CASCADE,
-    device_name VARCHAR(100) NOT NULL,
-    device_type VARCHAR(20) NOT NULL,
-    fcm_token VARCHAR(255),
-    public_key TEXT NOT NULL,
-    last_active TIMESTAMP NOT NULL DEFAULT NOW(),
-    ip_address VARCHAR(45),
-    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -453,7 +442,7 @@ CREATE TABLE backup_codes (
 CREATE TABLE login_history (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users_auth(id) ON DELETE CASCADE,
-    device_id UUID REFERENCES devices(id) ON DELETE SET NULL,
+    device_id UUID, -- Référence externe au notification-service
     ip_address VARCHAR(45) NOT NULL,
     user_agent TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -461,11 +450,26 @@ CREATE TABLE login_history (
 );
 
 -- Création des index
-CREATE INDEX idx_devices_user_id ON devices(user_id);
-CREATE INDEX idx_devices_last_active ON devices(last_active);
 CREATE INDEX idx_prekeys_user_id ON prekeys(user_id);
 CREATE INDEX idx_signed_prekeys_user_id ON signed_prekeys(user_id);
 CREATE INDEX idx_backup_codes_user_id ON backup_codes(user_id);
 CREATE INDEX idx_login_history_user_id ON login_history(user_id);
 CREATE INDEX idx_login_history_created_at ON login_history(created_at);
+CREATE INDEX idx_login_history_device_id ON login_history(device_id);
 ```
+
+## 9. Communication Inter-Services
+
+### 9.1 Événements et Synchronisation
+
+Le service d'authentification communique avec les autres services via :
+
+- **Événements de création d'utilisateur** : Notification au user-service et notification-service
+- **Événements de connexion** : Information au notification-service pour la gestion des appareils
+- **Requêtes gRPC** : Pour récupérer les informations d'appareils depuis le notification-service
+
+### 9.2 Gestion des Références Externes
+
+- Le `deviceId` dans les sessions et l'historique fait référence aux appareils gérés par le notification-service
+- Pas de contrainte de clé étrangère pour maintenir l'indépendance des services
+- Validation via appels inter-services si nécessaire
