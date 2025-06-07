@@ -1,6 +1,6 @@
-# Authentication Service (`auth-service`) - Conception de la Base de Données
+# Conception de la Base de Données - Service d'Authentification
 
-## 0. Sommaire
+## Sommaire
 
 - [1. Introduction et Principes de Conception](#1-introduction-et-principes-de-conception)
   - [1.1 Objectif](#11-objectif)
@@ -52,11 +52,13 @@ Ce document décrit la structure de la base de données du service d'authentific
 
 ```mermaid
 erDiagram
+    USERS_AUTH ||--o{ DEVICES : "possède"
     USERS_AUTH ||--o{ PREKEYS : "possède"
     USERS_AUTH ||--o{ SIGNED_PREKEYS : "possède"
     USERS_AUTH ||--o{ IDENTITY_KEYS : "possède"
     USERS_AUTH ||--o{ BACKUP_CODES : "possède"
     USERS_AUTH ||--o{ LOGIN_HISTORY : "possède"
+    DEVICES ||--o{ LOGIN_HISTORY : "utilisé lors de"
     
     USERS_AUTH {
         uuid id PK
@@ -67,6 +69,27 @@ erDiagram
         timestamp createdAt
         timestamp updatedAt
     }
+    
+    DEVICES {
+        uuid id PK
+        uuid userId FK
+        string deviceName
+        string deviceType
+        string deviceFingerprint UK
+        string model
+        string osVersion
+        string appVersion
+        string fcmToken
+        string apnsToken
+        text publicKey
+        timestamp lastActive
+        string ipAddress
+        boolean isVerified
+        boolean isActive
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    
     PREKEYS {
         uuid id PK
         uuid userId FK
@@ -76,6 +99,7 @@ erDiagram
         boolean isUsed
         timestamp createdAt
     }
+    
     SIGNED_PREKEYS {
         uuid id PK
         uuid userId FK
@@ -85,6 +109,7 @@ erDiagram
         timestamp createdAt
         timestamp expiresAt
     }
+    
     IDENTITY_KEYS {
         uuid id PK
         uuid userId FK
@@ -93,6 +118,7 @@ erDiagram
         timestamp createdAt
         timestamp updatedAt
     }
+    
     BACKUP_CODES {
         uuid id PK
         uuid userId FK
@@ -101,10 +127,11 @@ erDiagram
         timestamp createdAt
         timestamp usedAt
     }
+    
     LOGIN_HISTORY {
         uuid id PK
         uuid userId FK
-        uuid deviceId
+        uuid deviceId FK
         string ipAddress
         string userAgent
         timestamp createdAt
@@ -132,7 +159,38 @@ Stocke les informations minimales nécessaires pour l'authentification des utili
 - UNIQUE sur `phoneNumber`
 - INDEX sur `phoneNumber` pour les recherches fréquentes
 
-#### 2.2.2 PREKEYS
+#### 2.2.2 DEVICES
+Stocke les informations sur les appareils associés à un compte utilisateur.
+
+| Colonne | Type | Description | Contraintes |
+|---------|------|-------------|-------------|
+| id | UUID | Identifiant unique de l'appareil | PK, NOT NULL |
+| userId | UUID | Référence à l'utilisateur propriétaire | FK (USERS_AUTH.id), NOT NULL |
+| deviceName | VARCHAR(100) | Nom de l'appareil | NOT NULL |
+| deviceType | VARCHAR(20) | Type d'appareil (iOS, Android, Web) | NOT NULL |
+| deviceFingerprint | VARCHAR(255) | Empreinte unique de l'appareil | UNIQUE, NOT NULL |
+| model | VARCHAR(100) | Modèle de l'appareil | NULL |
+| osVersion | VARCHAR(50) | Version du système d'exploitation | NULL |
+| appVersion | VARCHAR(20) | Version de l'application | NULL |
+| fcmToken | VARCHAR(255) | Token pour les notifications push Android | NULL |
+| apnsToken | VARCHAR(255) | Token pour les notifications push iOS | NULL |
+| publicKey | TEXT | Clé publique de l'appareil pour le chiffrement | NOT NULL |
+| lastActive | TIMESTAMP | Dernière activité de l'appareil | NOT NULL |
+| ipAddress | VARCHAR(45) | Dernière adresse IP connue | NULL |
+| isVerified | BOOLEAN | Indique si l'appareil a été vérifié | NOT NULL, DEFAULT FALSE |
+| isActive | BOOLEAN | Indique si l'appareil est actif | NOT NULL, DEFAULT TRUE |
+| createdAt | TIMESTAMP | Date/heure d'ajout de l'appareil | NOT NULL |
+| updatedAt | TIMESTAMP | Date/heure de la dernière mise à jour | NOT NULL |
+
+**Indices**:
+- PRIMARY KEY sur `id`
+- FOREIGN KEY sur `userId` → `users_auth(id)`
+- UNIQUE sur `deviceFingerprint`
+- INDEX sur `userId` pour les jointures fréquentes
+- INDEX sur `lastActive` pour faciliter le nettoyage des appareils inactifs
+- INDEX sur `isActive` pour filtrer les appareils actifs
+
+#### 2.2.3 PREKEYS
 Stocke les clés préalables (pre-keys) pour le protocole Signal.
 
 | Colonne | Type | Description | Contraintes |
@@ -150,7 +208,7 @@ Stocke les clés préalables (pre-keys) pour le protocole Signal.
 - UNIQUE sur `(userId, keyId)` pour éviter les doublons
 - INDEX sur `userId` pour les recherches
 
-#### 2.2.3 SIGNED_PREKEYS
+#### 2.2.4 SIGNED_PREKEYS
 Stocke les clés préalables signées pour le protocole Signal.
 
 | Colonne | Type | Description | Contraintes |
@@ -168,7 +226,7 @@ Stocke les clés préalables signées pour le protocole Signal.
 - UNIQUE sur `(userId, keyId)` pour éviter les doublons
 - INDEX sur `userId` pour les recherches
 
-#### 2.2.4 IDENTITY_KEYS
+#### 2.2.5 IDENTITY_KEYS
 Stocke les clés d'identité pour le protocole Signal.
 
 | Colonne | Type | Description | Contraintes |
@@ -184,7 +242,7 @@ Stocke les clés d'identité pour le protocole Signal.
 - PRIMARY KEY sur `id`
 - UNIQUE sur `userId` (un utilisateur a une seule clé d'identité active)
 
-#### 2.2.5 BACKUP_CODES
+#### 2.2.6 BACKUP_CODES
 Stocke les codes de secours pour l'authentification 2FA.
 
 | Colonne | Type | Description | Contraintes |
@@ -200,14 +258,14 @@ Stocke les codes de secours pour l'authentification 2FA.
 - PRIMARY KEY sur `id`
 - INDEX sur `userId` pour les recherches
 
-#### 2.2.6 LOGIN_HISTORY
+#### 2.2.7 LOGIN_HISTORY
 Enregistre l'historique des connexions.
 
 | Colonne | Type | Description | Contraintes |
 |---------|------|-------------|-------------|
 | id | UUID | Identifiant unique de l'entrée | PK, NOT NULL |
 | userId | UUID | Référence à l'utilisateur | FK (USERS_AUTH.id), NOT NULL |
-| deviceId | UUID | Identifiant de l'appareil utilisé (référence externe) | NULL |
+| deviceId | UUID | Référence à l'appareil utilisé | FK (DEVICES.id), NULL |
 | ipAddress | VARCHAR(45) | Adresse IP de la connexion | NOT NULL |
 | userAgent | TEXT | User-agent du client | NULL |
 | createdAt | TIMESTAMP | Date/heure de la tentative | NOT NULL |
@@ -216,9 +274,8 @@ Enregistre l'historique des connexions.
 **Indices**:
 - PRIMARY KEY sur `id`
 - INDEX sur `userId` pour les recherches
+- INDEX sur `deviceId` pour les recherches par appareil
 - INDEX sur `createdAt` pour les requêtes temporelles
-
-**Note**: Le `deviceId` est conservé pour l'audit et la traçabilité mais ne fait plus référence à une table locale. Les informations sur les appareils sont maintenant gérées par le service de notification.
 
 ## 3. Données Temporaires dans Redis
 
@@ -278,7 +335,7 @@ Stocke les informations de session active.
 **TTL**: Variable (selon la durée de validité du token)  
 **Champs**:
 - `userId`: ID de l'utilisateur
-- `deviceId`: ID de l'appareil (référence externe)
+- `deviceId`: ID de l'appareil
 - `tokenFamily`: Famille de tokens pour le refresh
 - `lastActive`: Dernière activité
 - `expiresAt`: Horodatage d'expiration
@@ -308,7 +365,8 @@ Compteurs pour la limitation de débit.
 ```mermaid
 graph LR
     subgraph "auth-service (PostgreSQL)"
-        A[USERS_AUTH] --> C[Clés E2E]
+        A[USERS_AUTH] --> B[DEVICES]
+        A --> C[Clés E2E]
         A --> D[2FA & Sécurité]
         A --> E[LOGIN_HISTORY]
     end
@@ -319,21 +377,23 @@ graph LR
         F --> I[Relations sociales]
     end
     
-    subgraph "notification-service"
-        J[DEVICES] --> K[FCM Tokens]
-        J --> L[Push Config]
+    subgraph "notification-service (PostgreSQL)"
+        J[NOTIFICATION_TOKENS] --> K[Références appareils]
+        J --> L[Notification Preferences]
     end
     
     A -.->|Même ID| F
-    A -.->|deviceId ref| J
+    B -.->|device_id référencé| J
+    J -.->|gRPC GetDeviceTokens| B
 ```
 
 ### 4.2 Synchronisation des Données
 
-- **ID Utilisateur**: Même UUID utilisé dans les deux services
+- **ID Utilisateur**: Même UUID utilisé dans les deux services (auth et user)
 - **Création**: Création atomique dans auth-service suivi d'un événement pour user-service
-- **Modification du numéro de téléphone**: Nécessite mise à jour dans les deux services
-- **Appareils**: Les informations sur les appareils sont maintenant gérées par le notification-service
+- **Gestion des appareils**: auth-service est la source de vérité pour tous les appareils
+- **Tokens de notification**: notification-service maintient une table légère avec les tokens FCM/APNS
+- **Synchronisation**: notification-service fait des appels gRPC vers auth-service pour obtenir les informations d'appareils
 
 ## 5. Considérations de Sécurité
 
@@ -394,6 +454,27 @@ CREATE TABLE users_auth (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+-- Table des appareils (source de vérité)
+CREATE TABLE devices (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users_auth(id) ON DELETE CASCADE,
+    device_name VARCHAR(100) NOT NULL,
+    device_type VARCHAR(20) NOT NULL,
+    device_fingerprint VARCHAR(255) UNIQUE NOT NULL,
+    model VARCHAR(100),
+    os_version VARCHAR(50),
+    app_version VARCHAR(20),
+    fcm_token VARCHAR(255),
+    apns_token VARCHAR(255),
+    public_key TEXT NOT NULL,
+    last_active TIMESTAMP NOT NULL DEFAULT NOW(),
+    ip_address VARCHAR(45),
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
 -- Table des prekeys
 CREATE TABLE prekeys (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -442,7 +523,7 @@ CREATE TABLE backup_codes (
 CREATE TABLE login_history (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users_auth(id) ON DELETE CASCADE,
-    device_id UUID, -- Référence externe au notification-service
+    device_id UUID REFERENCES devices(id) ON DELETE SET NULL,
     ip_address VARCHAR(45) NOT NULL,
     user_agent TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -450,91 +531,113 @@ CREATE TABLE login_history (
 );
 
 -- Création des index
+CREATE INDEX idx_devices_user_id ON devices(user_id);
+CREATE INDEX idx_devices_device_fingerprint ON devices(device_fingerprint);
+CREATE INDEX idx_devices_last_active ON devices(last_active);
+CREATE INDEX idx_devices_is_active ON devices(is_active);
 CREATE INDEX idx_prekeys_user_id ON prekeys(user_id);
 CREATE INDEX idx_signed_prekeys_user_id ON signed_prekeys(user_id);
 CREATE INDEX idx_backup_codes_user_id ON backup_codes(user_id);
 CREATE INDEX idx_login_history_user_id ON login_history(user_id);
-CREATE INDEX idx_login_history_created_at ON login_history(created_at);
 CREATE INDEX idx_login_history_device_id ON login_history(device_id);
+CREATE INDEX idx_login_history_created_at ON login_history(created_at);
 ```
 
 ## 9. Communication Inter-Services avec Istio
 
-### 9.1 Architecture Service Mesh pour les Données
+### 9.1 Architecture de Gestion des Appareils
 
-L'auth-service communique avec les autres services via Istio Service Mesh, ce qui impact la façon dont les données sont échangées et synchronisées :
+L'auth-service est la source de vérité pour la gestion des appareils, avec une coordination simplifiée via Istio Service Mesh :
 
 ```mermaid
 graph LR
     subgraph "auth-service"
-        A[PostgreSQL Auth] --> B[Auth Logic]
-        B --> C[Envoy Sidecar]
-    end
-    
-    subgraph "user-service"
-        D[Envoy Sidecar] --> E[User Logic]
-        E --> F[PostgreSQL User]
+        A[PostgreSQL Auth] --> B[devices table COMPLÈTE]
+        B --> C[Auth Logic]
+        C --> D[Envoy Sidecar]
     end
     
     subgraph "notification-service"
-        G[Envoy Sidecar] --> H[Notification Logic]
-        H --> I[PostgreSQL Devices]
+        E[Envoy Sidecar] --> F[Notification Logic]
+        F --> G[PostgreSQL Notifications]
+        G --> H[notification_tokens table]
     end
     
-    C -.->|mTLS gRPC| D
-    C -.->|mTLS gRPC| G
+    subgraph "user-service"
+        I[Envoy Sidecar] --> J[User Logic]
+        J --> K[PostgreSQL Users]
+    end
+    
+    E -.->|"GetDeviceTokens<br/>mTLS gRPC"| D
+    E -.->|"GetUserDevices<br/>mTLS gRPC"| D
+    D -.->|"NotifyDeviceEvent<br/>mTLS gRPC"| E
+    D -.->|"CreateUser<br/>mTLS gRPC"| I
     
     subgraph "Istio Control Plane"
-        J[Certificate Authority]
-        K[Service Discovery]
+        L[Certificate Authority]
+        M[Service Discovery]
     end
     
-    J -.->|Auto Certs| C
-    J -.->|Auto Certs| D
-    J -.->|Auto Certs| G
+    L -.->|Auto Certs| D
+    L -.->|Auto Certs| E
+    L -.->|Auto Certs| I
 ```
 
-### 9.2 Événements et Synchronisation avec mTLS
+### 9.2 Flux de Données Principal
 
-Le service d'authentification communique avec les autres services via Istio Service Mesh :
+**auth-service** comme source de vérité :
+- Gère la table `devices` complète avec toutes les métadonnées
+- Expose les API CRUD pour la gestion des appareils
+- Coordonne l'authentification et les sessions par appareil
+- Notifie les autres services des événements d'appareils
 
-#### 9.2.1 Communications Sécurisées
-- **mTLS automatique** : Toutes les communications gRPC sont automatiquement chiffrées et authentifiées
-- **Service Identity** : Chaque service a une identité cryptographique unique via SPIFFE
-- **Certificate Rotation** : Rotation automatique des certificats par Istio CA
-- **Zero Trust** : Aucune communication en clair entre services
+**notification-service** en consommateur :
+- Maintient une table `notification_tokens` légère
+- Fait des appels gRPC vers auth-service pour obtenir les informations d'appareils
+- Se synchronise via des événements envoyés par auth-service
 
-#### 9.2.2 Patterns de Communication de Données
+### 9.3 Communications Sécurisées avec mTLS
 
-**Création d'utilisateur** (auth-service → user-service):
+#### 9.3.1 notification-service → auth-service (lecture)
+
 ```yaml
-# AuthorizationPolicy pour permettre la création d'utilisateur
+# AuthorizationPolicy pour notification-service vers auth-service
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: auth-to-user-create
+  name: notification-to-auth-devices
   namespace: whispr
 spec:
   selector:
     matchLabels:
-      app: user-service
+      app: auth-service
   rules:
   - from:
     - source:
-        principals: ["cluster.local/ns/whispr/sa/auth-service"]
+        principals: ["cluster.local/ns/whispr/sa/notification-service"]
   - to:
     - operation:
-        methods: ["POST"]
-        paths: ["/user.UserService/CreateUser"]
+        methods: ["GET"]
+        paths: ["/auth.AuthService/GetDeviceTokens", "/auth.AuthService/GetUserDevices"]
 ```
 
-**Synchronisation des appareils** (auth-service ↔ notification-service):
+**Patterns de communication** :
 ```yaml
-# AuthorizationPolicy bidirectionnelle pour la gestion des appareils
+# notification-service appelle auth-service pour récupérer les tokens
+service: auth.AuthService
+method: GetDeviceTokens
+request: { userId: "uuid", deviceTypes: ["iOS", "Android"] }
+response: { devices: [{ deviceId: "uuid", fcmToken: "...", apnsToken: "..." }] }
+```
+
+#### 9.3.2 auth-service → notification-service (événements)
+
+```yaml
+# AuthorizationPolicy pour auth-service vers notification-service
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: auth-notification-sync
+  name: auth-to-notification-events
   namespace: whispr
 spec:
   selector:
@@ -546,48 +649,78 @@ spec:
         principals: ["cluster.local/ns/whispr/sa/auth-service"]
   - to:
     - operation:
-        methods: ["POST", "PUT", "DELETE"]
-        paths: ["/notification.DeviceService/*"]
+        methods: ["POST"]
+        paths: ["/notification.NotificationService/NotifyDeviceEvent"]
 ```
 
-### 9.3 Gestion des Références Externes avec Istio
+**Événements notifiés** :
+- `DeviceRegistered` : Nouvel appareil enregistré
+- `DeviceRevoked` : Appareil déconnecté/révoqué
+- `DeviceUpdated` : Métadonnées d'appareil mises à jour
+- `UserAuthenticated` : Connexion réussie sur un appareil
 
-#### 9.3.1 Consistance des Données
-- **Eventual Consistency** : Les données sont synchronisées de manière asynchrone entre services
-- **Saga Pattern** : Gestion des transactions distribuées avec compensation
-- **Outbox Pattern** : Publication d'événements de façon fiable
-- **Circuit Breakers** : Protection contre les pannes de services externes
+### 9.4 Structure de données notification-service
 
-#### 9.3.2 Traçabilité et Audit
-- **Distributed Tracing** : Chaque transaction de données est tracée via Jaeger
-- **Correlation IDs** : Suivi des opérations à travers tous les services
-- **Audit Logs** : Enregistrement de toutes les communications inter-services
-- **Request Replay** : Possibilité de rejouer les requêtes en cas d'échec
+Pour optimiser les performances, notification-service maintient une table légère :
 
-### 9.4 Monitoring des Données Inter-Services
+```sql
+-- notification-service: table optimisée pour les notifications
+CREATE TABLE notification_tokens (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    device_id UUID NOT NULL, -- Référence vers auth-service.devices
+    user_id UUID NOT NULL,   -- Référence vers user-service.users
+    fcm_token VARCHAR(255),
+    apns_token VARCHAR(255),
+    notification_preferences JSONB DEFAULT '{}',
+    is_active BOOLEAN DEFAULT TRUE,
+    last_sync_at TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
 
-#### 9.4.1 Métriques de Synchronisation
-- **Data Sync Success Rate** : Taux de succès des synchronisations de données
-- **Cross-Service Latency** : Latence des appels de données entre services
-- **Eventual Consistency Lag** : Délai de convergence des données
-- **Reference Validation Errors** : Erreurs de validation des références externes
+CREATE INDEX idx_notification_tokens_device_id ON notification_tokens(device_id);
+CREATE INDEX idx_notification_tokens_user_id ON notification_tokens(user_id);
+CREATE INDEX idx_notification_tokens_is_active ON notification_tokens(is_active);
+```
 
-#### 9.4.2 Alertes de Cohérence
-- **Orphaned References** : Références d'appareils sans service disponible
-- **Sync Failures** : Échecs de synchronisation entre auth-service et notification-service
-- **Data Inconsistency** : Détection d'incohérences entre les services
-- **Performance Degradation** : Dégradation des performances de synchronisation
+### 9.5 Synchronisation et Cohérence
 
-### 9.5 Résilience des Données
+#### 9.5.1 Stratégies de Synchronisation
+- **Pull** : notification-service fait des appels gRPC périodiques pour récupérer les tokens
+- **Push** : auth-service notifie les événements importants via gRPC
+- **Cache** : notification-service peut mettre en cache les tokens avec TTL
+- **Lazy Loading** : Récupération des tokens à la demande lors d'envoi de notifications
 
-#### 9.5.1 Stratégies de Fallback
-- **Graceful Degradation** : Mode dégradé quand notification-service est indisponible
-- **Local Caching** : Cache local des références d'appareils récemment utilisées
-- **Retry with Backoff** : Stratégies de retry pour les synchronisations échouées
-- **Dead Letter Queue** : File d'attente pour les messages non délivrés
+#### 9.5.2 Gestion des Incohérences
+- **Eventual Consistency** : Accepter un léger délai de synchronisation
+- **Retry Logic** : Mécanismes de retry avec backoff exponentiel
+- **Health Checks** : Vérifications régulières de la cohérence des données
+- **Reconciliation** : Processus de réconciliation en cas de désynchronisation
 
-#### 9.5.2 Recovery Procedures
-- **Data Reconciliation** : Procédures de réconciliation après pannes
-- **Conflict Resolution** : Résolution des conflits de données
-- **State Reconstruction** : Reconstruction de l'état des références externes
-- **Manual Override** : Possibilité d'intervention manuelle en cas de problème
+### 9.6 Performance et Résilience
+
+#### 9.6.1 Optimisations
+- **Batch Requests** : Récupération de tokens par lots pour plusieurs utilisateurs
+- **Connection Pooling** : Pool de connexions gRPC réutilisables
+- **Circuit Breaker** : Protection contre les pannes d'auth-service
+- **Cache Local** : Cache TTL dans notification-service pour réduire les appels
+
+#### 9.6.2 Résilience
+- **Graceful Degradation** : Mode dégradé si auth-service indisponible
+- **Fallback Cache** : Utilisation du cache local en cas de panne
+- **Health Monitoring** : Surveillance de la santé des communications inter-services
+- **Alert System** : Alertes en cas de problèmes de synchronisation
+
+### 9.7 Monitoring des Communications
+
+#### 9.7.1 Métriques Istio Spécifiques
+- **auth-service → notification-service** : Latence des notifications d'événements
+- **notification-service → auth-service** : Fréquence et performance des appels GetDeviceTokens
+- **mTLS Success Rate** : Taux de succès des connexions sécurisées
+- **Circuit Breaker Status** : État des circuit breakers inter-services
+
+#### 9.7.2 Métriques Business
+- **Token Sync Latency** : Délai de synchronisation des tokens FCM/APNS
+- **Event Delivery Rate** : Taux de livraison des événements d'appareils
+- **Cache Hit Rate** : Efficacité du cache de tokens dans notification-service
+- **API Response Time** : Performance des APIs de gestion d'appareils
