@@ -1,6 +1,6 @@
-# Conception de la Base de Données - Service d'Authentification
+# Authentication Service (`auth-service`) - Conception de la Base de Données
 
-## Sommaire
+## 0. Sommaire
 
 - [1. Introduction et Principes de Conception](#1-introduction-et-principes-de-conception)
   - [1.1 Objectif](#11-objectif)
@@ -458,18 +458,136 @@ CREATE INDEX idx_login_history_created_at ON login_history(created_at);
 CREATE INDEX idx_login_history_device_id ON login_history(device_id);
 ```
 
-## 9. Communication Inter-Services
+## 9. Communication Inter-Services avec Istio
 
-### 9.1 Événements et Synchronisation
+### 9.1 Architecture Service Mesh pour les Données
 
-Le service d'authentification communique avec les autres services via :
+L'auth-service communique avec les autres services via Istio Service Mesh, ce qui impact la façon dont les données sont échangées et synchronisées :
 
-- **Événements de création d'utilisateur** : Notification au user-service et notification-service
-- **Événements de connexion** : Information au notification-service pour la gestion des appareils
-- **Requêtes gRPC** : Pour récupérer les informations d'appareils depuis le notification-service
+```mermaid
+graph LR
+    subgraph "auth-service"
+        A[PostgreSQL Auth] --> B[Auth Logic]
+        B --> C[Envoy Sidecar]
+    end
+    
+    subgraph "user-service"
+        D[Envoy Sidecar] --> E[User Logic]
+        E --> F[PostgreSQL User]
+    end
+    
+    subgraph "notification-service"
+        G[Envoy Sidecar] --> H[Notification Logic]
+        H --> I[PostgreSQL Devices]
+    end
+    
+    C -.->|mTLS gRPC| D
+    C -.->|mTLS gRPC| G
+    
+    subgraph "Istio Control Plane"
+        J[Certificate Authority]
+        K[Service Discovery]
+    end
+    
+    J -.->|Auto Certs| C
+    J -.->|Auto Certs| D
+    J -.->|Auto Certs| G
+```
 
-### 9.2 Gestion des Références Externes
+### 9.2 Événements et Synchronisation avec mTLS
 
-- Le `deviceId` dans les sessions et l'historique fait référence aux appareils gérés par le notification-service
-- Pas de contrainte de clé étrangère pour maintenir l'indépendance des services
-- Validation via appels inter-services si nécessaire
+Le service d'authentification communique avec les autres services via Istio Service Mesh :
+
+#### 9.2.1 Communications Sécurisées
+- **mTLS automatique** : Toutes les communications gRPC sont automatiquement chiffrées et authentifiées
+- **Service Identity** : Chaque service a une identité cryptographique unique via SPIFFE
+- **Certificate Rotation** : Rotation automatique des certificats par Istio CA
+- **Zero Trust** : Aucune communication en clair entre services
+
+#### 9.2.2 Patterns de Communication de Données
+
+**Création d'utilisateur** (auth-service → user-service):
+```yaml
+# AuthorizationPolicy pour permettre la création d'utilisateur
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: auth-to-user-create
+  namespace: whispr
+spec:
+  selector:
+    matchLabels:
+      app: user-service
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/whispr/sa/auth-service"]
+  - to:
+    - operation:
+        methods: ["POST"]
+        paths: ["/user.UserService/CreateUser"]
+```
+
+**Synchronisation des appareils** (auth-service ↔ notification-service):
+```yaml
+# AuthorizationPolicy bidirectionnelle pour la gestion des appareils
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: auth-notification-sync
+  namespace: whispr
+spec:
+  selector:
+    matchLabels:
+      app: notification-service
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/whispr/sa/auth-service"]
+  - to:
+    - operation:
+        methods: ["POST", "PUT", "DELETE"]
+        paths: ["/notification.DeviceService/*"]
+```
+
+### 9.3 Gestion des Références Externes avec Istio
+
+#### 9.3.1 Consistance des Données
+- **Eventual Consistency** : Les données sont synchronisées de manière asynchrone entre services
+- **Saga Pattern** : Gestion des transactions distribuées avec compensation
+- **Outbox Pattern** : Publication d'événements de façon fiable
+- **Circuit Breakers** : Protection contre les pannes de services externes
+
+#### 9.3.2 Traçabilité et Audit
+- **Distributed Tracing** : Chaque transaction de données est tracée via Jaeger
+- **Correlation IDs** : Suivi des opérations à travers tous les services
+- **Audit Logs** : Enregistrement de toutes les communications inter-services
+- **Request Replay** : Possibilité de rejouer les requêtes en cas d'échec
+
+### 9.4 Monitoring des Données Inter-Services
+
+#### 9.4.1 Métriques de Synchronisation
+- **Data Sync Success Rate** : Taux de succès des synchronisations de données
+- **Cross-Service Latency** : Latence des appels de données entre services
+- **Eventual Consistency Lag** : Délai de convergence des données
+- **Reference Validation Errors** : Erreurs de validation des références externes
+
+#### 9.4.2 Alertes de Cohérence
+- **Orphaned References** : Références d'appareils sans service disponible
+- **Sync Failures** : Échecs de synchronisation entre auth-service et notification-service
+- **Data Inconsistency** : Détection d'incohérences entre les services
+- **Performance Degradation** : Dégradation des performances de synchronisation
+
+### 9.5 Résilience des Données
+
+#### 9.5.1 Stratégies de Fallback
+- **Graceful Degradation** : Mode dégradé quand notification-service est indisponible
+- **Local Caching** : Cache local des références d'appareils récemment utilisées
+- **Retry with Backoff** : Stratégies de retry pour les synchronisations échouées
+- **Dead Letter Queue** : File d'attente pour les messages non délivrés
+
+#### 9.5.2 Recovery Procedures
+- **Data Reconciliation** : Procédures de réconciliation après pannes
+- **Conflict Resolution** : Résolution des conflits de données
+- **State Reconstruction** : Reconstruction de l'état des références externes
+- **Manual Override** : Possibilité d'intervention manuelle en cas de problème

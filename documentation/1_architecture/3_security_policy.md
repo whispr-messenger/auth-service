@@ -1,6 +1,6 @@
 # Politique de Sécurité - Service d'Authentification 
 
-## Sommaire
+## 0. Sommaire
 
 - [1. Introduction](#1-introduction)
   - [1.1 Objectif du Document](#11-objectif-du-document)
