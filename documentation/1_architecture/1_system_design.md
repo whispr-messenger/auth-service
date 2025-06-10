@@ -51,23 +51,22 @@
     - [C.3 DestinationRule avec Circuit Breaker](#c3-destinationrule-avec-circuit-breaker)
   - [D. Références](#d-références)
 
-
 ## 1. Introduction
 
 ### 1.1 Objectif du Document
 Ce document décrit l'architecture et la conception technique du service d'authentification (`auth-service`) de l'application Whispr. Il sert de référence pour l'équipe de développement et les parties prenantes du projet.
 
 ### 1.2 Périmètre du Service
-Le service `auth` est responsable de toutes les fonctionnalités liées à l'authentification des utilisateurs, à la gestion des sessions, à l'authentification à deux facteurs, à la gestion des appareils utilisateurs, et à la gestion des clés de chiffrement pour le protocole Signal (E2E).
+Le service `auth` est responsable de toutes les fonctionnalités liées à l'authentification des utilisateurs, à la gestion des appareils multi-device, à l'authentification à deux facteurs, et à la gestion des clés de chiffrement pour le protocole Signal (E2E). 
+
 
 ### 1.3 Relations avec les Autres Services
-Ce service est fondamental dans l'architecture Whispr car il fournit **l'authentification**, **l'autorisation** et **la gestion des appareils** pour tous les autres microservices. 
+Ce service est fondamental dans l'architecture Whispr car il fournit **l'authentification** et **l'autorisation** pour tous les autres microservices. 
 
 Il communique principalement avec:
-- **user-service**: pour la gestion des profils utilisateurs (via gRPC over mTLS)
-- **notification-service**: pour notifier les événements d'appareils et recevoir les demandes d'informations d'appareils (via gRPC over mTLS)
-- **messaging-service**: pour la validation des tokens et l'accès aux clés de chiffrement (via gRPC over mTLS)
-- **Service SMS externe**: pour l'envoi des codes de vérification (Twilio, Vonage, etc.)
+- `user-service`: pour la gestion des profils utilisateurs (via gRPC over mTLS)
+- `notification-service`: pour l'envoi des notifications push et gestion des appareils (via gRPC over mTLS)
+- `Service SMS externe`: pour l'envoi des codes de vérification (Twilio, Vonage, etc.)
 - Tous les autres services via l'API Gateway pour la validation des tokens
 
 ## 2. Architecture Globale
@@ -96,12 +95,11 @@ graph TD
             D2[Envoy Sidecar]
         end
         
-        B2 -.->|"mTLS gRPC<br/>CreateUser<br/>GetUserProfile"| C2
-        D2 -.->|"mTLS gRPC<br/>GetDeviceTokens<br/>GetUserDevices"| B2
-        B2 -.->|"mTLS gRPC<br/>NotifyDeviceEvent"| D2
+        B2 -.->|mTLS gRPC| C2
+        B2 -.->|mTLS gRPC| D2
     end
     
-    B --> E[(PostgreSQL Auth DB<br/>+ Table DEVICES)]
+    B --> E[(PostgreSQL Auth DB)]
     B --> F[(Redis Cache)]
     B --> G[Service SMS Externe]
     
@@ -114,9 +112,9 @@ graph TD
         J[API Layer] --> K[Service Layer]
         K --> L[Repository Layer]
         K --> M[Security Layer]
-        K --> P[Device Management]
         M --> N[Encryption Module]
-        M --> O[Token Manager]
+        M --> O[JWT Token Manager]
+        M --> P[Device Registry]
     end
     
     H -.->|Manage| B2
@@ -128,19 +126,18 @@ graph TD
     style B2 fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
     style C2 fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
     style D2 fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
-    style E fill:#fff3e0,stroke:#f57c00,stroke-width:2px
 ```
 
 ### 2.2 Principes Architecturaux
 
 - **Stateless**: Le service opère sans état pour faciliter le scaling horizontal
+- **JWT-Based Authentication**: Utilisation exclusive de JSON Web Tokens pour l'authentification
 - **Zero Trust Network**: Toutes les communications inter-services sont chiffrées et authentifiées via mTLS automatique
 - **Service Mesh Security**: Sécurité implémentée au niveau infrastructure via Istio
+- **Device-Centric**: Gestion des appareils multiples sans état serveur centralisé
 - **Sécurité par Design**: Implémentation des meilleures pratiques de sécurité à chaque niveau
-- **Single Source of Truth**: auth-service est la source de vérité pour les appareils et l'authentification
 - **Résilience**: Gestion des défaillances avec graceful degradation via Istio
 - **Observabilité**: Logging structuré, métriques détaillées et tracing distribué via Istio
-- **DevSecOps**: Intégration continue avec tests de sécurité automatisés
 
 ## 3. Choix Technologiques
 
@@ -148,18 +145,18 @@ graph TD
 
 - **Langage**: TypeScript
 - **Framework**: NestJS (framework Node.js)
+- **Authentication**: JWT stateless uniquement (RFC 7519)
 - **Service Mesh**: Istio pour la sécurité et l'observabilité des communications inter-services
 - **Proxy Sidecar**: Envoy (injecté automatiquement par Istio)
 - **Sécurité Inter-Services**: mTLS automatique via Istio avec rotation de certificats
-- **Base de données**: PostgreSQL pour les données d'authentification et les appareils
-- **Stockage temporaire**: Redis pour les données temporaires (codes de vérification, challenges, sessions)
+- **Base de données**: PostgreSQL pour les données persistantes d'authentification
+- **Stockage temporaire**: Redis pour les données temporaires (codes de vérification, challenges, device registry)
 - **Communication inter-services**: gRPC over mTLS automatique via Istio Service Mesh
-- **ORM**: TypeORM pour la gestion des entités devices, users_auth, et clés cryptographiques
+- **ORM**: TypeORM pour PostgreSQL
 - **Authentification**: JWT pour les tokens, bcrypt pour le hachage des secrets
 - **Chiffrement**: librairies Signal Protocol officielles
 - **API**: REST avec OpenAPI/Swagger (via décorateurs NestJS)
 - **Cache**: Redis (via @nestjs/cache-manager)
-- **Message Queue**: (optionnel) RabbitMQ ou GCP Pub/Sub via @nestjs/microservices
 - **Service SMS**: Intégration avec un service SMS externe (Twilio, Vonage, etc.)
 
 ### 3.2 Infrastructure
@@ -186,13 +183,13 @@ src/
 ├── main.ts                    # Point d'entrée de l'application
 ├── app.module.ts              # Module racine
 ├── modules/                   # Modules fonctionnels
-│   ├── auth/                  # Module d'authentification
-│   ├── verification/          # Module de vérification
+│   ├── auth/                  # Module d'authentification JWT
+│   ├── verification/          # Module de vérification SMS
 │   ├── twoFactor/             # Module 2FA
-│   ├── devices/               # Module de gestion des appareils
-│   └── keyManagement/         # Module de gestion des clés
+│   ├── keyManagement/         # Module de gestion des clés Signal
+│   └── deviceRegistry/        # Module de gestion des appareils
 ├── shared/                    # Code partagé entre modules
-│   ├── guards/                # Guards d'authentification
+│   ├── guards/                # Guards d'authentification JWT
 │   ├── interceptors/          # Interceptors (logging, transformation)
 │   ├── pipes/                 # Pipes de validation
 │   ├── filters/               # Filtres d'exception
@@ -203,11 +200,11 @@ src/
 ### 4.2 Controllers (API Layer)
 
 Les Controllers NestJS exposent les endpoints RESTful:
-- **AuthController**: endpoints d'enregistrement et login
+- **AuthController**: endpoints d'enregistrement, login JWT et refresh tokens
 - **VerificationController**: endpoints de vérification par SMS
 - **TwoFactorController**: endpoints de gestion 2FA
-- **DevicesController**: endpoints de gestion des appareils (CRUD, vérification, révocation)
 - **KeyController**: endpoints de gestion des clés Signal
+- **DeviceController**: endpoints de gestion des appareils multi-device
 
 Avantages:
 - Décorateurs pour définir les routes, méthodes HTTP et validation
@@ -217,11 +214,12 @@ Avantages:
 ### 4.3 Services (Business Logic Layer)
 
 Providers NestJS contenant la logique métier:
-- **AuthService**: gestion des processus d'authentification
+- **AuthService**: gestion des processus d'authentification JWT
+- **JwtTokenService**: génération et validation des tokens JWT
 - **VerificationService**: vérification par SMS
 - **TwoFactorService**: gestion de l'authentification à deux facteurs
-- **DeviceService**: gestion complète des appareils (enregistrement, validation, révocation)
 - **KeyManagementService**: gestion des clés pour le protocole Signal
+- **DeviceRegistryService**: gestion du registre des appareils multi-device
 
 Avantages:
 - Injection de dépendances automatique
@@ -231,18 +229,18 @@ Avantages:
 ### 4.4 Repositories (Data Access Layer)
 
 Gère les accès aux données via TypeORM:
-- **UserRepository**: opérations liées aux utilisateurs d'authentification
-- **DeviceRepository**: opérations CRUD sur les appareils
+- **UserAuthRepository**: opérations liées aux utilisateurs d'authentification
 - **KeyRepository**: opérations liées aux clés cryptographiques
 - **VerificationRepository**: gestion des codes de vérification temporaires
+- **LoginHistoryRepository**: historique des connexions pour audit
 
 ### 4.5 Guards et Interceptors (Security Layer)
 
 Centralise les fonctionnalités de sécurité:
-- **JwtAuthGuard**: validation des tokens JWT
-- **DeviceAuthGuard**: validation de l'appareil authentifié
+- **JwtAuthGuard**: validation des tokens JWT (stateless)
 - **RateLimitInterceptor**: protection contre les attaques par force brute
 - **TwoFactorGuard**: vérification de l'authentification à deux facteurs
+- **DeviceValidationGuard**: validation des appareils multi-device
 - **EncryptionService**: gestion du chiffrement Signal
 
 ### 4.6 Communication avec les autres services via Istio Service Mesh
@@ -251,42 +249,13 @@ Centralise les fonctionnalités de sécurité:
 - **mTLS automatique**: Toutes les communications gRPC sont automatiquement sécurisées par Istio
 - **Service Discovery**: Résolution automatique des services via Istio et Kubernetes DNS
 - **Load Balancing**: Répartition de charge automatique par Envoy proxies
-
-Création d'interfaces gRPC pour les communications inter-services:
-
-**Interfaces exposées par auth-service** :
-- **DeviceService gRPC**: exposition des informations d'appareils aux autres services
-  - `GetDeviceTokens`: récupération des tokens FCM/APNS pour les notifications
-  - `GetUserDevices`: liste des appareils d'un utilisateur
-  - `ValidateDevice`: validation de l'authenticité d'un appareil
-  - `NotifyDeviceActivity`: réception d'activité d'appareil
-
-**Interfaces consommées par auth-service** :
-- **Interface UserService**: récupération de profils, création d'utilisateurs
-- **Interface NotificationService**: notifications d'événements d'appareils
+- Création d'interfaces gRPC pour les communications inter-services:
+  - **Interface UserService**: récupération de profils, création d'utilisateurs
+  - **Interface NotificationService**: envoi de notifications push, gestion des appareils
 
 #### 4.6.1 Configuration Istio pour auth-service
 
 ```yaml
-# AuthorizationPolicy pour permettre à notification-service d'appeler auth-service
-apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
-  name: notification-to-auth-devices
-  namespace: whispr
-spec:
-  selector:
-    matchLabels:
-      app: auth-service
-  rules:
-  - from:
-    - source:
-        principals: ["cluster.local/ns/whispr/sa/notification-service"]
-  - to:
-    - operation:
-        methods: ["GET", "POST"]
-        paths: ["/auth.DeviceService/GetDeviceTokens", "/auth.DeviceService/GetUserDevices"]
----
 # AuthorizationPolicy pour permettre à auth-service d'appeler user-service
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
@@ -312,9 +281,8 @@ spec:
 - **ConfigModule** (@nestjs/config): gestion des variables d'environnement
 - **CacheModule**: intégration Redis pour le cache et les données temporaires
 - **ThrottlerModule**: limitation de débit intégrée (complétée par Istio rate limiting)
-- **JwtModule**: gestion des tokens JWT
+- **JwtModule**: gestion des tokens JWT (STATELESS)
 - **GrpcModule**: communication avec les autres microservices via Istio mTLS
-- **DeviceModule**: module dédié à la gestion des appareils
 - **HealthModule** (@nestjs/terminus): health checks pour Kubernetes et Istio
 
 ## 5. Scaling et Performances
@@ -324,25 +292,24 @@ spec:
 - **Horizontal Pod Autoscaling (HPA)**: Scaling automatique basé sur CPU/mémoire et métriques personnalisées
 - **Istio Load Balancing**: Répartition intelligente de charge avec plusieurs algorithmes (round-robin, least request, etc.)
 - **Circuit Breakers**: Protection automatique contre les cascades de pannes via Istio
-- **Répliques multiples**: Instances sans état pour faciliter le scaling
+- **Répliques multiples**: Instances complètement stateless facilitant le scaling illimité
 - **Health Checks**: Intégration avec les probes Kubernetes et Istio
 
 ### 5.2 Cache et Optimisations
 
-- Mise en cache des validations de token fréquentes
-- **Cache des informations d'appareils**: Redis pour accélérer les requêtes de device tokens
-- Redis pour accélérer les opérations fréquentes
+- **JWT Validation Caching**: Mise en cache des clés publiques de validation
+- **Device Registry Cache**: Cache Redis des informations d'appareils actifs
+- **Refresh Token Metadata**: Métadonnées en cache pour éviter les lookups DB
 - **Connection Pooling**: Gestion optimisée des connexions via Envoy
 - **Request Routing**: Routage intelligent des requêtes via Istio
-- Optimisation des requêtes de base de données (indices appropriés sur la table devices)
+- Optimisation des requêtes de base de données (indices appropriés)
 
 ### 5.3 Limites et Quotas avec Istio
 
 - **Rate Limiting Istio**: Limitation de débit au niveau du service mesh
 - **Per-User Rate Limiting**: Quotas personnalisés par utilisateur
-- **Device Registration Rate Limiting**: Limitation des enregistrements d'appareils
 - **Circuit Breaker Istio**: Protection automatique contre la surcharge
-- Quotas sur les opérations sensibles (création de comptes, vérifications SMS, enregistrement d'appareils)
+- Quotas sur les opérations sensibles (création de comptes, vérifications SMS)
 - Timeout appropriés configurés via Istio VirtualService
 
 ## 6. Monitoring et Observabilité
@@ -361,9 +328,8 @@ spec:
 - **Envoy Access Logs**: Logs automatiques de toutes les requêtes HTTP/gRPC
 - **Distributed Tracing**: Corrélation automatique des logs via trace ID
 - Utilisation du LoggingInterceptor NestJS pour le logging automatique des requêtes
-- **Device Activity Logging**: Logs spécifiques pour les activités d'appareils
 - Niveaux de log différenciés (INFO, WARN, ERROR, DEBUG)
-- Contexte inclus (userId, deviceId, requestId, traceId, etc.)
+- Contexte inclus (userId, requestId, traceId, deviceId, etc.)
 - Sensibilité aux données personnelles (masquage)
 
 ### 6.3 Métriques
@@ -374,11 +340,10 @@ spec:
   - Throughput des communications
   - Métriques de sécurité mTLS
 - **Métriques métier personnalisées**:
-  - Taux de réussite/échec des authentifications
-  - Nombre de tentatives de vérification
-  - **Métriques de gestion d'appareils** : enregistrements, révocations, validations
-  - **Device token sync latency** : performance de synchronisation avec notification-service
-  - Utilisation des ressources système
+  - Taux de réussite/échec des authentifications JWT
+  - Nombre de tokens générés/validés par minute
+  - Taux d'utilisation du device registry
+  - Métriques de refresh token rotation
 
 ### 6.4 Alerting
 
@@ -387,9 +352,8 @@ spec:
   - Échecs de certificats mTLS
   - Latence élevée dans le service mesh
 - **Alertes business**:
-  - Taux d'échec anormal des authentifications
-  - Tentatives suspectes (multiples échecs)
-  - **Alertes d'appareils** : enregistrements anormaux, échecs de synchronisation
+  - Taux d'échec anormal des validations JWT
+  - Tentatives suspectes de refresh token
   - Épuisement des ressources
 
 ## 7. Gestion des Erreurs et Résilience
@@ -401,7 +365,6 @@ spec:
 - Messages d'erreur clairs mais sans divulgation d'informations sensibles
 - Logging détaillé des erreurs pour le débogage
 - **Correlation avec Istio tracing**: Chaque erreur est tracée dans Jaeger
-- **Gestion des erreurs de synchronisation d'appareils** avec retry automatique
 - Possibilité d'enrichir les exceptions via les interceptors NestJS
 
 ### 7.2 Résilience avec Istio
@@ -419,7 +382,7 @@ spec:
 - RTO (Recovery Time Objective): 2 heures max
 - **Multi-AZ Deployment**: Déploiement dans plusieurs zones de disponibilité
 - **Istio Multi-Cluster**: Préparation pour le déploiement multi-cluster si nécessaire
-- Sauvegardes régulières de la base de données (incluant la table devices)
+- Sauvegardes régulières de la base de données
 - Procédures de restauration documentées
 
 ## 8. Évolution et Maintenance
@@ -444,7 +407,6 @@ spec:
 
 - Documentation OpenAPI générée automatiquement via @nestjs/swagger et décorateurs
 - **Documentation Istio**: Configurations des policies de sécurité et traffic management
-- **Documentation des APIs de gestion d'appareils** avec exemples
 - Exemples de code pour l'intégration
 - Flux documentés pour les opérations complexes
 - Guide de dépannage pour les problèmes courants
@@ -457,7 +419,6 @@ spec:
 - Pipeline CI/CD via GitHub Actions
 - **Tests d'intégration Istio**: Validation des configurations service mesh
 - **Security Scanning**: Analyse des configurations Istio pour les vulnérabilités
-- **Tests spécifiques à la gestion d'appareils** : validation des flux d'enregistrement et synchronisation
 - Intégration continue avec tests automatisés
 - Déploiement continu en environnement de développement et staging via ArgoCD
 
@@ -466,7 +427,7 @@ spec:
 - **Namespaces Kubernetes**: Isolation par environnement (dev, staging, prod)
 - **Istio Traffic Management**: Routage par environnement
 - **mTLS par environnement**: Certificats séparés par namespace
-- Isolation complète des données entre environnements (y compris données d'appareils)
+- Isolation complète des données entre environnements
 - Parité des configurations Istio entre environnements
 
 ### 9.3 Support
@@ -475,7 +436,6 @@ spec:
 - **Service Topology**: Visualisation des dépendances via Kiali
 - Logs centralisés pour le diagnostic
 - **Istio Troubleshooting**: Outils intégrés pour diagnostiquer les problèmes de connectivité
-- **Device Troubleshooting**: Outils spécifiques pour diagnostiquer les problèmes d'appareils
 - Procédures documentées pour les problèmes courants
 
 ---
@@ -491,22 +451,22 @@ spec:
 | Taux d'erreur | < 0.1% | Kiali + Prometheus |
 | Disponibilité | > 99% | Istio Health Checks |
 | Temps moyen de vérification SMS | < 10s | Custom metrics |
-| **Device token sync latency** | < 100ms | Custom metrics |
-| **Device registration time** | < 500ms | Custom metrics |
 | mTLS Success Rate | > 99.9% | Istio metrics |
 | Inter-service latency | < 50ms | Envoy metrics |
 | Certificate rotation | Automatique | Istio CA |
+| JWT Validation latency | < 50ms | Custom metrics |
+| Device Registry lookup | < 20ms | Redis metrics |
 
 ### B. Estimation des Ressources
 
 | Ressource | Estimation Initiale | Istio Overhead |
 |-----------|---------------------|----------------|
 | Instances de service | 3 replicas | + Envoy sidecars |
-| CPU par instance | 1.2 vCPU | + 0.1 vCPU (Envoy) |
-| Mémoire par instance | 2.5 GB RAM | + 200MB (Envoy) |
-| Stockage PostgreSQL | 25 GB initial | - |
-| Stockage Redis | 3 GB | - |
-| Bandwidth mensuel | 60 GB | + mTLS overhead (~5%) |
+| CPU par instance | 1 vCPU | + 0.1 vCPU (Envoy) |
+| Mémoire par instance | 2 GB RAM | + 200MB (Envoy) |
+| Stockage PostgreSQL | 20 GB initial | - |
+| Stockage Redis | 2 GB | - |
+| Bandwidth mensuel | 50 GB | + mTLS overhead (~5%) |
 | Istio Control Plane | - | 1 vCPU, 1GB RAM |
 
 ### C. Configuration Istio Examples
@@ -541,13 +501,6 @@ spec:
   - to:
     - operation:
         methods: ["POST", "GET", "PUT", "DELETE"]
-  - from:
-    - source:
-        principals: ["cluster.local/ns/whispr/sa/notification-service"]
-  - to:
-    - operation:
-        methods: ["GET", "POST"]
-        paths: ["/auth.DeviceService/*"]
 ```
 
 #### C.3 DestinationRule avec Circuit Breaker
@@ -577,6 +530,7 @@ spec:
 - [Exigences non fonctionnelles](./non_fonctional_specs.md)
 - [Documentation officielle NestJS](https://docs.nestjs.com/)
 - [Bonnes pratiques NestJS](https://docs.nestjs.com/techniques/performance)
+- [JWT RFC 7519](https://tools.ietf.org/html/rfc7519)
 - [Istio Documentation](https://istio.io/latest/docs/)
 - [Istio Security Best Practices](https://istio.io/latest/docs/ops/best-practices/security/)
 - [Envoy Proxy Documentation](https://www.envoyproxy.io/docs/)
