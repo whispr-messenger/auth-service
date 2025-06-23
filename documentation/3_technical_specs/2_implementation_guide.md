@@ -1,10 +1,10 @@
-# Plan d'Implémentation - Service d'Authentification (Auth-Service)
+# Plan d'Implémentation - Service d'Authentification (Auth-Service) - Programme ESP
 
 ## Vue d'ensemble
 
-Ce plan d'implémentation structure le développement du service d'authentification sur 12 mois, avec une phase de P.O.C (septembre-décembre) suivie d'une phase d'implémentation complète (janvier-août). Le service auth est critique car il constitue le socle sécuritaire de l'ensemble de l'application Whispr.
+Ce plan d'implémentation structure le développement du service d'authentification selon le calendrier du programme ESP, avec une **phase de P.O.C (fin juin - mi-décembre)** suivie d'une **phase de développement final MVP (mi-décembre - fin avril)**. Le service auth est critique car il constitue le socle sécuritaire de l'ensemble de l'application Whispr.
 
-## Phase 1 : Proof of Concept (Septembre - Décembre 2024)
+## Phase 1 : Proof of Concept (Fin Juin - Mi-Décembre)
 
 ### 🎯 Objectifs de la phase P.O.C
 - Valider l'architecture de sécurité et les choix cryptographiques
@@ -13,8 +13,9 @@ Ce plan d'implémentation structure le développement du service d'authentificat
 - Évaluer les performances des opérations cryptographiques
 - Valider la faisabilité du protocole Signal E2E
 - Identifier les risques de sécurité majeurs
+- **Préparer la keynote ESP POC de mi-décembre**
 
-### Septembre 2024 : Fondations Architecture
+### Juillet : Fondations Architecture
 
 **Semaines 1-2 : Setup et Architecture de Sécurité**
 - Configuration de l'environnement de développement sécurisé
@@ -31,7 +32,7 @@ Ce plan d'implémentation structure le développement du service d'authentificat
 - Tests unitaires sur les opérations cryptographiques
 - Validation des contraintes de sécurité
 
-### Octobre 2024 : Authentification Core
+### Août : Authentification Core
 
 **Semaines 1-2 : Authentification par téléphone (P.O.C)**
 
@@ -50,7 +51,7 @@ Fonctionnalités prioritaires P.O.C
 - Stockage sécurisé des sessions dans Redis
 - Tests d'intégration avec user-service (gRPC)
 
-### Novembre 2024 : Sécurité Avancée
+### Septembre : Sécurité Avancée
 
 **Semaines 1-2 : Authentification 2FA (P.O.C)**
 
@@ -68,7 +69,7 @@ Fonctionnalités prioritaires P.O.C
 - Déconnexion à distance d'appareils
 - Synchronisation basique entre appareils
 
-### Décembre 2024 : Chiffrement E2E et Intégration
+### Octobre : Chiffrement E2E - Fondations
 
 **Semaines 1-2 : Protocole Signal - Base (P.O.C)**
 - Implémentation des primitives cryptographiques
@@ -76,293 +77,197 @@ Fonctionnalités prioritaires P.O.C
 - Système de prekeys (signed prekeys et one-time prekeys)
 - Tests cryptographiques avec vecteurs de test
 
-**Semaines 3-4 : Tests et Documentation P.O.C**
+**Semaines 3-4 : X3DH et établissement de session (P.O.C)**
+- Implémentation du protocole X3DH simplifié
+- Établissement de sessions de base
+- Tests de communication E2E basiques
+- Validation des concepts cryptographiques
+
+### Novembre : Intégration et Perfectionnement
+
+**Semaines 1-2 : Double Ratchet - Version P.O.C**
+- Implémentation simplifiée du Double Ratchet
+- Forward secrecy de base
+- Tests de robustesse cryptographique
+- Optimisations performances initiales
+
+**Semaines 3-4 : Multi-appareil - Concepts (P.O.C)**
+- Prototypage de la synchronisation multi-appareils
+- Gestion basique des clés pour multiple devices
+- Tests de faisabilité technique
+- Identification des défis de synchronisation
+
+### Décembre (1ère moitié) : Finalisation P.O.C et Keynote
+
+**Semaines 1-2 : Tests et Documentation P.O.C**
 - Tests de sécurité et pénétration basiques
 - Documentation technique et cryptographique
 - Intégration complète avec user-service
+- Métriques de performance et benchmarks
 - Retour d'expérience et recommandations sécurité
-- Planification de la phase d'implémentation
+
+**🎯 Keynote ESP – POC (Mi-décembre)**
+- Démonstration des flux d'authentification
+- Présentation de l'architecture de sécurité
+- Validation des concepts cryptographiques
+- Métriques de performance
+- Roadmap pour la phase MVP
 
 ### 📊 Livrables Phase P.O.C
-- Architecture de sécurité validée et auditée
-- Prototype fonctionnel des flux d'authentification
-- Tests de sécurité et performance préliminaires
-- Documentation des APIs et protocoles cryptographiques
-- Plan détaillé pour la phase d'implémentation
-- Rapport de sécurité et recommandations
+- ✅ Architecture de sécurité validée et auditée
+- ✅ Prototype fonctionnel des flux d'authentification
+- ✅ Tests de sécurité et performance préliminaires
+- ✅ Documentation des APIs et protocoles cryptographiques
+- ✅ Présentation keynote ESP convaincante
+- ✅ Plan détaillé pour la phase MVP
 
 ---
 
-## Phase 2 : Implémentation Complète (Janvier - Août 2025)
+## Phase 2 : Développement Final MVP (Mi-Décembre - Fin Avril)
 
-### 🎯 Objectifs de la phase d'implémentation
-- Implémentation complète du protocole Signal
+### 🎯 Objectifs de la phase MVP
+- Implémentation complète et robuste du protocole Signal
 - Sécurisation avancée avec audit de sécurité
 - Performance et scalabilité des opérations cryptographiques
 - Intégration complète avec l'écosystème Whispr
 - Conformité aux standards de sécurité (OWASP, NIST)
-- Déploiement sécurisé en production
+- **Préparation pour la keynote ESP finale de mi-mai**
 
-### Janvier 2025 : Consolidation et Sécurisation
+### Décembre (2ème moitié) - Janvier : Consolidation et Production-Ready
 
-**Semaines 1-2 : Hardening Post-P.O.C**
+**Mi-Décembre - Fin Décembre : Hardening Post-P.O.C**
 - Refactoring sécurisé basé sur les apprentissages P.O.C
 - Durcissement de l'architecture de sécurité
 - Mise en place des patterns cryptographiques définitifs
 - Configuration sécurisée des environnements (dev, staging, prod)
 - Audit de sécurité du code existant
 
-**Semaines 3-4 : Authentification - Version Production**
+**Janvier : Authentification - Version Production**
 
 Sprint 1 - Production Authentication
 
 Epic: Production-Ready Authentication
 
 Stories:
-- Authentification robuste avec gestion d'erreurs
+- Authentification robuste avec gestion d'erreurs complète
 - Rate limiting avancé par IP/utilisateur/téléphone
 - Logs d'audit et monitoring sécurisé
-- Gestion des cas d'erreur et recovery
+- Gestion des cas d'erreur et recovery automatique
 - API complète avec documentation OpenAPI
+- Tests de charge et performance
 
-### Février 2025 : 2FA et Sécurité Avancée
+### Février : Sécurité Avancée et Multi-Device
 
-**Semaines 1-2 : 2FA Production**
+**Semaines 1-2 : 2FA Production et Sécurité Avancée**
 
-Sprint 2 - Advanced Two-Factor Authentication
+Sprint 2 - Advanced Security Features
 
-Epic: Production 2FA System
+Epic: Production 2FA and Security
 
 Stories:
 - Interface utilisateur complète pour 2FA
 - Gestion avancée des codes de secours
 - Support multi-applications d'authentification
-- Recovery flows sécurisés
-- Tests de sécurité approfondis
+- Recovery flows sécurisés et audités
+- Tests de sécurité approfondis et automatisés
 
-**Semaines 3-4 : Gestion avancée des appareils**
+**Semaines 3-4 : Gestion Multi-Device Complète**
 
-Sprint 3 - Advanced Device Management
+Sprint 3 - Complete Multi-Device Management
 
-Epic: Secure Multi-Device Management
+Epic: Advanced Multi-Device Support
 
 Stories:
-- Vérification croisée entre appareils
-- Codes de sécurité cryptographiques
-- Gestion des appareils compromis
+- Vérification croisée entre appareils robuste
+- Codes de sécurité cryptographiques avancés
+- Gestion complète des appareils compromis
 - Synchronisation sécurisée des métadonnées
-- Dashboard de sécurité pour les utilisateurs
+- Dashboard de sécurité utilisateur intuitif
 
-### Mars 2025 : Chiffrement E2E - Partie 1
+### Mars : Chiffrement E2E Complet
 
-**Semaines 1-2 : X3DH et établissement de session**
+**Semaines 1-2 : Signal Protocol - Production**
 
-Sprint 4 - X3DH Protocol Implementation
+Sprint 4 - Complete Signal Protocol
 
-Epic: Signal Protocol - Session Establishment
-
-Stories:
-- Implémentation complète du protocole X3DH
-- Gestion des prekeys avec rotation automatique
-- Établissement asynchrone de sessions
-- Tests cryptographiques complets
-- Gestion des erreurs cryptographiques
-
-**Semaines 3-4 : Double Ratchet Algorithm**
-
-Sprint 5 - Double Ratchet Implementation
-
-Epic: Signal Protocol - Double Ratchet
+Epic: Production Signal Protocol
 
 Stories:
-- Implémentation du Double Ratchet complet
-- Gestion des messages hors séquence
-- Forward secrecy et future secrecy
-- Optimisations performance pour mobile
-- Tests de robustesse cryptographique
+- Implémentation complète et optimisée du protocole X3DH
+- Gestion avancée des prekeys avec rotation automatique
+- Établissement asynchrone robuste de sessions
+- Tests cryptographiques exhaustifs
+- Gestion d'erreurs cryptographiques complète
 
-### Avril 2025 : Chiffrement E2E - Partie 2
+**Semaines 3-4 : Double Ratchet Optimisé**
 
-**Semaines 1-2 : Multi-appareil et synchronisation**
+Sprint 5 - Optimized Double Ratchet
 
-Sprint 6 - Multi-Device E2E Encryption
-
-Epic: Signal Protocol - Multi-Device Support
+Epic: Production Double Ratchet
 
 Stories:
-- Synchronisation des sessions entre appareils
-- Gestion des clés pour multiple devices
-- Fan-out/fan-in pour les messages groupés
-- Vérification des appareils utilisateur
-- Tests de synchronisation cryptographique
+- Implémentation optimisée du Double Ratchet
+- Gestion robuste des messages hors séquence
+- Forward secrecy et future secrecy garanties
+- Optimisations performance pour mobile et web
+- Tests de résistance et robustesse cryptographique
 
-**Semaines 3-4 : Gestion avancée des clés**
+### Avril : Performance, Scalabilité et Finalisation
 
-Sprint 7 - Advanced Key Management
+**Semaines 1-2 : Performance et Scalabilité**
 
-Epic: Cryptographic Key Lifecycle
+Sprint 6 - Performance & Scalability
 
-Stories:
-- Rotation automatique des clés avec période configurable
-- Sauvegarde et recovery des clés
-- Audit trail complet des opérations sur les clés
-- Performance des opérations cryptographiques
-- Monitoring des opérations sensibles
-
-### Mai 2025 : Performance et Scalabilité
-
-**Semaines 1-2 : Optimisations cryptographiques**
-
-Sprint 8 - Cryptographic Performance
-
-Epic: Performance Optimization
+Epic: Production Performance
 
 Stories:
-- Optimisation des opérations cryptographiques
-- Cache intelligent pour les clés fréquemment utilisées
+- Optimisations complètes des opérations cryptographiques
+- Cache intelligent et efficace pour les clés
 - Parallélisation des opérations coûteuses
-- Benchmarking et profiling
-- Tests de charge sur les opérations crypto
-
-**Semaines 3-4 : Scalabilité et résilience**
-
-Sprint 9 - Scalability & Resilience
-
-Epic: Service Scalability
-
-Stories:
 - Scaling horizontal du service auth
-- Réplication Redis avec haute disponibilité
-- Circuit breakers pour services externes
-- Monitoring avancé et alerting
-- Tests de failover et disaster recovery
+- Tests de charge et stress complets
 
-### Juin 2025 : Intégration et Communication
+**Semaines 3-4 : Intégration Finale et Monitoring**
 
-**Semaines 1-2 : Communication inter-services**
+Sprint 7 - Final Integration & Monitoring
 
-Sprint 10 - Inter-Service Communication
-
-Epic: gRPC Integration & APIs
+Epic: Complete Integration
 
 Stories:
 - APIs gRPC robustes avec tous les services
-- Gestion des timeouts et retry policies
-- Validation des contrats d'API
-- Documentation complète des interfaces
-- Tests d'intégration end-to-end
+- Monitoring avancé et alerting intelligent
+- Dashboard opérationnel complet
+- Tests d'intégration end-to-end exhaustifs
+- Documentation complète utilisateur et technique
 
-**Semaines 3-4 : Services externes et monitoring**
+**Fin Avril : Préparation Keynote Finale**
+- Finalisation de toutes les fonctionnalités
+- Tests finaux et validation complète
+- Préparation démonstration keynote
+- Métriques finales et benchmarks
+- Documentation de présentation
 
-Sprint 11 - External Services & Monitoring
-
-Epic: External Integration & Observability
-
-Stories:
-- Intégration robuste avec services SMS
-- Monitoring et alerting complets
-- Dashboard opérationnel
-- Gestion des incidents et escalade
-- Documentation runbook opérationnel
-
-### Juillet 2025 : Sécurité et Audit
-
-**Semaines 1-2 : Audit de sécurité complet**
-
-Sprint 12 - Security Audit & Hardening
-
-Epic: Security Audit & Compliance
-
-Stories:
-- Audit de sécurité par expert externe
-- Tests de pénétration spécialisés
-- Validation OWASP Top 10
-- Hardening configuration production
-- Certification sécurité
-
-**Semaines 3-4 : Tests de sécurité avancés**
-
-Sprint 13 - Advanced Security Testing
-
-Epic: Security Testing & Validation
-
-Stories:
-- Tests cryptographiques avec outils spécialisés
-- Validation de la résistance aux attaques
-- Tests de résistance au timing attacks
-- Audit des logs et traces
-- Plan de réponse aux incidents sécurité
-
-### Août 2025 : Déploiement et Production
-
-**Semaines 1-2 : Préparation production sécurisée**
-
-Sprint 14 - Secure Production Deployment
-
-Epic: Production Security Deployment
-
-Stories:
-- Configuration production sécurisée GKE
-- Secrets management avec rotation
-- Monitoring sécurisé et alerting
-- Backup et disaster recovery
-- Formation équipe sécurité
-
-**Semaines 3-4 : Go-Live et Monitoring**
-
-Sprint 15 - Production Launch & Monitoring
-
-Epic: Secure Production Launch
-
-Stories:
-- Déploiement production avec blue/green
-- Monitoring temps réel des métriques de sécurité
-- Support utilisateur pour problèmes d'authentification
-- Incident response et escalade
-- Post-mortem sécurité et améliorations
+### 🎯 Keynote ESP – Final MVP (Mi-Mai)
+- Démonstration complète du produit final
+- Présentation des métriques de performance et sécurité
+- Showcase des fonctionnalités avancées
+- Vision produit et impact
+- Retour d'expérience et lessons learned
 
 ---
 
-## 📋 Matrice des Dépendances
+## 📋 Matrice des Dépendances Adaptée
 
 ### Dépendances Critiques
 
-| Fonctionnalité | Dépend de | Requis pour |
-|---------------|-----------|-------------|
-| Authentification Base | Services SMS, Redis | Toutes les autres fonctionnalités |
-| Gestion Sessions | Authentification | user-service, autres services |
-| 2FA | Authentification, Sessions | Sécurité avancée |
-| Gestion Appareils | Authentification, 2FA | Chiffrement E2E |
-| Protocole Signal | Gestion Appareils | messaging-service |
-| Multi-Device | Protocole Signal | Synchronisation complète |
-
-### Intégrations Inter-Services
-
-```mermaid
-graph TD
-    A[Auth Service] --> B[User Service]
-    A --> C[Messaging Service]  
-    A --> D[Notification Service]
-    A --> E[Services SMS Externes]
-    
-    B --> A
-    C --> A
-    F[API Gateway] --> A
-    G[Tous les autres services] --> A
-```
-
-### Dépendances Cryptographiques
-
-```mermaid
-graph TD
-    A[Authentification Base] --> B[Gestion Sessions]
-    B --> C[2FA TOTP]
-    C --> D[Gestion Appareils]
-    D --> E[Clés d'Identité]
-    E --> F[X3DH Protocol]
-    F --> G[Double Ratchet]
-    G --> H[Multi-Device E2E]
-```
+| Fonctionnalité | Phase | Dépend de | Requis pour |
+|---------------|-------|-----------|-------------|
+| Authentification Base | P.O.C | Services SMS, Redis | Keynote P.O.C, toutes autres fonctionnalités |
+| Gestion Sessions | P.O.C | Authentification | user-service, autres services |
+| 2FA | P.O.C | Authentification, Sessions | Sécurité avancée MVP |
+| Gestion Appareils | P.O.C | Authentification, 2FA | Chiffrement E2E |
+| Protocole Signal | P.O.C/MVP | Gestion Appareils | messaging-service |
+| Multi-Device Complet | MVP | Protocole Signal | Keynote finale |
 
 ---
 
@@ -386,148 +291,109 @@ graph TD
 - **Logging**: Loki avec logs d'audit
 - **SMS**: Twilio/Vonage avec fallback
 
-### Outils de Sécurité
-- **SAST**: SonarQube avec règles de sécurité
-- **Tests de sécurité**: OWASP ZAP, Burp Suite
-- **Audit crypto**: Outils spécialisés pour Signal Protocol
-- **Monitoring sécurité**: Détection d'anomalies
-
 ---
 
-## 📊 Métriques de Succès
+## 📊 Métriques de Succès Adaptées
 
-### Phase P.O.C
+### Phase P.O.C (Keynote Mi-Décembre)
 - ✅ Architecture de sécurité validée par expert
 - ✅ Prototypes cryptographiques fonctionnels
 - ✅ Tests de sécurité basiques passants
-- ✅ Performance acceptable sur opérations crypto
+- ✅ Performance acceptable sur opérations crypto (< 500ms)
 - ✅ Intégration services externes validée
+- ✅ Démonstration convaincante lors de la keynote
 
-### Phase Implémentation
+### Phase MVP (Keynote Mi-Mai)
 - ✅ Couverture de tests > 85% (incluant tests crypto)
 - ✅ Temps de réponse authentification < 200ms (99e percentile)
-- ✅ Temps de réponse opérations crypto < 500ms
-- ✅ Audit de sécurité externe passant
+- ✅ Temps de réponse opérations crypto < 300ms
+- ✅ Audit de sécurité interne passant
 - ✅ Conformité OWASP Top 10
-- ✅ Tests de pénétration passants
-- ✅ Déploiement production sécurisé réussi
-
-### Métriques de Sécurité
-- ✅ 0 vulnérabilité critique non résolue
-- ✅ Temps de détection d'incident < 5 minutes
-- ✅ Temps de résolution incident < 2 heures
-- ✅ Uptime > 99.9%
-- ✅ Taux d'échec authentification < 0.1%
+- ✅ Tests de pénétration basiques passants
+- ✅ Déploiement staging sécurisé réussi
+- ✅ Présentation finale impressionnante
 
 ---
 
-## ⚠️ Risques et Mitigations
+## ⚠️ Risques et Mitigations Adaptés
 
-### Risques Techniques Spécifiques à l'Auth
-
-| Risque | Probabilité | Impact | Mitigation |
-|--------|-------------|--------|------------|
-| Vulnérabilité crypto | Faible | Critique | Audit externe, tests spécialisés, utilisation de bibliothèques éprouvées |
-| Performance crypto | Moyenne | Élevé | Benchmarking continu, optimisations, cache intelligent |
-| Complexité Signal Protocol | Élevée | Élevé | P.O.C approfondi, expertise externe, tests extensifs |
-| Intégration SMS | Moyenne | Élevé | Multiple providers, fallback, monitoring |
-| Scalabilité Redis | Moyenne | Élevé | Cluster Redis, monitoring, tests de charge |
-
-### Risques de Sécurité
+### Risques Planning Spécifiques ESP
 
 | Risque | Probabilité | Impact | Mitigation |
 |--------|-------------|--------|------------|
-| Attaque cryptographique | Faible | Critique | Audit externe, protocoles éprouvés, monitoring |
-| Compromission clés | Faible | Critique | Rotation automatique, HSM, séparation des clés |
-| Attaque par timing | Moyenne | Moyen | Protection timing attack, tests spécialisés |
-| Fuite de données | Faible | Critique | Chiffrement au repos, logs d'audit, monitoring |
+| Retard avant keynote P.O.C | Moyenne | Critique | Buffer de 1 semaine, scope réduit si nécessaire |
+| Complexité Signal pour MVP | Élevée | Élevé | Implémentation progressive, focus sur core features |
+| Retard avant keynote finale | Moyenne | Critique | Jalons intermédiaires, backup plans |
+| Qualité vs timing | Élevée | Moyen | Priorisation stricte, scope flexible |
 
-### Risques Planning
+### Risques Techniques
 
 | Risque | Probabilité | Impact | Mitigation |
 |--------|-------------|--------|------------|
-| Retard implémentation Signal | Élevée | Élevé | Démarrage précoce, expertise externe, buffer |
-| Complexité multi-device | Élevée | Moyen | Prototypage approfondi, tests extensifs |
-| Audit sécurité externe | Moyenne | Élevé | Planification précoce, budget dédié |
+| Performance crypto | Moyenne | Élevé | Benchmarking continu, optimisations précoces |
+| Intégration services | Moyenne | Élevé | Tests d'intégration continus, mocks robustes |
+| Scalabilité Redis | Faible | Moyen | Configuration cluster dès le début |
 
 ---
 
-## 👥 Équipe et Ressources
+## 👥 Équipe et Ressources Adaptées
 
 ### Équipe Core
 - **1 Tech Lead Sécurité** (temps plein)
 - **2 Développeurs Backend spécialisés crypto** (temps plein)
 - **1 Expert Sécurité/Cryptographie** (50% temps)
-- **1 DevSecOps** (temps plein)
+- **1 DevSecOps** (75% temps)
 
 ### Support Spécialisé
-- **Expert Signal Protocol** (consulting)
-- **Auditeur Sécurité Externe** (audit)
-- **Expert OWASP** (validation)
-- **Testeur Pénétration** (tests sécurité)
-
-### Support Transverse
-- **Product Owner Sécurité** (suivi fonctionnel)
-- **Architecte Solution** (cohérence technique)
-- **Expert Juridique** (conformité)
+- **Expert Signal Protocol** (consulting ponctuel)
+- **Auditeur Sécurité** (audit interne)
+- **Product Owner** (suivi keynotes et démo)
 
 ---
 
-## 🔒 Considérations de Sécurité Spéciales
-
-### Phase P.O.C
-- Environnement isolé pour les tests cryptographiques
-- Pas de données utilisateur réelles
-- Clés de test séparées des clés de production
-- Audit de code automatisé sur chaque commit
-
-### Phase Implémentation
-- Séparation stricte des environnements
-- Chiffrement de bout en bout des données sensibles
-- Rotation automatique des secrets
-- Monitoring en temps réel des tentatives d'intrusion
-- Plan de réponse aux incidents détaillé
-
-### Production
-- Surveillance 24/7 des métriques de sécurité
-- Alertes automatiques sur anomalies
-- Backup chiffré et disaster recovery
-- Audit trail complet de toutes les opérations
-- Certification et audit réguliers
-
----
-
-## 📅 Jalons Clés
+## 📅 Jalons Clés ESP
 
 | Date | Jalon | Critères de succès |
 |------|-------|-------------------|
-| **Fin Oct 2024** | Auth Core P.O.C | Authentification + Sessions + JWT |
-| **Fin Nov 2024** | Sécurité Avancée P.O.C | 2FA + Multi-device + QR Auth |
-| **Fin Déc 2024** | Crypto P.O.C Validé | Signal Protocol base + Tests crypto |
-| **Fin Fév 2025** | Production Auth | Auth + 2FA + Devices en production |
-| **Fin Avr 2025** | E2E Complet | Signal Protocol complet + Multi-device |
-| **Fin Juin 2025** | Intégration Complète | Tous services intégrés + Monitoring |
-| **Fin Juil 2025** | Audit Sécurité | Audit externe passant + Certification |
-| **Mi-Août 2025** | Production Sécurisée | Déploiement sécurisé + Monitoring 24/7 |
+| **Fin Août** | Auth Core P.O.C | Authentification + Sessions + JWT |
+| **Fin Septembre** | Sécurité Avancée P.O.C | 2FA + Multi-device + QR Auth |
+| **Fin Novembre** | Crypto P.O.C Complet | Signal Protocol base + Multi-device concepts |
+| **🎯 Mi-Décembre** | **Keynote ESP - P.O.C** | **Démonstration convaincante P.O.C** |
+| **Fin Janvier** | Production Auth | Auth + 2FA + Devices en production |
+| **Fin Mars** | E2E Complet | Signal Protocol complet + Multi-device robuste |
+| **Fin Avril** | MVP Finalisé | Tous services intégrés + Performance optimisée |
+| **🎯 Mi-Mai** | **Keynote ESP - Final MVP** | **Présentation finale impressionnante** |
 
 ---
 
-## 📚 Documentation Spécialisée
+## 🎯 Préparation des Keynotes
 
-### Documentation Technique
-- Architecture de sécurité détaillée
-- Spécifications cryptographiques complètes
-- Guide d'implémentation Signal Protocol
-- Documentation des APIs avec exemples sécurisés
+### Keynote P.O.C (Mi-Décembre)
+**Objectifs de présentation :**
+- Démontrer la faisabilité technique complète
+- Présenter l'architecture de sécurité solide
+- Montrer les performances cryptographiques
+- Convaincre sur la robustesse de l'approche
 
-### Documentation Opérationnelle
-- Runbook de sécurité et incidents
-- Procédures de rotation des clés
-- Plan de disaster recovery
-- Guide de monitoring et alerting
+**Éléments de démonstration :**
+- Authentification complète par SMS + 2FA
+- Scan QR code entre appareils
+- Chiffrement E2E basique fonctionnel
+- Métriques de performance temps réel
 
-### Documentation Conformité
-- Audit de sécurité et recommandations
-- Conformité OWASP et standards
-- Certification et validation externe
-- Plan de mise à jour sécurité
+### Keynote Finale (Mi-Mai)
+**Objectifs de présentation :**
+- Démontrer le produit final complet
+- Montrer l'impact utilisateur et la valeur
+- Présenter les métriques de performance
+- Vision produit et potentiel commercial
+
+**Éléments de démonstration :**
+- Expérience utilisateur fluide et sécurisée
+- Synchronisation multi-appareils transparente
+- Tableaux de bord et monitoring en temps réel
+- Comparaison avec solutions existantes
+
+---
+
+Ce plan d'implémentation est maintenant aligné sur le calendrier du programme ESP, avec des jalons clairs pour les deux keynotes importantes et un focus sur la démonstration de valeur à chaque étape.
