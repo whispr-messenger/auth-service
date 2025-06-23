@@ -1,0 +1,83 @@
+###################################################################################################
+# DOCKER COMPOSE FILE FOR WHISPR AUTH SERVICE DEVELOPMENT ENVIRONMENT                             #
+###################################################################################################
+# - This file sets up the development environment with PostgreSQL, Redis, and the Auth service.   #
+# - This configuration depends on a .env file in the same directory for environment variables     #
+#   Ensure to create a .env file with the necessary variables before running this setup.          #
+###################################################################################################
+
+name: whispr-auth
+
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: whispr-auth-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}9 
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    expose:
+      - "5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - whispr-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: whispr-auth-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - whispr-network
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: docker/nestjs/Dockerfile
+    container_name: whispr-auth-api
+    volumes:
+      - .:/workspace:cached
+      - node_modules_volume:/workspace/node_modules
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /workspace
+    command: sleep infinity  # Keep container running for dev
+    environment:
+      NODE_ENV: development
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      GRPC_PORT: 50051
+    ports:
+      - "3000:3000"   # NestJS
+      - "9229:9229"   # Debugger
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - whispr-network
+
+volumes:
+  node_modules_volume:
+  postgres_data:
+  redis_data:
+
+networks:
+  whispr-network:
+    driver: bridge
