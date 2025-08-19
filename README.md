@@ -2,7 +2,7 @@
 
 ## Description
 
-Microservice d'authentification développé par DALM1 pour l'équipe Whisper. Ce service fournit une solution complète d'authentification sécurisée avec support 2FA, gestion multi-appareils et chiffrement Signal Protocol.
+Microservice d'authentification développé par DALM1 équipe Whisper. Ce service fournit une solution complète d'authentification sécurisée avec support 2FA, gestion multi-appareils et chiffrement Signal Protocol.
 
 ## Architecture
 
