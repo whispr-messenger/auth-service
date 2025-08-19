@@ -52,7 +52,7 @@ export class SmsService {
         recovery: 'récupération de compte',
       }[purpose] || 'vérification';
 
-    return `Votre code de ${purposeText} Whisper: ${code}. Ce code expire dans 15 minutes. Ne le partagez jamais.`;
+    return `Votre code de ${purposeText} Whispr: ${code}. Ce code expire dans 15 minutes. Ne le partagez jamais.`;
   }
 
   private async sendSms(phoneNumber: string, message: string): Promise<void> {
@@ -96,11 +96,11 @@ export class SmsService {
   ): Promise<void> {
     const messages = {
       new_device:
-        "Un nouvel appareil s'est connecté à votre compte Whisper. Si ce n'était pas vous, sécurisez votre compte immédiatement.",
+        "Un nouvel appareil s'est connecté à votre compte Whispr. Si ce n'était pas vous, sécurisez votre compte immédiatement.",
       suspicious_login:
-        'Tentative de connexion suspecte détectée sur votre compte Whisper. Vérifiez votre activité récente.',
+        'Tentative de connexion suspecte détectée sur votre compte Whispr. Vérifiez votre activité récente.',
       password_change:
-        "Le mot de passe de votre compte Whisper a été modifié. Si ce n'était pas vous, contactez le support immédiatement.",
+        "Le mot de passe de votre compte Whispr a été modifié. Si ce n'était pas vous, contactez le support immédiatement.",
     };
 
     const message = messages[alertType];

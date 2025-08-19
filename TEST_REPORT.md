@@ -2,11 +2,11 @@
 
 ## Vue d'ensemble
 
-**Projet**: Microservice d'authentification Whisper  
-**Développeur**: DALM1  
-**Date**: 2024  
-**Framework de tests**: Jest  
-**Nombre total de tests**: 36  
+**Projet**: Microservice d'authentification Whispr
+**Développeur**: DALM1
+**Date**: 2024
+**Framework de tests**: Jest
+**Nombre total de tests**: 36
 **Statut**: TOUS LES TESTS PASSENT
 
 ## Résumé des résultats
@@ -32,7 +32,7 @@ Ran all test suites.
 
 ### 1. AuthService (auth.service.spec.ts)
 
-**Nombre de tests**: 8  
+**Nombre de tests**: 8
 **Statut**: TOUS PASSENT
 
 #### Tests couverts:
@@ -54,7 +54,7 @@ Ran all test suites.
 
 ### 2. TokenService (token.service.spec.ts)
 
-**Nombre de tests**: 6  
+**Nombre de tests**: 6
 **Statut**: TOUS PASSENT
 
 #### Tests couverts:
@@ -74,7 +74,7 @@ Ran all test suites.
 
 ### 3. VerificationService (verification.service.spec.ts)
 
-**Nombre de tests**: 7  
+**Nombre de tests**: 7
 **Statut**: TOUS PASSENT
 
 #### Tests couverts:
@@ -96,7 +96,7 @@ Ran all test suites.
 
 ### 4. DeviceService (device.service.spec.ts)
 
-**Nombre de tests**: 6  
+**Nombre de tests**: 6
 **Statut**: TOUS PASSENT
 
 #### Tests couverts:
@@ -117,7 +117,7 @@ Ran all test suites.
 
 ### 5. CryptoService (crypto.service.spec.ts)
 
-**Nombre de tests**: 5  
+**Nombre de tests**: 5
 **Statut**: TOUS PASSENT
 
 #### Tests couverts:
@@ -136,7 +136,7 @@ Ran all test suites.
 
 ### 6. TwoFactorService (two-factor.service.spec.ts)
 
-**Nombre de tests**: 4  
+**Nombre de tests**: 4
 **Statut**: TOUS PASSENT
 
 #### Tests couverts:
@@ -267,7 +267,7 @@ Le service est prêt pour le déploiement en production avec une confiance élev
 
 ---
 
-**Rapport généré par**: DALM1  
-**Pour**: Équipe Whisper  
-**Date**: 2024  
+**Rapport généré par**: DALM1
+**Pour**: Équipe Whisper
+**Date**: 2024
 **Version du service**: 1.0.0
