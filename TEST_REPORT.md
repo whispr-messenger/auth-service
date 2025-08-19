@@ -268,6 +268,6 @@ Le service est prêt pour le déploiement en production avec une confiance élev
 ---
 
 **Rapport généré par**: DALM1
-**Pour**: Équipe Whisper
+**Pour**: Équipe Whispr
 **Date**: 2024
 **Version du service**: 1.0.0
