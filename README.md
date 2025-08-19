@@ -202,7 +202,7 @@ src/
 Pour toute question ou problème:
 1. Consulter la documentation technique dans `/documentation`
 2. Vérifier les logs d'application
-3. Contacter l'équipe de développement Whisper
+3. Contacter l'équipe de développement Whisper via Teams ou Discord (.env)
 
 ## Licence
 
