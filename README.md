@@ -33,7 +33,7 @@ Microservice d'authentification développé par DALM1 équipe Whisper. Ce servic
 - Chiffrement bcrypt pour les mots de passe
 - JWT avec révocation de tokens
 - Rate limiting par endpoint
-- Protection contre les attaques par force brute
+- Protection contre les attaques par brute force
 - Validation stricte des données d'entrée
 
 ### Multi-appareils
