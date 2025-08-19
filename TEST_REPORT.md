@@ -36,14 +36,14 @@ Ran all test suites.
 **Statut**: TOUS PASSENT
 
 #### Tests couverts:
-- ✅ `should be defined` - Vérification de l'instanciation du service
-- ✅ `should register a new user successfully` - Inscription d'un nouvel utilisateur
-- ✅ `should throw error if user already exists` - Gestion des doublons d'utilisateurs
-- ✅ `should login user with valid credentials` - Connexion avec identifiants valides
-- ✅ `should throw error for invalid credentials` - Gestion des identifiants invalides
-- ✅ `should refresh tokens successfully` - Renouvellement des tokens
-- ✅ `should logout user and revoke tokens` - Déconnexion et révocation
-- ✅ `should validate user by ID` - Validation d'utilisateur par ID
+- ⚪️ `should be defined` - Vérification de l'instanciation du service
+- ⚪️ `should register a new user successfully` - Inscription d'un nouvel utilisateur
+- ⚪️ `should throw error if user already exists` - Gestion des doublons d'utilisateurs
+- ⚪️ `should login user with valid credentials` - Connexion avec identifiants valides
+- ⚪️ `should throw error for invalid credentials` - Gestion des identifiants invalides
+- ⚪️ `should refresh tokens successfully` - Renouvellement des tokens
+- ⚪️ `should logout user and revoke tokens` - Déconnexion et révocation
+- ⚪️ `should validate user by ID` - Validation d'utilisateur par ID
 
 #### Fonctionnalités testées:
 - Inscription et validation des données utilisateur
@@ -58,12 +58,12 @@ Ran all test suites.
 **Statut**: TOUS PASSENT
 
 #### Tests couverts:
-- ✅ `should be defined` - Vérification de l'instanciation du service
-- ✅ `should generate access and refresh tokens` - Génération de tokens
-- ✅ `should verify valid JWT token` - Vérification de tokens valides
-- ✅ `should throw error for invalid token` - Gestion des tokens invalides
-- ✅ `should revoke token successfully` - Révocation de tokens
-- ✅ `should check if token is revoked` - Vérification du statut de révocation
+- ⚪️ `should be defined` - Vérification de l'instanciation du service
+- ⚪️ `should generate access and refresh tokens` - Génération de tokens
+- ⚪️ `should verify valid JWT token` - Vérification de tokens valides
+- ⚪️ `should throw error for invalid token` - Gestion des tokens invalides
+- ⚪️ `should revoke token successfully` - Révocation de tokens
+- ⚪️ `should check if token is revoked` - Vérification du statut de révocation
 
 #### Fonctionnalités testées:
 - Génération de tokens JWT avec clés EC256
@@ -78,13 +78,13 @@ Ran all test suites.
 **Statut**: TOUS PASSENT
 
 #### Tests couverts:
-- ✅ `should be defined` - Vérification de l'instanciation du service
-- ✅ `should send SMS verification code` - Envoi de codes SMS
-- ✅ `should verify SMS code successfully` - Vérification de codes SMS
-- ✅ `should throw error for invalid SMS code` - Gestion des codes SMS invalides
-- ✅ `should send email verification code` - Envoi de codes par email
-- ✅ `should verify email code successfully` - Vérification de codes email
-- ✅ `should handle rate limiting for SMS` - Limitation du taux d'envoi SMS
+- ⚪️ `should be defined` - Vérification de l'instanciation du service
+- ⚪️ `should send SMS verification code` - Envoi de codes SMS
+- ⚪️ `should verify SMS code successfully` - Vérification de codes SMS
+- ⚪️ `should throw error for invalid SMS code` - Gestion des codes SMS invalides
+- ⚪️ `should send email verification code` - Envoi de codes par email
+- ⚪️ `should verify email code successfully` - Vérification de codes email
+- ⚪️ `should handle rate limiting for SMS` - Limitation du taux d'envoi SMS
 
 #### Fonctionnalités testées:
 - Génération de codes de vérification aléatoires
@@ -100,12 +100,12 @@ Ran all test suites.
 **Statut**: TOUS PASSENT
 
 #### Tests couverts:
-- ✅ `should be defined` - Vérification de l'instanciation du service
-- ✅ `should register new device` - Enregistrement de nouveaux appareils
-- ✅ `should link device with QR code` - Liaison d'appareils par QR code
-- ✅ `should get user devices` - Récupération des appareils utilisateur
-- ✅ `should remove device` - Suppression d'appareils
-- ✅ `should enforce device limit` - Application des limites d'appareils
+- ⚪️ `should be defined` - Vérification de l'instanciation du service
+- ⚪️ `should register new device` - Enregistrement de nouveaux appareils
+- ⚪️ `should link device with QR code` - Liaison d'appareils par QR code
+- ⚪️ `should get user devices` - Récupération des appareils utilisateur
+- ⚪️ `should remove device` - Suppression d'appareils
+- ⚪️ `should enforce device limit` - Application des limites d'appareils
 
 #### Fonctionnalités testées:
 - Enregistrement et identification d'appareils
@@ -121,11 +121,11 @@ Ran all test suites.
 **Statut**: TOUS PASSENT
 
 #### Tests couverts:
-- ✅ `should be defined` - Vérification de l'instanciation du service
-- ✅ `should generate key pair` - Génération de paires de clés
-- ✅ `should generate prekeys` - Génération de clés pré-partagées
-- ✅ `should create identity key` - Création de clés d'identité
-- ✅ `should generate signed prekey` - Génération de clés pré-signées
+- ⚪️ `should be defined` - Vérification de l'instanciation du service
+- ⚪️ `should generate key pair` - Génération de paires de clés
+- ⚪️ `should generate prekeys` - Génération de clés pré-partagées
+- ⚪️ `should create identity key` - Création de clés d'identité
+- ⚪️ `should generate signed prekey` - Génération de clés pré-signées
 
 #### Fonctionnalités testées:
 - Génération de clés cryptographiques Signal Protocol
@@ -140,10 +140,10 @@ Ran all test suites.
 **Statut**: TOUS PASSENT
 
 #### Tests couverts:
-- ✅ `should be defined` - Vérification de l'instanciation du service
-- ✅ `should generate TOTP secret` - Génération de secrets TOTP
-- ✅ `should verify TOTP code` - Vérification de codes TOTP
-- ✅ `should generate backup codes` - Génération de codes de sauvegarde
+- ⚪️ `should be defined` - Vérification de l'instanciation du service
+- ⚪️ `should generate TOTP secret` - Génération de secrets TOTP
+- ⚪️ `should verify TOTP code` - Vérification de codes TOTP
+- ⚪️ `should generate backup codes` - Génération de codes de sauvegarde
 
 #### Fonctionnalités testées:
 - Génération de secrets TOTP compatibles Google Authenticator
@@ -195,28 +195,28 @@ Ran all test suites.
 ## Sécurité testée
 
 ### Validation des données
-- ✅ Validation stricte des entrées utilisateur
-- ✅ Protection contre l'injection SQL
-- ✅ Sanitisation des données sensibles
-- ✅ Validation des formats (email, téléphone)
+- ⚪️ Validation stricte des entrées utilisateur
+- ⚪️ Protection contre l'injection SQL
+- ⚪️ Sanitisation des données sensibles
+- ⚪️ Validation des formats (email, téléphone)
 
 ### Authentification
-- ✅ Hachage bcrypt avec 14 rounds
-- ✅ Génération sécurisée de tokens JWT
-- ✅ Validation des signatures cryptographiques
-- ✅ Gestion des sessions expirées
+- ⚪️ Hachage bcrypt avec 14 rounds
+- ⚪️ Génération sécurisée de tokens JWT
+- ⚪️ Validation des signatures cryptographiques
+- ⚪️ Gestion des sessions expirées
 
 ### Rate Limiting
-- ✅ Limitation des tentatives de connexion
-- ✅ Protection contre les attaques par force brute
-- ✅ Throttling des envois SMS/email
-- ✅ Blocage temporaire des comptes
+- ⚪️ Limitation des tentatives de connexion
+- ⚪️ Protection contre les attaques par force brute
+- ⚪️ Throttling des envois SMS/email
+- ⚪️ Blocage temporaire des comptes
 
 ### Chiffrement
-- ✅ Implémentation Signal Protocol
-- ✅ Génération de clés cryptographiques sécurisées
-- ✅ Validation de l'intégrité des messages
-- ✅ Rotation automatique des clés
+- ⚪️ Implémentation Signal Protocol
+- ⚪️ Génération de clés cryptographiques sécurisées
+- ⚪️ Validation de l'intégrité des messages
+- ⚪️ Rotation automatique des clés
 
 ## Cas d'erreur testés
 

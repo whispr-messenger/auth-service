@@ -1,0 +1,203 @@
+# Production Docker ignore file for Auth Service
+# Optimized for GCP deployment
+
+# Development files
+.env.local
+.env.development
+.env.test
+*.env.example
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn
+
+# Development and testing
+.git/
+.gitignore
+.github/
+test/
+tests/
+__tests__/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+jest.config.*
+.nyc_output
+coverage/
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+*.md
+docs/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Build artifacts (keep dist/ as it's needed)
+src/
+tsconfig*.json
+.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# Docker
+Dockerfile
+Dockerfile.*
+docker-compose*.yml
+.dockerignore
+
+# Kubernetes
+k8s/
+*.yaml
+*.yml
+
+# Terraform
+*.tf
+*.tfvars
+.terraform/
+
+# CI/CD
+.circleci/
+.travis.yml
+.gitlab-ci.yml
+Jenkinsfile
+
+# Monitoring and observability
+prometheus/
+grafana/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Security
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Development tools
+.eslintrc*
+.prettierrc*
+.editorconfig
+.gitattributes
+
+# Package manager files (keep package*.json)
+yarn.lock
+package-lock.json
+
+# Local development
+.env.local
+.env.*.local
+local/
+
+# Performance and profiling
+*.cpuprofile
+*.heapprofile
+*.heapsnapshot
+
+# Storybook
+.storybook/
+storybook-static/
+
+# Linting and formatting
+.eslintcache
+.stylelintcache
+
+# TypeScript
+*.tsbuildinfo
+
+# Prisma (keep prisma/ directory but exclude dev files)
+prisma/dev.db*
+prisma/migrations/
+prisma/seed.*
+
+# Auth service specific
+auth-keys/
+jwt-keys/
+oauth-config/

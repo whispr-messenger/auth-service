@@ -37,7 +37,7 @@ graph LR
     C --> D[User Stories]
     C --> E[Tasks Techniques]
     C --> F[Critères d'Acceptation]
-    
+
     G[Documentation] -.->|Référence| C
     H[Tests] -.->|Validation| C
     I[Livrables] -.->|Tasks| E
@@ -78,7 +78,7 @@ Implémentation du système d'authentification sécurisé permettant aux utilisa
 - user-service : Vérification des comptes utilisateur
 - notification-service : Gestion et enregistrement des appareils
 
-**Spécification de référence :** 
+**Spécification de référence :**
 [📖 Spécification Authentification](./1_authentication.md)
 ```
 
@@ -87,19 +87,19 @@ Implémentation du système d'authentification sécurisé permettant aux utilisa
 Transformer les **"Mesures de sécurité"** et **"Règles métier"** de la spécification en critères d'acceptation :
 
 ```gherkin
-✅ GIVEN un utilisateur avec un numéro de téléphone valide
+⚪️ GIVEN un utilisateur avec un numéro de téléphone valide
    WHEN il demande un code de vérification
    THEN un code à 6 chiffres est généré et envoyé par SMS avec TTL de 15 minutes
 
-✅ GIVEN un code de vérification expiré
+⚪️ GIVEN un code de vérification expiré
    WHEN l'utilisateur tente de l'utiliser
    THEN le système retourne une erreur et demande un nouveau code
 
-✅ GIVEN 5 tentatives de code incorrect
+⚪️ GIVEN 5 tentatives de code incorrect
    WHEN l'utilisateur fait une 6ème tentative
    THEN le compte est temporairement bloqué pour 30 minutes
 
-✅ GIVEN un appareil authentifié scannant un QR code
+⚪️ GIVEN un appareil authentifié scannant un QR code
    WHEN l'utilisateur confirme l'ajout du nouvel appareil
    THEN le nouvel appareil reçoit des tokens valides et un deviceId unique
 ```
@@ -122,7 +122,7 @@ Transformer les **"Mesures de sécurité"** et **"Règles métier"** de la spéc
    En tant qu'utilisateur souhaitant me connecter,
    Je veux pouvoir demander un code de vérification par SMS,
    Afin de confirmer l'accès à mon numéro de téléphone.
-   
+
    Critères d'acceptation :
    - [ ] Le numéro de téléphone est validé au format E.164
    - [ ] Un code à 6 chiffres est généré aléatoirement
@@ -134,7 +134,7 @@ Transformer les **"Mesures de sécurité"** et **"Règles métier"** de la spéc
    En tant qu'utilisateur ayant reçu un code SMS,
    Je veux pouvoir saisir ce code pour finaliser ma connexion,
    Afin d'accéder à l'application de manière sécurisée.
-   
+
    Critères d'acceptation :
    - [ ] Le code saisi est comparé au hash stocké
    - [ ] Maximum 5 tentatives autorisées
@@ -145,7 +145,7 @@ Transformer les **"Mesures de sécurité"** et **"Règles métier"** de la spéc
    En tant qu'utilisateur me connectant depuis un nouvel appareil,
    Je veux que mon appareil soit automatiquement enregistré,
    Afin de pouvoir recevoir des notifications et accéder aux fonctionnalités.
-   
+
    Critères d'acceptation :
    - [ ] Communication sécurisée avec notification-service
    - [ ] Métadonnées d'appareil collectées (type, nom, FCM token)
@@ -222,10 +222,10 @@ Implémentation de [fonctionnalité] selon la spécification [lien].
 graph TD
     A[user-service base] --> B[notification-service base]
     B --> C[auth-service avec intégrations]
-    
+
     D[Istio Policies] --> C
     E[Tests d'intégration] --> C
-    
+
     C --> F[Tests end-to-end]
     F --> G[Documentation API]
 ```
@@ -257,35 +257,35 @@ Ordre de développement recommandé :
 ```markdown
 ## Definition of Done - Epic Authentification
 
-### ✅ Développement
+### ⚪️ Développement
 - [ ] Tous les endpoints API spécifiés sont implémentés et documentés
 - [ ] Tous les diagrammes de séquence sont respectés et fonctionnels
 - [ ] Communications inter-services via gRPC over mTLS opérationnelles
 - [ ] Rate limiting et mesures de sécurité implémentées selon spécification
 - [ ] Gestion d'erreurs cohérente avec les codes de retour spécifiés
 
-### ✅ Tests
+### ⚪️ Tests
 - [ ] Tests unitaires : couverture > 70% pour tous les modules
 - [ ] Tests d'intégration inter-services passent (auth ↔ user, auth ↔ notification)
 - [ ] Tests de sécurité validés selon la matrice de menaces
 - [ ] Tests de charge pour les endpoints critiques (vérification SMS)
 - [ ] Tests de bout en bout pour tous les flux utilisateur
 
-### ✅ Sécurité et Conformité
+### ⚪️ Sécurité et Conformité
 - [ ] Politiques Istio (AuthorizationPolicy, PeerAuthentication) configurées
 - [ ] Audit de sécurité basé sur la matrice de menaces de la spécification
 - [ ] Chiffrement des données sensibles (codes, tokens) vérifié
 - [ ] Logs de sécurité fonctionnels et conformes RGPD
 - [ ] Validation par l'équipe sécurité (David/Tudy)
 
-### ✅ Documentation et Déploiement
+### ⚪️ Documentation et Déploiement
 - [ ] Documentation API (Swagger) générée et à jour
 - [ ] Guide d'intégration pour les équipes frontend/mobile
 - [ ] Scripts de déploiement automatisés et testés
 - [ ] Monitoring et alertes configurés selon les métriques spécifiées
 - [ ] Runbooks pour les incidents courants
 
-### ✅ Validation Produit
+### ⚪️ Validation Produit
 - [ ] Démonstration des flux utilisateur principaux réussie
 - [ ] Tests d'acceptance par l'équipe produit
 - [ ] Performance conforme aux exigences (< 200ms response time)
@@ -375,7 +375,7 @@ Ordre de développement recommandé :
 - [ ] [Objectif 2 extrait des principes clés]
 - [ ] [Objectif 3 selon les livrables attendus]
 
-### ✅ Critères d'Acceptation Epic
+### ⚪️ Critères d'Acceptation Epic
 [Transformés des mesures de sécurité et règles métier en format Given/When/Then]
 
 ### 🔗 User Stories
@@ -462,17 +462,17 @@ Implémentation complète du système d'authentification sécurisé permettant l
 - [ ] Supporter l'authentification multi-appareils via QR code
 - [ ] Garantir la sécurité par mTLS entre tous les services
 
-### ✅ Critères d'Acceptation Epic
+### ⚪️ Critères d'Acceptation Epic
 ```gherkin
-✅ GIVEN un utilisateur avec un numéro valide
+⚪️ GIVEN un utilisateur avec un numéro valide
    WHEN il demande un code de vérification
    THEN un code 6 chiffres est envoyé par SMS avec TTL 15min
 
-✅ GIVEN un appareil authentifié scannant un QR code valide
+⚪️ GIVEN un appareil authentifié scannant un QR code valide
    WHEN l'utilisateur confirme l'ajout
    THEN le nouvel appareil reçoit des tokens avec deviceId unique
 
-✅ GIVEN 5 tentatives de code incorrect
+⚪️ GIVEN 5 tentatives de code incorrect
    WHEN l'utilisateur fait une 6ème tentative
    THEN le compte est bloqué temporairement 30 minutes
 
