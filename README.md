@@ -213,4 +213,4 @@ Ce projet est développé pour l'équipe Whispr. Tous droits réservés.
 **Développé par DALM1 équipe Whispr**
 
 Version: 1.0.0
-Dernière mise à jour: 2024
+Dernière mise à jour: 2025
