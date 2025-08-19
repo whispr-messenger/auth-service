@@ -6,14 +6,14 @@
 ## 📋 Description
 <!-- Décrivez les changements apportés -->
 
-## ✅ Checklist
+## ⚪️ Checklist
 - [ ] Le titre de la PR commence par une clé Jira
 - [ ] La branche suit le format `JIRA-XXX-description`
 - [ ] Tous les commits incluent la clé Jira
 - [ ] Les tests passent
 - [ ] La documentation est mise à jour si nécessaire
 
-## 🧪 Tests
+##   Tests
 <!-- Comment tester ces changements -->
 
 ## 📸 Screenshots

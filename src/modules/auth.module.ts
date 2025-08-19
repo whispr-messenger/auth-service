@@ -6,9 +6,12 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { UserAuth } from '../entities/user-auth.entity';
 import { Device } from '../entities/device.entity';
+import { BackupCode } from '../entities/backup-code.entity';
 import { AuthController } from '../controllers/auth.controller';
 import { AuthService } from '../services/auth.service';
 import { VerificationService } from '../services/verification.service';
+import { SmsService } from '../services/sms.service';
+import { BackupCodesService } from '../services/backup-codes.service';
 import { TokenService } from '../services/token.service';
 import { TwoFactorService } from '../services/two-factor.service';
 import { DeviceService } from '../services/device.service';
@@ -16,7 +19,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserAuth, Device]),
+    TypeOrmModule.forFeature([UserAuth, Device, BackupCode]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -47,6 +50,8 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
   providers: [
     AuthService,
     VerificationService,
+    SmsService,
+    BackupCodesService,
     TokenService,
     TwoFactorService,
     DeviceService,

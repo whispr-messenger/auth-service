@@ -25,23 +25,23 @@ jobs:
         run: |
           PR_TITLE="${{ github.event.pull_request.title }}"
           if [[ ! "$PR_TITLE" =~ ^[A-Z]+-[0-9]+.* ]]; then
-            echo "❌ Le titre de la PR doit commencer par une clé Jira"
+            echo "⚫️ Le titre de la PR doit commencer par une clé Jira"
             echo "📋 Titre actuel: $PR_TITLE"
             echo "📋 Format attendu: JRA-123 Description de la PR"
             exit 1
           fi
-          echo "✅ Titre de PR valide: $PR_TITLE"
+          echo "⚪️ Titre de PR valide: $PR_TITLE"
 
       - name: Validate Branch Name
         if: github.event_name == 'pull_request'
         run: |
           BRANCH_NAME="${{ github.head_ref }}"
           if [[ ! "$BRANCH_NAME" =~ ^[A-Z]+-[0-9]+-.+ ]]; then
-            echo "❌ Nom de branche invalide: $BRANCH_NAME"
+            echo "⚫️ Nom de branche invalide: $BRANCH_NAME"
             echo "📋 Format attendu: JRA-123-description"
             exit 1
           fi
-          echo "✅ Nom de branche valide: $BRANCH_NAME"
+          echo "⚪️ Nom de branche valide: $BRANCH_NAME"
 
       - name: Validate Commit Messages
         run: |
@@ -51,14 +51,14 @@ jobs:
           else
             COMMITS=$(git log --format="%s" ${{ github.event.before }}..${{ github.event.after }})
           fi
- 
+
           echo "$COMMITS" | while read -r commit; do
             if [[ ! "$commit" =~ ^[A-Z]+-[0-9]+[[:space:]].+ ]]; then
-              echo "❌ Commit invalide: $commit"
+              echo "⚫️ Commit invalide: $commit"
               echo "📋 Format attendu: JRA-123 Description"
               exit 1
             fi
-            echo "✅ Commit valide: $commit"
+            echo "⚪️ Commit valide: $commit"
           done
 
       - name: Extract and Validate Jira Key
@@ -68,7 +68,7 @@ jobs:
           JIRA_KEY=$(echo "$PR_TITLE" | grep -oE '^[A-Z]+-[0-9]+' || echo "")
 
           if [ -z "$JIRA_KEY" ]; then
-            echo "❌ Aucune clé Jira trouvée dans le titre"
+            echo "⚫️ Aucune clé Jira trouvée dans le titre"
             exit 1
           fi
 

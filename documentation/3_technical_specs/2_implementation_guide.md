@@ -114,12 +114,12 @@ Fonctionnalités prioritaires P.O.C
 - Roadmap pour la phase MVP
 
 ### 📊 Livrables Phase P.O.C
-- ✅ Architecture de sécurité validée et auditée
-- ✅ Prototype fonctionnel des flux d'authentification
-- ✅ Tests de sécurité et performance préliminaires
-- ✅ Documentation des APIs et protocoles cryptographiques
-- ✅ Présentation keynote ESP convaincante
-- ✅ Plan détaillé pour la phase MVP
+- ⚪️ Architecture de sécurité validée et auditée
+- ⚪️ Prototype fonctionnel des flux d'authentification
+- ⚪️ Tests de sécurité et performance préliminaires
+- ⚪️ Documentation des APIs et protocoles cryptographiques
+- ⚪️ Présentation keynote ESP convaincante
+- ⚪️ Plan détaillé pour la phase MVP
 
 ---
 
@@ -296,22 +296,22 @@ Stories:
 ## 📊 Métriques de Succès Adaptées
 
 ### Phase P.O.C (Keynote Mi-Décembre)
-- ✅ Architecture de sécurité validée par expert
-- ✅ Prototypes cryptographiques fonctionnels
-- ✅ Tests de sécurité basiques passants
-- ✅ Performance acceptable sur opérations crypto (< 500ms)
-- ✅ Intégration services externes validée
-- ✅ Démonstration convaincante lors de la keynote
+- ⚪️ Architecture de sécurité validée par expert
+- ⚪️ Prototypes cryptographiques fonctionnels
+- ⚪️ Tests de sécurité basiques passants
+- ⚪️ Performance acceptable sur opérations crypto (< 500ms)
+- ⚪️ Intégration services externes validée
+- ⚪️ Démonstration convaincante lors de la keynote
 
 ### Phase MVP (Keynote Mi-Mai)
-- ✅ Couverture de tests > 85% (incluant tests crypto)
-- ✅ Temps de réponse authentification < 200ms (99e percentile)
-- ✅ Temps de réponse opérations crypto < 300ms
-- ✅ Audit de sécurité interne passant
-- ✅ Conformité OWASP Top 10
-- ✅ Tests de pénétration basiques passants
-- ✅ Déploiement staging sécurisé réussi
-- ✅ Présentation finale impressionnante
+- ⚪️ Couverture de tests > 85% (incluant tests crypto)
+- ⚪️ Temps de réponse authentification < 200ms (99e percentile)
+- ⚪️ Temps de réponse opérations crypto < 300ms
+- ⚪️ Audit de sécurité interne passant
+- ⚪️ Conformité OWASP Top 10
+- ⚪️ Tests de pénétration basiques passants
+- ⚪️ Déploiement staging sécurisé réussi
+- ⚪️ Présentation finale impressionnante
 
 ---
 

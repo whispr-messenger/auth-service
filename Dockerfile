@@ -3,10 +3,11 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install
 
 COPY . .
 RUN npm run build
+RUN npm ci --only=production && npm cache clean --force
 
 FROM node:18-alpine AS production
 
@@ -23,7 +24,7 @@ RUN mkdir -p /app/logs && chown -R nestjs:nodejs /app/logs
 
 USER nestjs
 
-EXPOSE 3000
+EXPOSE 3001
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node dist/health-check.js
