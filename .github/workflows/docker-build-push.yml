@@ -33,7 +33,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./dockerfile.prod
+          file: ./Dockerfile.prod
           push: true
           tags: |
             whisprmessenger/auth-service:latest
