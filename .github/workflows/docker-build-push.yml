@@ -9,28 +9,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Récupère le code
       - uses: actions/checkout@v3
 
+      # 2. Setup Node.js pour tests
       - uses: actions/setup-node@v3
         with:
           node-version: 18
 
+      # 3. Install + Tests
       - run: npm ci
       - run: npm test
 
+      # 4. Login DockerHub
       - uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Set build tag
-        run: echo "BUILD_TAG=$(date +'%Y%m%d')-${GITHUB_SHA::7}" >> $GITHUB_ENV
+      # 5. Génère les variables dynamiques
+      - name: Set environment variables
+        run: |
+          echo "SERVICE_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+          echo "BUILD_TAG=$(date +'%Y%m%d')-${GITHUB_SHA::7}" >> $GITHUB_ENV
 
+      # 6. Build & Push Docker image
       - uses: docker/build-push-action@v4
         with:
           context: .
           file: ./Dockerfile
           push: true
           tags: |
-            malekbh/whispr:latest
-            malekbh/whispr:${{ env.BUILD_TAG }}
+            malekbh/whispr-${{ env.SERVICE_NAME }}:latest
+            malekbh/whispr-${{ env.SERVICE_NAME }}:${{ env.BUILD_TAG }}
