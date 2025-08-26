@@ -9,40 +9,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v3
 
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: 18
-      - name: Install build tools
-        run: sudo apt-get update && sudo apt-get install -y build-essential python3 make g++
 
-      - name: Install npm dependencies
-        run: npm ci --verbose || (cat /home/runner/.npm/_logs/*.log && exit 1)
+      - run: npm ci
+      - run: npm test
 
-      - name: Run tests
-        run: npm test || (cat /home/runner/.npm/_logs/*.log && exit 1)
-
-      - name: Docker login
-        uses: docker/login-action@v2
+      - uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Set environment variables
-        run: |
-          echo "SERVICE_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
-          echo "BUILD_TAG=$(date +'%Y%m%d')-${GITHUB_SHA::7}" >> $GITHUB_ENV
+      - name: Set build tag
+        run: echo "BUILD_TAG=$(date +'%Y%m%d')-${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+      - uses: docker/build-push-action@v4
         with:
           context: .
           file: ./Dockerfile
           push: true
           tags: |
-            malekbh/whispr-${{ env.SERVICE_NAME }}:latest
-            malekbh/whispr-${{ env.SERVICE_NAME }}:${{ env.BUILD_TAG }}
+            malekbh/whispr:latest
+            malekbh/whispr:${{ env.BUILD_TAG }}
