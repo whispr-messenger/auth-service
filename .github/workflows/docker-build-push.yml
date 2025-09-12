@@ -1,39 +1,34 @@
-name: CI/CD - Docker Build & Push
+name: CI
 
 on:
   push:
-    branches: ["main"]
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          node-version: 18
+          python-version: '3.11'
 
-      - run: npm ci
-      - run: npm test
-
-      - uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Set build variables
+      - name: Install dependencies
         run: |
-          echo "SERVICE_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
-          echo "BUILD_DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
-          echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: |
-            malekbh/whispr:${{ env.SERVICE_NAME }}-latest
-            malekbh/whispr:${{ env.SERVICE_NAME }}-${{ env.BUILD_DATE }}-${{ env.SHORT_SHA }}
+      - name: Lint with Ruff
+        run: |
+          pip install ruff
+          # --exit-zero => affiche les erreurs mais ne bloque pas la CI
+          ruff check src/ --exit-zero
+
+      - name: Run tests
+        run: |
+          pytest
