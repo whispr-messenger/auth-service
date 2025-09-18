@@ -12,7 +12,7 @@ updates:
     reviewers:
       - "whispr-team"
     assignees:
-      - "glopez-dev" # Remplacez par votre nom d'utilisateur
+      - "glopez-dev" # Replace with your username
     commit-message:
       prefix: "deps"
       prefix-development: "deps-dev"
