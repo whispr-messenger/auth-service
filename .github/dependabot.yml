@@ -10,7 +10,7 @@ updates:
       timezone: "Europe/Paris"
     open-pull-requests-limit: 10
     reviewers:
-      - "whispr-team"  
+      - "whispr-team"
     assignees:
       - "glopez-dev"   # Remplacez par votre nom d'utilisateur
     commit-message:
