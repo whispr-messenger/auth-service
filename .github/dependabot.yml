@@ -66,7 +66,7 @@ updates:
       - "github-actions"
       - "ci/cd"
 
-  # Enable version updates for Docker (si vous avez un Dockerfile)
+  # Enable version updates for Docker (if you have a Dockerfile)
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
