@@ -14,6 +14,8 @@ jobs:
   pr-validation:
     name: PR Quick Validation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout code
@@ -59,6 +61,8 @@ jobs:
   sonarqube-pr:
     name: SonarQube PR Analysis
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: pr-validation
     if: github.event.pull_request.head.repo.full_name == github.repository
     
@@ -89,6 +93,9 @@ jobs:
   pr-summary:
     name: PR Summary
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     needs: [pr-validation]
     if: always()
     
