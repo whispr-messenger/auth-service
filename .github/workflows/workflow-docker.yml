@@ -196,32 +196,3 @@ jobs:
           name: sbom-${{ github.sha }}
           path: sbom.spdx.json
           retention-days: 30
-
-      - name: Trigger attestation analysis
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: analyze-attestations
-          client-payload: |
-            {
-              "image_name": "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}",
-              "image_digest": "${{ steps.push.outputs.digest }}",
-              "sha": "${{ github.sha }}"
-            }
-
-      - name: Trigger notification workflow
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: deployment-success
-          client-payload: |
-            {
-              "ref": "${{ inputs.ref || github.event.client_payload.ref }}",
-              "sha": "${{ github.sha }}",
-              "image_tags": "${{ steps.meta.outputs.tags }}",
-              "image_digest": "${{ steps.push.outputs.digest }}",
-              "attestations": {
-                "sbom": "${{ steps.attest-sbom.outputs.bundle-path }}",
-                "provenance": "${{ steps.attest-provenance.outputs.bundle-path }}"
-              }
-            }
