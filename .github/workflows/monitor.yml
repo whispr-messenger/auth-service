@@ -5,6 +5,11 @@ on:
     workflows: ["Main CI Pipeline", "Tests & Quality", "Security Analysis", "Docker Build & Deploy"]
     types: [completed]
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   monitor:
     name: Pipeline Status Monitor
@@ -12,11 +17,16 @@ jobs:
     
     steps:
       - name: Check workflow status
+        env:
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          WORKFLOW_STATUS: ${{ github.event.workflow_run.conclusion }}
+          WORKFLOW_ID: ${{ github.event.workflow_run.id }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
-          echo "🔍 Monitoring workflow: ${{ github.event.workflow_run.name }}"
-          echo "📋 Status: ${{ github.event.workflow_run.conclusion }}"
-          echo "🔗 Run ID: ${{ github.event.workflow_run.id }}"
-          echo "🌟 Commit: ${{ github.event.workflow_run.head_commit.message }}"
+          echo "🔍 Monitoring workflow: $WORKFLOW_NAME"
+          echo "📋 Status: $WORKFLOW_STATUS"
+          echo "🔗 Run ID: $WORKFLOW_ID"
+          echo "🌿 Branch: $HEAD_BRANCH"
 
       - name: Pipeline failure notification
         if: github.event.workflow_run.conclusion == 'failure'
