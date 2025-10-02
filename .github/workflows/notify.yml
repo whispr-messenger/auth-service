@@ -4,6 +4,9 @@ on:
   repository_dispatch:
     types: [deployment-success]
 
+permissions:
+  contents: read
+
 jobs:
   # ================================
   # Deployment notifications
