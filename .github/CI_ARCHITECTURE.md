@@ -1,4 +1,11 @@
-# 🔄 Architecture CI/CD
+# 🔄 ANotre CI/CD est divisée en **7 workflows indépendants** qui se déclenchent en chaîne via des `workflow_call` events. Cette approche modulaire permet :
+
+- ✅ **Maintenance facile** - Chaque workflow a une responsabilité unique
+- ✅ **Déboggage simplifié** - Isolation des erreurs par domaine
+- ✅ **Parallélisation** - Certaines étapes peuvent s'exécuter en parallèle
+- ✅ **Réutilisabilité** - Les workflows peuvent être appelés individuellement
+- ✅ **Performance** - Workflows plus courts et plus ciblés
+- ✅ **Feedback précoce** - Analyse complète sur les PR (sauf déploiement)ture CI/CD
 
 Cette documentation décrit l'architecture modulaire de notre pipeline CI/CD, conçue pour être maintenable, évolutive et performante.
 
@@ -150,18 +157,23 @@ curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh 
 ## 🎯 Usage
 
 ### For Pull Requests
-The `pr-validation.yml` workflow runs automatically and provides:
-- Quick validation (lint, format, tests)
-- SonarQube analysis if applicable  
-- Automatic summary comment
+The `pr-validation.yml` workflow runs automatically and provides **comprehensive analysis**:
+- ✅ **Basic validation** (lint, format, tests, build)
+- ✅ **Security analysis** (Trivy, npm audit, pattern checks)
+- ✅ **SBOM generation** and vulnerability scanning with Grype
+- ✅ **Docker security** scanning
+- ⏭️ **SonarQube** skipped (Community Edition limitation)
+- 📝 **Automatic summary** comment with detailed results
+
+**Avantages**: Feedback sécuritaire précoce, détection des vulnérabilités avant merge, validation complète sans déploiement.
 
 ### For Push to main
-The complete chain executes:
-1. Tests and quality analysis
-2. Security analysis
-3. Docker build and push with attestations
-4. SBOM attestation verification
-5. Deployment notifications
+The complete chain executes with **additional deployment steps**:
+1. **Full analysis** (same as PR + SonarQube)
+2. **Docker build and push** with multi-platform support
+3. **SBOM + Provenance attestations** with Sigstore
+4. **Attestation verification** and compliance checks
+5. **Deployment notifications** and monitoring
 
 ### Manual workflow triggers
 You can trigger specific workflows manually:
