@@ -1,4 +1,4 @@
-# 🔄 ANotre CI/CD est divisée en **7 workflows indépendants** qui se déclenchent en chaîne via des `workflow_call` events. Cette approche modulaire permet :
+# 🔄 Notre CI/CD est divisée en **7 workflows indépendants** qui se déclenchent en chaîne via des `workflow_call` events. Cette approche modulaire permet :
 
 - ✅ **Maintenance facile** - Chaque workflow a une responsabilité unique
 - ✅ **Déboggage simplifié** - Isolation des erreurs par domaine
@@ -11,7 +11,7 @@ Cette documentation décrit l'architecture modulaire de notre pipeline CI/CD, co
 
 ## 📋 Vue d'ensemble
 
-Notre CI/CD est divisée en **5 workflows indépendants** qui se déclenchent en chaîne via des `repository_dispatch` events. Cette approche modulaire permet :
+Notre CI/CD est divisée en **7 workflows indépendants** qui se déclenchent en chaîne via des `repository_dispatch` events. Cette approche modulaire permet :
 
 - ✅ **Maintenance facile** - Chaque workflow a une responsabilité unique
 - ✅ **Déboggage simplifié** - Isolation des erreurs par domaine
@@ -82,7 +82,7 @@ Notre architecture est organisée en 3 catégories distinctes pour une maintenan
 - `monitor.yml` - Surveillance des échecs, création d'issues automatique
 - `notify.yml` - Notifications de déploiement et résumés
 
-## �️ Local Development
+## 🖥️ Local Development
 
 ### Quick Commands
 Instead of custom scripts, use standard tools directly:

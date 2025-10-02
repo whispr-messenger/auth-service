@@ -67,4 +67,3 @@ Une fois les secrets configurés, les workflows CI/CD incluront automatiquement 
 Les résultats seront visibles dans :
 - SonarQube : https://sonarqube.whispr.epitech-msc2026.me/dashboard?id=whispr-messenger_auth-service_11813afb-b949-4baf-aa3f-7d12c436cb56
 - GitHub Actions : onglet Actions de votre repository
-- Pull Request : commentaires automatiques avec résumé

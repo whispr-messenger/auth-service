@@ -97,7 +97,7 @@ jobs:
           echo "✅ Docker image tests passed"
 
       - name: Run Trivy on Docker image
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.24.0
         with:
           image-ref: 'auth-service:test'
           format: 'sarif'
@@ -165,7 +165,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Generate SBOM with attestation
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@v0.16.0
         id: sbom
         with:
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest

@@ -42,7 +42,7 @@ jobs:
           echo "- **Images**: ${{ github.event.client_payload.image_tags }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 🔗 Quick Links" >> $GITHUB_STEP_SUMMARY
-          echo "- [Docker Hub](https://hub.docker.com/r/malekbh/whispr)" >> $GITHUB_STEP_SUMMARY
+          echo "- [GHCR Package](https://ghcr.io/${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
           echo "- [Repository](https://github.com/${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## ✅ Pipeline Status" >> $GITHUB_STEP_SUMMARY
