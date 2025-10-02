@@ -57,16 +57,29 @@ jobs:
             exit 1
           fi
 
-      - name: Download and analyze SBOM
+      - name: Download and verify attestations
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "📥 Downloading SBOM from attestation..."
+          echo "📥 Downloading and verifying attestations..."
           
           IMAGE_NAME="${{ inputs.image_name || github.event.client_payload.image_name }}"
           IMAGE_DIGEST="${{ inputs.image_digest || github.event.client_payload.image_digest }}"
           
-          # Download SBOM from attestation
+          # Verify SBOM attestation
+          echo "🔍 Verifying SBOM attestation..."
+          gh attestation verify oci://"$IMAGE_NAME@$IMAGE_DIGEST" \
+            --repo "${{ github.repository }}" \
+            --predicate-type https://spdx.dev/Document
+          
+          # Verify provenance attestation
+          echo "🔍 Verifying provenance attestation..."
+          gh attestation verify oci://"$IMAGE_NAME@$IMAGE_DIGEST" \
+            --repo "${{ github.repository }}" \
+            --predicate-type https://slsa.dev/provenance/v1
+          
+          # Download SBOM for analysis
+          echo "📥 Downloading SBOM for analysis..."
           gh attestation download oci://"$IMAGE_NAME@$IMAGE_DIGEST" \
             --repo "${{ github.repository }}" \
             --predicate-type https://spdx.dev/Document \
