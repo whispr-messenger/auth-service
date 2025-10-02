@@ -8,8 +8,11 @@ permissions:
   contents: read
   pull-requests: write
   security-events: write
-  packages: read
+  packages: write
   checks: write
+  actions: read
+  id-token: write
+  attestations: write
 
 env:
   NODE_VERSION: '18'
