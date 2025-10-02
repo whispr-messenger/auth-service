@@ -80,16 +80,8 @@ jobs:
       - name: Run tests with coverage
         run: npm run test:cov
 
-      - name: SonarQube Analysis (Community Edition)
-        continue-on-error: true
-        uses: sonarsource/sonarqube-scan-action@v2.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        with:
-          args: >
-            -Dsonar.branch.name=${{ github.head_ref }}
+      # Note: SonarQube Community Edition only supports main branch analysis
+      # SonarQube analysis will run when PR is merged to main
 
   # ================================
   # Summary comment
@@ -97,7 +89,7 @@ jobs:
   pr-summary:
     name: PR Summary
     runs-on: ubuntu-latest
-    needs: [pr-validation, sonarqube-pr]
+    needs: [pr-validation]
     if: always()
     
     steps:
@@ -106,7 +98,6 @@ jobs:
         with:
           script: |
             const validationStatus = '${{ needs.pr-validation.result }}';
-            const sonarStatus = '${{ needs.sonarqube-pr.result }}';
             
             let summary = `## 🔍 PR Validation Summary #${{ github.event.number }}\n\n`;
             
@@ -115,8 +106,8 @@ jobs:
             summary += `- Format, lint, unit tests, build\n\n`;
             
             summary += `### 📊 SonarQube Analysis\n`;
-            summary += `- **Status**: ${sonarStatus === 'success' ? '✅ Success' : sonarStatus === 'skipped' ? '⏭️ Skipped' : '❌ Failed'}\n`;
-            summary += `- Code quality and test coverage\n\n`;
+            summary += `- **Status**: ⏭️ Skipped (Community Edition - Main branch only)\n`;
+            summary += `- Quality analysis will run when PR is merged to main\n\n`;
             
             if (validationStatus === 'success') {
               summary += `### 🎉 This PR is ready to merge!\n`;
