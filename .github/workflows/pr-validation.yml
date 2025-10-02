@@ -9,6 +9,7 @@ permissions:
   pull-requests: write
   security-events: write
   packages: read
+  checks: write
 
 env:
   NODE_VERSION: '18'
@@ -21,7 +22,7 @@ jobs:
     name: Run Tests & Quality
     uses: ./.github/workflows/workflow-tests.yml
     with:
-      ref: ${{ github.ref }}
+      ref: ${{ github.head_ref }}
       should_deploy: 'false'  # Never deploy from PR
 
   security:
@@ -29,7 +30,7 @@ jobs:
     needs: tests
     uses: ./.github/workflows/workflow-security.yml
     with:
-      ref: ${{ github.ref }}
+      ref: ${{ github.head_ref }}
       should_deploy: 'false'  # Never deploy from PR
 
   # Note: Docker workflow runs but won't push (should_deploy: false)
@@ -39,7 +40,7 @@ jobs:
     if: success()
     uses: ./.github/workflows/workflow-docker.yml
     with:
-      ref: ${{ github.ref }}
+      ref: ${{ github.head_ref }}
       should_deploy: 'false'  # This prevents push but allows build testing
 
   # ================================
