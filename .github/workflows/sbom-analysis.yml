@@ -1,0 +1,230 @@
+name: SBOM Analysis & Security
+
+on:
+  repository_dispatch:
+    types: [sbom-analysis]
+  workflow_call:
+    inputs:
+      image_tag:
+        required: true
+        type: string
+      sbom_artifact:
+        required: true
+        type: string
+
+jobs:
+  # ================================
+  # Analyse du SBOM
+  # ================================
+  sbom-analysis:
+    name: SBOM Security Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download SBOM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.sbom_artifact || github.event.client_payload.sbom_artifact }}
+
+      - name: Install SBOM tools
+        run: |
+          # Installer syft et grype pour l'analyse SBOM
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+          
+          # Installer cyclonedx tools
+          npm install -g @cyclonedx/cyclonedx-npm
+          
+      - name: Analyze SBOM components
+        run: |
+          echo "📦 Analyzing SBOM components..."
+          
+          # Analyser le SBOM avec grype
+          grype sbom:sbom.spdx.json -o json > vulnerability-report.json
+          grype sbom:sbom.spdx.json -o table
+          
+          # Extraire les statistiques
+          echo "📊 SBOM Statistics:"
+          jq '.source.target' sbom.spdx.json
+          echo "Total packages: $(jq '.packages | length' sbom.spdx.json)"
+          echo "Total relationships: $(jq '.relationships | length' sbom.spdx.json)"
+
+      - name: Generate vulnerability report
+        run: |
+          echo "🔍 Generating detailed vulnerability report..."
+          
+          # Compter les vulnérabilités par sévérité
+          CRITICAL=$(jq '[.matches[] | select(.vulnerability.severity == "Critical")] | length' vulnerability-report.json)
+          HIGH=$(jq '[.matches[] | select(.vulnerability.severity == "High")] | length' vulnerability-report.json)
+          MEDIUM=$(jq '[.matches[] | select(.vulnerability.severity == "Medium")] | length' vulnerability-report.json)
+          LOW=$(jq '[.matches[] | select(.vulnerability.severity == "Low")] | length' vulnerability-report.json)
+          
+          echo "CRITICAL_VULNS=$CRITICAL" >> $GITHUB_ENV
+          echo "HIGH_VULNS=$HIGH" >> $GITHUB_ENV
+          echo "MEDIUM_VULNS=$MEDIUM" >> $GITHUB_ENV
+          echo "LOW_VULNS=$LOW" >> $GITHUB_ENV
+          
+          # Créer un rapport markdown
+          cat > vulnerability-summary.md << EOF
+          # 🔐 Vulnerability Analysis Report
+          
+          ## 📊 Summary
+          - **Critical**: $CRITICAL
+          - **High**: $HIGH  
+          - **Medium**: $MEDIUM
+          - **Low**: $LOW
+          
+          ## 🎯 Image Details
+          - **Image**: ${{ inputs.image_tag || github.event.client_payload.image_tag }}
+          - **Scan Date**: $(date)
+          - **Total Packages**: $(jq '.source.target.userInput' sbom.spdx.json)
+          
+          EOF
+          
+          # Ajouter les vulnérabilités critiques
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "## 🚨 Critical Vulnerabilities" >> vulnerability-summary.md
+            jq -r '.matches[] | select(.vulnerability.severity == "Critical") | "- **\(.vulnerability.id)**: \(.artifact.name)@\(.artifact.version) - \(.vulnerability.description // "No description")"' vulnerability-report.json >> vulnerability-summary.md
+          fi
+
+      - name: License compliance check
+        run: |
+          echo "⚖️ Checking license compliance..."
+          
+          # Extraire les licenses du SBOM
+          jq -r '.packages[] | select(.licenseConcluded != "NOASSERTION") | "\(.name): \(.licenseConcluded)"' sbom.spdx.json > licenses.txt
+          
+          # Vérifier les licenses problématiques
+          FORBIDDEN_LICENSES="GPL-3.0 AGPL-3.0 SSPL-1.0"
+          ISSUES_FOUND=0
+          
+          for license in $FORBIDDEN_LICENSES; do
+            if grep -q "$license" licenses.txt; then
+              echo "⚠️ Forbidden license found: $license"
+              ISSUES_FOUND=1
+            fi
+          done
+          
+          if [ $ISSUES_FOUND -eq 0 ]; then
+            echo "✅ No license compliance issues found"
+          else
+            echo "❌ License compliance issues detected!"
+            exit 1
+          fi
+
+      - name: Supply chain risk assessment
+        run: |
+          echo "🔗 Assessing supply chain risks..."
+          
+          # Identifier les packages sans version fixe
+          jq -r '.packages[] | select(.versionInfo | contains("SNAPSHOT") or contains("BETA") or contains("RC")) | "\(.name): \(.versionInfo)"' sbom.spdx.json > unstable-packages.txt
+          
+          if [ -s unstable-packages.txt ]; then
+            echo "⚠️ Unstable packages detected:"
+            cat unstable-packages.txt
+          else
+            echo "✅ All packages use stable versions"
+          fi
+          
+          # Identifier les packages avec beaucoup de dépendances
+          echo "📊 Top packages by dependencies:"
+          jq -r '.relationships[] | select(.relationshipType == "DEPENDS_ON") | .relatedSpdxElement' sbom.spdx.json | sort | uniq -c | sort -nr | head -10
+
+      - name: Security gate
+        run: |
+          echo "🚪 Evaluating security gate..."
+          
+          # Définir les seuils
+          MAX_CRITICAL=0
+          MAX_HIGH=5
+          
+          if [ "$CRITICAL_VULNS" -gt $MAX_CRITICAL ]; then
+            echo "❌ SECURITY GATE FAILED: $CRITICAL_VULNS critical vulnerabilities (max: $MAX_CRITICAL)"
+            exit 1
+          fi
+          
+          if [ "$HIGH_VULNS" -gt $MAX_HIGH ]; then
+            echo "❌ SECURITY GATE FAILED: $HIGH_VULNS high vulnerabilities (max: $MAX_HIGH)"
+            exit 1
+          fi
+          
+          echo "✅ Security gate passed"
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-analysis-${{ github.sha }}
+          path: |
+            vulnerability-report.json
+            vulnerability-summary.md
+            licenses.txt
+            unstable-packages.txt
+            sbom.spdx.json
+
+      - name: Comment on PR with SBOM analysis
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('vulnerability-summary.md', 'utf8');
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 📦 SBOM Security Analysis\n\n${summary}\n\n---\n*Automated SBOM analysis by GitHub Actions*`
+            });
+
+  # ================================
+  # Archivage SBOM
+  # ================================
+  sbom-storage:
+    name: SBOM Storage & Tracking
+    runs-on: ubuntu-latest
+    needs: sbom-analysis
+    
+    steps:
+      - name: Store SBOM in registry
+        run: |
+          echo "📦 Storing SBOM in OCI registry..."
+          
+          # Utiliser ORAS pour stocker le SBOM
+          curl -LO https://github.com/oras-project/oras/releases/latest/download/oras_linux_amd64.tar.gz
+          tar -zxf oras_linux_amd64.tar.gz
+          sudo mv oras /usr/local/bin/
+          
+          # Push SBOM comme artefact OCI
+          oras push docker.io/malekbh/whispr:auth-service-sbom-${{ github.sha }} \
+            --artifact-type application/vnd.syft+json \
+            sbom.spdx.json:application/spdx+json
+
+      - name: Update SBOM database
+        run: |
+          echo "📊 Updating SBOM tracking database..."
+          
+          # Ici, vous pourriez intégrer avec:
+          # - Dependency-Track
+          # - JFrog Xray  
+          # - Snyk
+          # - Une base de données custom
+          
+          cat > sbom-metadata.json << EOF
+          {
+            "image": "${{ inputs.image_tag || github.event.client_payload.image_tag }}",
+            "commit": "${{ github.sha }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "vulnerabilities": {
+              "critical": ${{ env.CRITICAL_VULNS }},
+              "high": ${{ env.HIGH_VULNS }},
+              "medium": ${{ env.MEDIUM_VULNS }},
+              "low": ${{ env.LOW_VULNS }}
+            }
+          }
+          EOF
+          
+          echo "📝 SBOM metadata generated"
+          cat sbom-metadata.json
