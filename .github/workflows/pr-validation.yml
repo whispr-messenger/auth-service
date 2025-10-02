@@ -19,7 +19,7 @@ jobs:
   # ================================
   tests:
     name: Run Tests & Quality
-    uses: ./.github/workflows/modules/tests.yml
+    uses: ./.github/workflows/workflow-tests.yml
     with:
       ref: ${{ github.ref }}
       should_deploy: 'false'  # Never deploy from PR
@@ -27,7 +27,7 @@ jobs:
   security:
     name: Security Analysis
     needs: tests
-    uses: ./.github/workflows/modules/security.yml
+    uses: ./.github/workflows/workflow-security.yml
     with:
       ref: ${{ github.ref }}
       should_deploy: 'false'  # Never deploy from PR
@@ -37,7 +37,7 @@ jobs:
     name: Docker Build (No Push)
     needs: [tests, security]
     if: success()
-    uses: ./.github/workflows/modules/docker.yml
+    uses: ./.github/workflows/workflow-docker.yml
     with:
       ref: ${{ github.ref }}
       should_deploy: 'false'  # This prevents push but allows build testing

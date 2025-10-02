@@ -1,58 +1,57 @@
 # 🔄 Workflows Organization
 
-This directory contains all GitHub Actions workflows organized for clarity and maintainability.
+This directory contains all GitHub Actions workflows organized with a clear naming convention. **Note**: GitHub Actions only detects workflows in the root `.github/workflows/` directory, not in subdirectories.
 
-## 📁 Structure
+## 📁 File Organization
 
-```
-workflows/
-├── main/                    # Entry point workflows (triggered by events)
-│   ├── ci.yml              # Main CI/CD pipeline (push to main/develop)
-│   └── pr-validation.yml   # Pull Request validation
-├── modules/                 # Reusable workflow modules (called by others)
-│   ├── tests.yml           # Tests & Quality Analysis
-│   ├── security.yml        # Security Analysis (Trivy, audit)
-│   ├── docker.yml          # Docker Build & Deploy
-│   └── sbom-attestation.yml # SBOM Attestation Analysis
-└── monitoring/              # Monitoring & Notification workflows
-    ├── monitor.yml         # Pipeline failure monitoring
-    └── notify.yml          # Deployment notifications
-```
+**Entry Points (Main Workflows):**
+- `ci.yml` - Main CI/CD pipeline for push events to main/develop
+- `pr-validation.yml` - Comprehensive PR validation using same modules
+
+**Reusable Workflow Modules (workflow_call):**
+- `workflow-tests.yml` - Test execution and quality checks
+- `workflow-security.yml` - Security scanning (Trivy, npm audit, patterns)
+- `workflow-docker.yml` - Docker build and push with multi-arch support
+- `workflow-sbom.yml` - SBOM generation and attestation
+
+**Monitoring & Observability:**
+- `workflow-monitor.yml` - Infrastructure and deployment monitoring
+- `workflow-notify.yml` - Notifications and alerts
 
 ## 🎯 Workflow Types
 
-### 🚀 **Main Workflows** (`main/`)
+### 🚀 **Entry Point Workflows**
 - **Entry points** triggered by GitHub events (push, PR)
 - **Orchestrate** the execution of module workflows
 - **Define** deployment conditions and environment-specific logic
 
-### 🧩 **Module Workflows** (`modules/`)
+### 🧩 **Module Workflows** (prefixed with `workflow-`)
 - **Reusable** workflows called by main workflows via `workflow_call`
 - **Single responsibility** - each handles one aspect (tests, security, etc.)
 - **Parameterized** - behavior controlled by inputs (`should_deploy`, `ref`, etc.)
 
-### 📊 **Monitoring Workflows** (`monitoring/`)
+### 📊 **Monitoring Workflows** (prefixed with `workflow-`)
 - **Event-driven** - triggered by workflow completion events
 - **Observability** - track pipeline health and notify on failures
 - **Automated** - create issues, send notifications, manage workflow lifecycle
 
 ## 🔗 Dependencies
 
-### Main CI Pipeline (`main/ci.yml`)
+### Main CI Pipeline (`ci.yml`)
 ```mermaid
 graph LR
-    A[ci.yml] --> B[modules/tests.yml]
-    B --> C[modules/security.yml]
-    C --> D[modules/docker.yml]
-    D --> E[monitoring/notify.yml]
+    A[ci.yml] --> B[workflow-tests.yml]
+    B --> C[workflow-security.yml]
+    C --> D[workflow-docker.yml]
+    D --> E[workflow-notify.yml]
 ```
 
-### PR Validation (`main/pr-validation.yml`)
+### PR Validation (`pr-validation.yml`)
 ```mermaid
 graph LR
-    A[pr-validation.yml] --> B[modules/tests.yml]
-    B --> C[modules/security.yml]
-    C --> D[modules/docker.yml]
+    A[pr-validation.yml] --> B[workflow-tests.yml]
+    B --> C[workflow-security.yml]
+    C --> D[workflow-docker.yml]
     D --> E[pr-summary]
 ```
 
