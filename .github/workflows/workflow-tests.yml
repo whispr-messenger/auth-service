@@ -107,15 +107,3 @@ jobs:
           file: ./coverage/lcov.info
           flags: unittests
           name: codecov-umbrella
-
-      - name: Trigger security workflow
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: run-security
-          client-payload: |
-            {
-              "ref": "${{ inputs.ref || github.event.client_payload.ref }}",
-              "sha": "${{ github.sha }}",
-              "should_deploy": "${{ inputs.should_deploy || github.event.client_payload.should_deploy }}"
-            }
