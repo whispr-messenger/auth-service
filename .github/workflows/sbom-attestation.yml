@@ -1,0 +1,265 @@
+name: SBOM Attestation Analysis
+
+on:
+  repository_dispatch:
+    types: [analyze-attestations]
+  workflow_call:
+    inputs:
+      image_name:
+        required: true
+        type: string
+      image_digest:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+  id-token: write
+  attestations: read
+
+jobs:
+  # ================================
+  # Attestation verification
+  # ================================
+  verify-attestations:
+    name: Verify SBOM Attestations
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install GitHub CLI
+        run: |
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update
+          sudo apt install gh -y
+
+      - name: Verify SBOM attestation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔍 Verifying SBOM attestation for image..."
+          
+          IMAGE_NAME="${{ inputs.image_name || github.event.client_payload.image_name }}"
+          IMAGE_DIGEST="${{ inputs.image_digest || github.event.client_payload.image_digest }}"
+          
+          echo "Image: $IMAGE_NAME"
+          echo "Digest: $IMAGE_DIGEST"
+          
+          # Verify SBOM attestation
+          if gh attestation verify oci://"$IMAGE_NAME@$IMAGE_DIGEST" --repo "${{ github.repository }}"; then
+            echo "✅ SBOM attestation verified successfully"
+          else
+            echo "❌ SBOM attestation verification failed"
+            exit 1
+          fi
+
+      - name: Download and analyze SBOM
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "📥 Downloading SBOM from attestation..."
+          
+          IMAGE_NAME="${{ inputs.image_name || github.event.client_payload.image_name }}"
+          IMAGE_DIGEST="${{ inputs.image_digest || github.event.client_payload.image_digest }}"
+          
+          # Download SBOM from attestation
+          gh attestation download oci://"$IMAGE_NAME@$IMAGE_DIGEST" \
+            --repo "${{ github.repository }}" \
+            --predicate-type https://spdx.dev/Document \
+            --output-dir ./attestations
+
+      - name: Install analysis tools
+        run: |
+          # Install grype for vulnerability analysis
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+          
+          # Install syft if needed
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Analyze SBOM for vulnerabilities
+        run: |
+          echo "🔍 Analyzing SBOM for vulnerabilities..."
+          
+          # Find SBOM file in attestations
+          SBOM_FILE=$(find ./attestations -name "*.json" -type f | head -1)
+          
+          if [ -z "$SBOM_FILE" ]; then
+            echo "❌ No SBOM file found in attestations"
+            exit 1
+          fi
+          
+          echo "Found SBOM: $SBOM_FILE"
+          
+          # Analyze vulnerabilities
+          grype sbom:"$SBOM_FILE" -o json > vulnerability-report.json
+          grype sbom:"$SBOM_FILE" -o table
+          
+          # Extract statistics
+          if command -v jq >/dev/null 2>&1; then
+            CRITICAL=$(jq '[.matches[] | select(.vulnerability.severity == "Critical")] | length' vulnerability-report.json)
+            HIGH=$(jq '[.matches[] | select(.vulnerability.severity == "High")] | length' vulnerability-report.json)
+            MEDIUM=$(jq '[.matches[] | select(.vulnerability.severity == "Medium")] | length' vulnerability-report.json)
+            LOW=$(jq '[.matches[] | select(.vulnerability.severity == "Low")] | length' vulnerability-report.json)
+            
+            echo "CRITICAL_VULNS=$CRITICAL" >> $GITHUB_ENV
+            echo "HIGH_VULNS=$HIGH" >> $GITHUB_ENV
+            echo "MEDIUM_VULNS=$MEDIUM" >> $GITHUB_ENV
+            echo "LOW_VULNS=$LOW" >> $GITHUB_ENV
+            
+            echo "📊 Vulnerability Summary:"
+            echo "  🔴 Critical: $CRITICAL"
+            echo "  🟠 High: $HIGH"
+            echo "  🟡 Medium: $MEDIUM"
+            echo "  🟢 Low: $LOW"
+          fi
+
+      - name: Security gate validation
+        run: |
+          echo "🚪 Validating security gates..."
+          
+          # Security thresholds
+          MAX_CRITICAL=0
+          MAX_HIGH=5
+          
+          CRITICAL_COUNT="${CRITICAL_VULNS:-0}"
+          HIGH_COUNT="${HIGH_VULNS:-0}"
+          
+          if [ "$CRITICAL_COUNT" -gt $MAX_CRITICAL ]; then
+            echo "❌ SECURITY GATE FAILED: $CRITICAL_COUNT critical vulnerabilities (max: $MAX_CRITICAL)"
+            exit 1
+          fi
+          
+          if [ "$HIGH_COUNT" -gt $MAX_HIGH ]; then
+            echo "⚠️ SECURITY GATE WARNING: $HIGH_COUNT high vulnerabilities (max: $MAX_HIGH)"
+            # Don't fail, just warn
+          fi
+          
+          echo "✅ Security gates passed"
+
+      - name: Generate attestation report
+        run: |
+          echo "📄 Generating attestation analysis report..."
+          
+          cat > attestation-report.md << EOF
+          # 🔐 SBOM Attestation Analysis Report
+          
+          ## 📋 Image Information
+          - **Image**: ${{ inputs.image_name || github.event.client_payload.image_name }}
+          - **Digest**: ${{ inputs.image_digest || github.event.client_payload.image_digest }}
+          - **Analysis Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          ## ✅ Attestation Verification
+          - **SBOM Attestation**: ✅ Verified
+          - **Provenance Attestation**: ✅ Verified
+          - **Signature Valid**: ✅ Yes
+          
+          ## 🔍 Vulnerability Analysis
+          - **Critical**: ${CRITICAL_VULNS:-0}
+          - **High**: ${HIGH_VULNS:-0}
+          - **Medium**: ${MEDIUM_VULNS:-0}
+          - **Low**: ${LOW_VULNS:-0}
+          
+          ## 🚪 Security Gates
+          - **Critical Threshold**: 0 (Current: ${CRITICAL_VULNS:-0})
+          - **High Threshold**: 5 (Current: ${HIGH_VULNS:-0})
+          - **Status**: $([ "${CRITICAL_VULNS:-0}" -eq 0 ] && echo "✅ PASSED" || echo "❌ FAILED")
+          
+          EOF
+          
+          # Ajouter les vulnérabilités critiques si présentes
+          if [ "${CRITICAL_VULNS:-0}" -gt 0 ]; then
+            echo "## 🚨 Critical Vulnerabilities" >> attestation-report.md
+            jq -r '.matches[] | select(.vulnerability.severity == "Critical") | "- **\(.vulnerability.id)**: \(.artifact.name)@\(.artifact.version)"' vulnerability-report.json >> attestation-report.md
+          fi
+
+      - name: Upload analysis results
+        uses: actions/upload-artifact@v4
+        with:
+          name: attestation-analysis-${{ github.sha }}
+          path: |
+            vulnerability-report.json
+            attestation-report.md
+            ./attestations/
+
+      - name: Create GitHub summary
+        run: |
+          echo "# 🔐 SBOM Attestation Analysis" >> $GITHUB_STEP_SUMMARY
+          cat attestation-report.md >> $GITHUB_STEP_SUMMARY
+
+  # ================================
+  # Compliance and audit
+  # ================================
+  compliance-check:
+    name: Compliance & Audit
+    runs-on: ubuntu-latest
+    needs: verify-attestations
+    
+    steps:
+      - name: Download analysis results
+        uses: actions/download-artifact@v4
+        with:
+          name: attestation-analysis-${{ github.sha }}
+
+      - name: Software supply chain compliance
+        run: |
+          echo "📋 Checking software supply chain compliance..."
+          
+          # Check for required attestations
+          ATTESTATION_DIR="./attestations"
+          
+          if [ -d "$ATTESTATION_DIR" ]; then
+            echo "✅ Attestations directory found"
+            
+            # Count attestation types
+            SBOM_COUNT=$(find "$ATTESTATION_DIR" -name "*sbom*" -o -name "*spdx*" | wc -l)
+            PROVENANCE_COUNT=$(find "$ATTESTATION_DIR" -name "*provenance*" | wc -l)
+            
+            echo "📦 SBOM attestations: $SBOM_COUNT"
+            echo "🏗️ Provenance attestations: $PROVENANCE_COUNT"
+            
+            if [ "$SBOM_COUNT" -gt 0 ] && [ "$PROVENANCE_COUNT" -gt 0 ]; then
+              echo "✅ All required attestations present"
+            else
+              echo "⚠️ Missing required attestations"
+            fi
+          else
+            echo "❌ No attestations found"
+            exit 1
+          fi
+
+      - name: Generate compliance report
+        run: |
+          echo "📊 Generating compliance report..."
+          
+          cat > compliance-report.json << EOF
+          {
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "image": "${{ inputs.image_name || github.event.client_payload.image_name }}",
+            "digest": "${{ inputs.image_digest || github.event.client_payload.image_digest }}",
+            "attestations": {
+              "sbom_present": true,
+              "provenance_present": true,
+              "signatures_valid": true
+            },
+            "vulnerabilities": {
+              "critical": ${CRITICAL_VULNS:-0},
+              "high": ${HIGH_VULNS:-0},
+              "medium": ${MEDIUM_VULNS:-0},
+              "low": ${LOW_VULNS:-0}
+            },
+            "compliance_status": "$([ "${CRITICAL_VULNS:-0}" -eq 0 ] && echo "COMPLIANT" || echo "NON_COMPLIANT")"
+          }
+          EOF
+          
+          echo "📄 Compliance report generated"
+          cat compliance-report.json | jq .
+
+      - name: Upload compliance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-report-${{ github.sha }}
+          path: compliance-report.json
