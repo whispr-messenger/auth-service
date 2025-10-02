@@ -1,0 +1,76 @@
+name: Main CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  # ================================
+  # Main orchestrator
+  # ================================
+  trigger-tests:
+    name: Trigger Quality Checks
+    runs-on: ubuntu-latest
+    outputs:
+      should-deploy: ${{ steps.deploy-check.outputs.should-deploy }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if should deploy
+        id: deploy-check
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" && "${{ github.event_name }}" == "push" ]]; then
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "should-deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Trigger tests workflow
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          event-type: run-tests
+          client-payload: |
+            {
+              "ref": "${{ github.ref }}",
+              "sha": "${{ github.sha }}",
+              "event_name": "${{ github.event_name }}",
+              "should_deploy": "${{ steps.deploy-check.outputs.should-deploy }}"
+            }
+
+  # ================================
+  # Wait for test completion
+  # ================================
+  wait-for-quality:
+    name: Wait for Quality Checks
+    runs-on: ubuntu-latest
+    needs: trigger-tests
+    
+    steps:
+      - name: Wait for test completion
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.ref }}
+          check-name: 'Tests & Quality Analysis'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+          
+      - name: Wait for security completion
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.ref }}
+          check-name: 'Security Analysis'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
