@@ -22,9 +22,6 @@ env:
   NODE_VERSION: '18'
 
 jobs:
-  # ================================
-  # Tests and quality analysis
-  # ================================
   test-and-quality:
     name: Tests & Quality Analysis
     runs-on: ubuntu-latest
@@ -98,7 +95,7 @@ jobs:
 
       - name: SonarQube Quality Gate
         if: ${{ inputs.ref == 'refs/heads/main' || github.ref == 'refs/heads/main' }}
-        uses: sonarqube-quality-gate-action@master
+        uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

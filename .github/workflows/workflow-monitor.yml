@@ -93,37 +93,6 @@ jobs:
                 labels: ['pipeline-failure', 'main-branch', 'critical']
               });
             }
-            
-            ### Next Steps
-            1. Check the workflow logs for detailed error information
-            2. Fix the issues and push a new commit
-            3. This issue will be automatically closed when the pipeline passes
-            
-            ---
-            *This issue was automatically created by the Pipeline Monitor*
-            `;
-            
-            // Vérifier si une issue similaire existe déjà
-            const existingIssues = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              labels: 'pipeline-failure'
-            });
-            
-            const similarIssue = existingIssues.data.find(issue => 
-              issue.title.includes(context.payload.workflow_run.name)
-            );
-            
-            if (!similarIssue) {
-              await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title: title,
-                body: body,
-                labels: ['pipeline-failure', 'bug', 'ci/cd']
-              });
-            }
 
       - name: Close success issues
         if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
