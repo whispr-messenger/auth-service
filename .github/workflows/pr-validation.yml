@@ -80,7 +80,7 @@ jobs:
       - name: Run tests with coverage
         run: npm run test:cov
 
-      - name: SonarQube PR Analysis
+      - name: SonarQube Analysis (Community Edition)
         continue-on-error: true
         uses: sonarsource/sonarqube-scan-action@v2.0.2
         env:
@@ -89,9 +89,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: >
-            -Dsonar.pullrequest.key=${{ github.event.number }}
-            -Dsonar.pullrequest.branch=${{ github.head_ref }}
-            -Dsonar.pullrequest.base=${{ github.base_ref }}
+            -Dsonar.branch.name=${{ github.head_ref }}
 
   # ================================
   # Summary comment

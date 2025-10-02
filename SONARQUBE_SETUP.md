@@ -31,6 +31,28 @@ gh secret set SONAR_TOKEN --body "VOTRE_TOKEN" --org whispr-messenger
 - **Project Key** : `whispr-messenger_auth-service_11813afb-b949-4baf-aa3f-7d12c436cb56`
 - **Project Name** : Whispr Auth Service
 - **Main Branch** : main
+- **Edition** : Community (limitations sur l'analyse des pull requests)
+
+### Limitations SonarQube Community Edition
+
+⚠️ **Important** : SonarQube Community Edition ne supporte pas l'analyse complète des pull requests.
+
+**Fonctionnalités disponibles :**
+- ✅ Analyse de la branche principale (main)
+- ✅ Analyse des branches de feature 
+- ✅ Quality Gates
+- ✅ Code coverage
+- ✅ Détection de bugs et vulnerabilités
+
+**Fonctionnalités indisponibles (Developer+ Edition requis) :**
+- ❌ Comparaison PR avec la branche de base
+- ❌ Commentaires automatiques sur les PR
+- ❌ Analyse différentielle des changements uniquement
+
+**Solution actuelle :**
+- Les workflows utilisent `-Dsonar.branch.name` au lieu de paramètres PR
+- L'analyse se fait sur la branche complète
+- Les résultats sont visibles dans SonarQube mais pas intégrés aux PR GitHub
 
 ## Vérification
 
