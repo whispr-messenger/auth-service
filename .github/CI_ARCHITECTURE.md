@@ -60,57 +60,27 @@ Notre CI/CD est divisée en **5 workflows indépendants** qui se déclenchent en
 
 ## 📁 Workflows
 
-### 1. 🚀 Main CI Pipeline (`ci.yml`)
-**Déclencheur**: Push/PR sur `main`/`develop`
+Notre architecture est organisée en 3 catégories distinctes pour une maintenance optimale :
 
-- Orchestrateur principal
-- Détermine s'il faut déployer
-- Lance la chaîne de workflows
+### 🚀 **Main Workflows** (`main/`)
+**Déclencheur**: Événements GitHub (push/PR)
 
-### 2. 🧪 Tests & Quality (`tests.yml`)
-**Déclencheur**: `repository_dispatch: run-tests`
+- `ci.yml` - Pipeline principal (main/develop)
+- `pr-validation.yml` - Validation des pull requests
 
-- Tests unitaires et e2e
-- Analyse SonarQube
-- Couverture de code
-- Linting et formatage
+### � **Module Workflows** (`modules/`)
+**Déclencheur**: `workflow_call` depuis les workflows principaux
 
-### 3. 🔒 Security Analysis (`security.yml`)
-**Déclencheur**: `repository_dispatch: run-security`
+- `tests.yml` - Tests unitaires, e2e, linting, SonarQube  
+- `security.yml` - Scan Trivy, audit npm, vérifications sécuritaires
+- `docker.yml` - Build Docker, attestations SBOM, push conditionnel
+- `sbom-attestation.yml` - Vérification et analyse des attestations
 
-- Scan Trivy des vulnérabilités
-- Audit des dépendances npm
-- Vérifications de sécurité custom
+### � **Monitoring Workflows** (`monitoring/`)
+**Déclencheur**: Événements `workflow_run` et `repository_dispatch`
 
-### 4. 🐳 Docker Build & Deploy (`docker.yml`)
-**Déclencheur**: `repository_dispatch: run-docker`
-
-- Build et test de l'image Docker
-- **Génération d'attestations SBOM et Provenance**
-- Push vers GitHub Container Registry (ghcr.io)
-- **Signatures cryptographiques avec Sigstore**
-
-### 5. 🔐 SBOM Attestation Analysis (`sbom-attestation.yml`)
-**Déclencheur**: `repository_dispatch: analyze-attestations`
-
-- **Vérification des attestations GitHub**
-- Analyse de vulnérabilités via SBOM signé
-- Contrôles de conformité supply chain
-- Security gates basés sur les attestations
-
-### 6. 📢 Deployment Notification (`notify.yml`)
-**Déclencheur**: `repository_dispatch: deployment-success`
-
-- Notifications de déploiement
-- Résumé des artefacts et attestations
-- Liens utiles
-
-### 7. 📊 Pipeline Monitor (`monitor.yml`)
-**Déclencheur**: `workflow_run` sur tous les workflows
-
-- Monitoring des échecs
-- Création automatique d'issues
-- Fermeture automatique lors de correction
+- `monitor.yml` - Surveillance des échecs, création d'issues automatique
+- `notify.yml` - Notifications de déploiement et résumés
 
 ## �️ Local Development
 
