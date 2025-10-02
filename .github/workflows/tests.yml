@@ -89,6 +89,7 @@ jobs:
           REDIS_URL: redis://localhost:6379
 
       - name: SonarQube Analysis
+        if: ${{ inputs.ref == 'refs/heads/main' || github.ref == 'refs/heads/main' }}
         uses: sonarsource/sonarqube-scan-action@v2.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -96,6 +97,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
       - name: SonarQube Quality Gate
+        if: ${{ inputs.ref == 'refs/heads/main' || github.ref == 'refs/heads/main' }}
         uses: sonarqube-quality-gate-action@master
         timeout-minutes: 5
         env:

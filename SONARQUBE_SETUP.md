@@ -35,24 +35,26 @@ gh secret set SONAR_TOKEN --body "VOTRE_TOKEN" --org whispr-messenger
 
 ### Limitations SonarQube Community Edition
 
-⚠️ **Important** : SonarQube Community Edition ne supporte pas l'analyse complète des pull requests.
+⚠️ **Important** : SonarQube Community Edition ne supporte que l'analyse de la branche principale.
 
 **Fonctionnalités disponibles :**
-- ✅ Analyse de la branche principale (main)
-- ✅ Analyse des branches de feature 
-- ✅ Quality Gates
-- ✅ Code coverage
-- ✅ Détection de bugs et vulnerabilités
+- ✅ Analyse de la branche principale (main) uniquement
+- ✅ Quality Gates sur main
+- ✅ Code coverage sur main
+- ✅ Détection de bugs et vulnerabilités sur main
 
 **Fonctionnalités indisponibles (Developer+ Edition requis) :**
+- ❌ Analyse des branches de feature
 - ❌ Comparaison PR avec la branche de base
 - ❌ Commentaires automatiques sur les PR
 - ❌ Analyse différentielle des changements uniquement
+- ❌ Multi-branch analysis
 
-**Solution actuelle :**
-- Les workflows utilisent `-Dsonar.branch.name` au lieu de paramètres PR
-- L'analyse se fait sur la branche complète
-- Les résultats sont visibles dans SonarQube mais pas intégrés aux PR GitHub
+**Configuration actuelle :**
+- SonarQube s'exécute uniquement quand le code est mergé dans `main`
+- Les PR sont validées avec les autres outils (linting, tests, build)
+- L'analyse complète de qualité se fait après merge
+- Condition: `if: github.ref == 'refs/heads/main'`
 
 ## Vérification
 
