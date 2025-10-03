@@ -1,4 +1,4 @@
-name: 🧪 Tests & Quality
+name: 🧪 Quality Assurance
 
 on:
   repository_dispatch:
@@ -23,7 +23,7 @@ env:
 
 jobs:
   test-and-quality:
-    name: Tests & Quality Analysis
+    name: 🔍 Code Analysis & Testing
     runs-on: ubuntu-latest
 
     ####################################################################################################
