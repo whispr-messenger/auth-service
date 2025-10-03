@@ -1,4 +1,4 @@
-name: Docker Build & Deploy
+name: 🐳 Docker Build & Deploy
 
 on:
   repository_dispatch:
