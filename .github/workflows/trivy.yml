@@ -1,4 +1,4 @@
-name: 🔒 Security Analysis
+name: 🔒 Trivy Security Scan
 
 on:
   repository_dispatch:
@@ -19,8 +19,8 @@ permissions:
   actions: read
 
 jobs:
-  security:
-    name: Security Analysis
+  trivy-scan:
+    name: Trivy Filesystem Scan
     runs-on: ubuntu-latest
     
     steps:
