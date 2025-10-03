@@ -1,4 +1,4 @@
-name: � CI Pipeline
+name: 🚀 CI Pipeline
 
 on:
   push:
@@ -34,7 +34,7 @@ jobs:
   # Security Scanning
   # ================================
   security:
-    name: �️ Security Analysis
+    name: 🛡️ Security Analysis
     uses: ./.github/workflows/trivy.yml
     with:
       ref: ${{ github.ref }}
@@ -44,7 +44,7 @@ jobs:
   # Docker Build
   # ================================
   docker:
-    name: � Container Registry
+    name: 📦 Container Registry
     needs: [tests, security]
     if: success()
     uses: ./.github/workflows/docker.yml
