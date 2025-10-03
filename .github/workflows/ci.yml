@@ -31,8 +31,8 @@ jobs:
   # Security Scanning
   # ================================
   security:
-    name: Security Scan
-    uses: ./.github/workflows/workflow-security.yml
+    name: Trivy Security Scan
+    uses: ./.github/workflows/trivy.yml
     with:
       ref: ${{ github.ref }}
       should_deploy: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}

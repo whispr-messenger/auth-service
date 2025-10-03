@@ -2,7 +2,7 @@ name: 🔍 Pipeline Monitor
 
 on:
   workflow_run:
-    workflows: ["Main CI Pipeline", "Tests & Quality", "Security Analysis", "Docker Build & Deploy"]
+    workflows: ["Main CI Pipeline", "Tests & Quality", "Trivy Security Scan", "Docker Build & Deploy"]
     types: [completed]
 
 permissions:

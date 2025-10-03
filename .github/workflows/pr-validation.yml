@@ -29,8 +29,8 @@ jobs:
       should_deploy: 'false'  # Never deploy from PR
 
   security:
-    name: Security Analysis
-    uses: ./.github/workflows/workflow-security.yml
+    name: Trivy Security Scan
+    uses: ./.github/workflows/trivy.yml
     with:
       ref: ${{ github.head_ref }}
       should_deploy: 'false'  # Never deploy from PR
@@ -73,7 +73,7 @@ jobs:
             summary += `- **Status**: ${testsStatus === 'success' ? '✅ Success' : '❌ Failed'}\n`;
             summary += `- Linting, formatting, unit tests, e2e tests\n\n`;
             
-            summary += `### 🔒 Security Analysis\n`;
+            summary += `### 🔒 Trivy Security Scan\n`;
             summary += `- **Status**: ${securityStatus === 'success' ? '✅ Success' : (securityStatus === 'failure' ? '❌ Failed' : '⏭️ Skipped')}\n`;
             summary += `- Trivy filesystem scan, npm audit, security patterns\n\n`;
             
@@ -111,7 +111,7 @@ jobs:
         run: |
           echo "📋 PR Validation Summary for fork PR #${{ github.event.number }}"
           echo "✅ Tests & Quality: ${{ needs.tests.result }}"
-          echo "🔒 Security analysis: ${{ needs.security.result }}"
+          echo "🔒 Trivy security scan: ${{ needs.security.result }}"
           echo "🐳 Docker build: ${{ needs.docker.result }}"
           echo "📊 SonarQube: Skipped (Community Edition - Main branch only)"
           echo ""
