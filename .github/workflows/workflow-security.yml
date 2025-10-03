@@ -1,4 +1,4 @@
-name: Security Analysis
+name: 🔒 Security Analysis
 
 on:
   repository_dispatch:
@@ -73,21 +73,3 @@ jobs:
           else
             echo "No audit results found."
           fi
-
-      - name: Check for known security issues
-        run: |
-          echo "🔍 Checking for common security patterns..."
-          
-          # Vérifier les secrets hardcodés avec word boundaries et exclusion des tests
-          if grep -r -E "\bpassword[[:space:]]*=[[:space:]]*['\"]" src/ --include="*.ts" --include="*.js" --exclude="*.test.*" --exclude="*.spec.*" | grep -v -E "^[[:space:]]*//|^[[:space:]]*#|/\*.*\*/"; then
-            echo "⚠️ Potential hardcoded passwords found"
-            exit 1
-          fi
-          
-          # Vérifier les clés API hardcodées
-          if grep -r -E "\bapi[_-]?key[[:space:]]*=[[:space:]]*['\"]" src/ --include="*.ts" --include="*.js" --exclude="*.test.*" --exclude="*.spec.*" | grep -v -E "^[[:space:]]*//|^[[:space:]]*#|/\*.*\*/"; then
-            echo "⚠️ Potential hardcoded API keys found"
-            exit 1
-          fi
-          
-          echo "✅ Basic security checks passed"

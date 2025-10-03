@@ -1,4 +1,4 @@
-name: Pull Request Validation
+name: 🔍 Pull Request Validation
 
 on:
   pull_request:
@@ -30,7 +30,6 @@ jobs:
 
   security:
     name: Security Analysis
-    needs: tests
     uses: ./.github/workflows/workflow-security.yml
     with:
       ref: ${{ github.head_ref }}

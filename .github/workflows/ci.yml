@@ -1,4 +1,4 @@
-name: Main CI Pipeline
+name: 🚀 Main CI Pipeline
 
 on:
   push:
@@ -32,7 +32,6 @@ jobs:
   # ================================
   security:
     name: Security Scan
-    needs: tests
     uses: ./.github/workflows/workflow-security.yml
     with:
       ref: ${{ github.ref }}
