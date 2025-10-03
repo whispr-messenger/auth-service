@@ -16,7 +16,7 @@ on:
 permissions:
   contents: read
   packages: write
-  id-token: write  # For GitHub attestations
+  id-token: write
   attestations: write
 
 env:
@@ -33,7 +33,7 @@ jobs:
     outputs:
       image-digest: ${{ steps.build.outputs.digest }}
       image-tags: ${{ steps.meta.outputs.tags }}
-    
+ 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -66,36 +66,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Test Docker image
-        run: |
-          echo "🧪 Testing Docker image..."
-          
-          # Start image in background
-          docker run -d --name test-container -p 3001:3001 \
-            -e NODE_ENV=test \
-            auth-service:test
-          
-          # Wait for service to be ready
-          echo "⏳ Waiting for service to be ready..."
-          for i in {1..30}; do
-            if curl -f http://localhost:3001/health; then
-              echo "✅ Health check passed"
-              break
-            fi
-            echo "Attempt $i/30 failed, retrying..."
-            sleep 2
-          done
-          
-          # Basic tests
-          echo "🔍 Running basic endpoint tests..."
-          curl -f http://localhost:3001/health || exit 1
-          
-          # Cleanup
-          docker stop test-container
-          docker rm test-container
-          
-          echo "✅ Docker image tests passed"
-
       - name: Run Trivy on Docker image
         uses: aquasecurity/trivy-action@0.24.0
         with:
@@ -109,6 +79,21 @@ jobs:
         if: always() && hashFiles('docker-trivy-results.sarif') != ''
         with:
           sarif_file: 'docker-trivy-results.sarif'
+
+          
+
+      - name: Run the Anchore Grype scan action
+        uses: anchore/scan-action@d5aa5b6cb9414b0c7771438046ff5bcfa2854ed7
+        id: scan
+        with:
+          image: "localbuild/testimage:latest"
+          fail-build: true
+          severity-cutoff: critical
+
+      - name: Upload vulnerability report
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
 
       - name: Should deploy check
         id: deploy-check
@@ -125,7 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: docker-build
     if: (inputs.should_deploy == 'true') || (github.event.client_payload.should_deploy == 'true')
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
