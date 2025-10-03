@@ -1,7 +1,9 @@
-name: 🚀 Main CI Pipeline
+name: 👷 Continuous Integration
 
 on:
   push:
+    branches: [main, develop]
+  pull_request:
     branches: [main, develop]
 
 permissions:
@@ -10,6 +12,7 @@ permissions:
   pull-requests: write
   packages: write
   security-events: write
+  actions: read
   attestations: write
   id-token: write
 
@@ -21,8 +24,8 @@ jobs:
   # Tests and Quality
   # ================================
   tests:
-    name: Run Tests & Quality
-    uses: ./.github/workflows/workflow-tests.yml
+    name: 🧪 Run Tests & Quality
+    uses: ./.github/workflows/tests.yml
     with:
       ref: ${{ github.ref }}
       should_deploy: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
@@ -31,7 +34,7 @@ jobs:
   # Security Scanning
   # ================================
   security:
-    name: Trivy Security Scan
+    name: 🔒 Trivy Security Scan
     uses: ./.github/workflows/trivy.yml
     with:
       ref: ${{ github.ref }}
@@ -41,10 +44,10 @@ jobs:
   # Docker Build
   # ================================
   docker:
-    name: Docker Build & Push
+    name: 🐋 Docker Build & Push
     needs: [tests, security]
     if: success()
-    uses: ./.github/workflows/workflow-docker.yml
+    uses: ./.github/workflows/docker.yml
     with:
       ref: ${{ github.ref }}
       should_deploy: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
