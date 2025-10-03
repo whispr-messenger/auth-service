@@ -1,0 +1,233 @@
+# 🏷️ Auto-Labeller Configuration
+# This file defines automatic label assignment rules based on file paths and content changes
+
+# ================================
+# 📁 Core Components
+# ================================
+
+# Authentication Core
+'🔐 auth:core':
+  - 'src/modules/auth.module.ts'
+  - 'src/services/auth.service.ts'
+  - 'src/services/auth.service.spec.ts'
+  - 'src/controllers/auth.controller.ts'
+  - 'src/dto/auth/**/*'
+  - 'src/dto/auth.dto.ts'
+
+# JWT & Token Management
+'🎫 auth:tokens':
+  - 'src/services/token.service.ts'
+  - 'src/guards/jwt-auth.guard.ts'
+  - 'src/services/verification.service.ts'
+
+# Two-Factor Authentication
+'🔒 auth:2fa':
+  - 'src/services/two-factor.service.ts'
+  - 'src/dto/auth/two-factor*.dto.ts'
+  - 'src/services/backup-codes.service.ts'
+  - 'src/entities/backup-code.entity.ts'
+
+# Device Management
+'📱 auth:devices':
+  - 'src/services/device.service.ts'
+  - 'src/services/device.service.spec.ts'
+  - 'src/entities/device.entity.ts'
+  - 'src/dto/auth/*device*.dto.ts'
+
+# Cryptography & Security
+'🔑 security:crypto':
+  - 'src/services/crypto.service.ts'
+  - 'src/entities/identity-key.entity.ts'
+  - 'src/entities/prekey.entity.ts'
+  - 'src/entities/signed-prekey.entity.ts'
+
+# ================================
+# 🏗️ Infrastructure & Configuration
+# ================================
+
+# Database & Entities
+'🗄️ database':
+  - 'src/entities/**/*'
+  - 'src/migrations/**/*'
+  - 'init.sql'
+  - any: ['**/*entity*.ts', '**/*migration*.ts']
+
+# Configuration
+'⚙️ config':
+  - 'src/main.ts'
+  - 'src/app.module.ts'
+  - 'src/health-check.ts'
+  - '**/*config*.ts'
+  - '**/*config*.js'
+  - 'ecosystem.config.js'
+  - 'nest-cli.json'
+  - 'tsconfig*.json'
+
+# Health & Monitoring
+'💊 health':
+  - 'src/health/**/*'
+  - 'src/health-check.ts'
+
+# ================================
+# 🌐 Communication & APIs
+# ================================
+
+# Controllers & APIs
+'🎮 api:controllers':
+  - 'src/controllers/**/*'
+  - any: ['**/*controller*.ts']
+
+# gRPC Services
+'🔗 api:grpc':
+  - 'src/grpc/**/*'
+  - any: ['**/*grpc*.ts', '**/*.proto']
+
+# DTOs & Interfaces
+'📋 api:dto':
+  - 'src/dto/**/*'
+  - 'src/interfaces/**/*'
+  - any: ['**/*dto*.ts', '**/*interface*.ts']
+
+# ================================
+# 🛡️ Security & Middleware
+# ================================
+
+# Guards & Security
+'🛡️ security:guards':
+  - 'src/guards/**/*'
+  - any: ['**/*guard*.ts']
+
+# Rate Limiting
+'⏱️ security:rate-limit':
+  - 'src/guards/rate-limit.guard.ts'
+  - any: ['**/*throttle*.ts', '**/*rate*.ts']
+
+# Interceptors & Middleware
+'🔄 middleware':
+  - 'src/interceptors/**/*'
+  - 'src/pipes/**/*'
+  - 'src/decorators/**/*'
+  - any: ['**/*interceptor*.ts', '**/*pipe*.ts', '**/*decorator*.ts']
+
+# ================================
+# 🧪 Testing & Quality
+# ================================
+
+# Unit Tests
+'🧪 tests:unit':
+  - '**/*.spec.ts'
+  - 'src/**/*.test.ts'
+
+# E2E Tests
+'🔬 tests:e2e':
+  - 'test/**/*'
+  - '**/*.e2e-spec.ts'
+  - 'test/jest-e2e.json'
+  - 'test/setup-e2e.ts'
+
+# ================================
+# 🚀 DevOps & Infrastructure
+# ================================
+
+# Docker & Containers
+'🐳 devops:docker':
+  - 'docker/**/*'
+  - 'Dockerfile*'
+  - 'docker-compose*.yml'
+  - '.dockerignore'
+
+# CI/CD Workflows
+'⚡ devops:ci-cd':
+  - '.github/workflows/**/*'
+  - '.github/actions/**/*'
+
+# Nginx & Reverse Proxy
+'🌐 devops:nginx':
+  - 'nginx.conf'
+  - '**/*nginx*.conf'
+
+# Scripts & Automation
+'📜 devops:scripts':
+  - 'scripts/**/*'
+  - '**/*.sh'
+
+# ================================
+# 📚 Documentation
+# ================================
+
+# Architecture Documentation
+'📐 docs:architecture':
+  - 'documentation/1_architecture/**/*'
+
+# Functional Specifications
+'📋 docs:specs':
+  - 'documentation/2_fonctional_specs/**/*'
+  - 'documentation/3_technical_specs/**/*'
+
+# Operational Documentation
+'🔧 docs:operations':
+  - 'documentation/4_exploitation/**/*'
+  - 'documentation/DEPLOYMENT.md'
+  - 'documentation/PRODUCTION.md'
+  - 'documentation/DEVELOPMENT.md'
+
+# Integration & Migration Docs
+'🔗 docs:integration':
+  - 'documentation/5_integration/**/*'
+  - 'documentation/INTEGRATION.md'
+  - 'documentation/MIGRATION.md'
+
+# Governance & ADRs
+'📊 docs:governance':
+  - 'documentation/6_governance/**/*'
+  - 'documentation/6_governance/1_architectural_decisions_records/**/*'
+
+# General Documentation
+'📖 documentation':
+  - 'README*.md'
+  - 'documentation/**/*'
+  - '**/*.md'
+
+# ================================
+# 🔧 Development Tools
+# ================================
+
+# Dependencies & Package Management
+'📦 dependencies':
+  - 'package.json'
+  - 'package-lock.json'
+  - 'yarn.lock'
+  - 'pnpm-lock.yaml'
+
+# Linting & Formatting
+'🎨 tools:linting':
+  - '.eslintrc*'
+  - '.prettierrc*'
+  - '.editorconfig'
+
+# Security Scanning
+'🔒 tools:security':
+  - 'sonar-project.properties'
+  - '.github/templates/grype-html.tmpl'
+
+# ================================
+# 🎯 Special Categories
+# ================================
+
+# Breaking Changes
+'💥 breaking-change':
+  - 'src/main.ts'
+  - 'src/app.module.ts'
+  - 'src/modules/**/*'
+  - 'src/migrations/**/*'
+
+# Performance Critical
+'⚡ performance':
+  - 'src/services/**/*'
+  - 'src/guards/**/*'
+  - 'src/interceptors/**/*'
+  - any: ['**/*cache*.ts', '**/*redis*.ts']
+
+# External Dependencies
+'🌍 external':
+  - any: ['**/*sms*.ts', '**/*twilio*.ts', '**/*grpc*.ts']
