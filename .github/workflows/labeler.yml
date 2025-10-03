@@ -1,0 +1,246 @@
+name: 🏷️ Auto-Labeller
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  auto-label:
+    name: 🏷️ Label Pull Request
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: 🏷️ Apply Labels
+        uses: actions/labeler@v5
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          configuration-path: .github/labeler.yml
+          sync-labels: true
+
+  priority-labeler:
+    name: 🎯 Priority & Impact Assessment
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    needs: auto-label
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🔍 Analyze PR Impact
+        id: analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_PAGER: ""
+        run: |
+          # Get changed files
+          echo "Analyzing changed files..."
+          
+          # Critical files that require high priority
+          CRITICAL_FILES="src/main.ts src/app.module.ts src/modules/auth.module.ts src/services/auth.service.ts src/guards/jwt-auth.guard.ts src/migrations/ Dockerfile docker-compose.yml .github/workflows/"
+          
+          # Security-related files
+          SECURITY_FILES="src/services/crypto.service.ts src/services/two-factor.service.ts src/guards/ src/entities/"
+          
+          # Get PR files
+          gh pr view ${{ github.event.pull_request.number }} --json files --jq '.files[].path' > changed_files.txt
+          
+          # Initialize flags
+          CRITICAL_CHANGED=false
+          SECURITY_CHANGED=false
+          DATABASE_CHANGED=false
+          TESTS_CHANGED=false
+          DOCS_CHANGED=false
+          
+          # Check each changed file
+          while IFS= read -r file; do
+            echo "Checking file: $file"
+            
+            # Check critical files
+            for pattern in $CRITICAL_FILES; do
+              if [[ "$file" == *"$pattern"* ]]; then
+                echo "critical=true" >> $GITHUB_OUTPUT
+                CRITICAL_CHANGED=true
+                break
+              fi
+            done
+            
+            # Check security files
+            for pattern in $SECURITY_FILES; do
+              if [[ "$file" == *"$pattern"* ]]; then
+                echo "security=true" >> $GITHUB_OUTPUT
+                SECURITY_CHANGED=true
+                break
+              fi
+            done
+            
+            # Check database changes
+            if [[ "$file" == *"migration"* ]] || [[ "$file" == *"entity"* ]] || [[ "$file" == *"init.sql"* ]]; then
+              echo "database=true" >> $GITHUB_OUTPUT
+              DATABASE_CHANGED=true
+            fi
+            
+            # Check test files
+            if [[ "$file" == *".spec.ts"* ]] || [[ "$file" == *".test.ts"* ]] || [[ "$file" == *"test/"* ]]; then
+              echo "tests=true" >> $GITHUB_OUTPUT
+              TESTS_CHANGED=true
+            fi
+            
+            # Check documentation
+            if [[ "$file" == *".md"* ]] || [[ "$file" == *"documentation/"* ]]; then
+              echo "docs=true" >> $GITHUB_OUTPUT
+              DOCS_CHANGED=true
+            fi
+            
+          done < changed_files.txt
+          
+          # Calculate PR size
+          CHANGED_LINES=$(gh pr view ${{ github.event.pull_request.number }} --json additions,deletions --jq '.additions + .deletions')
+          echo "changed_lines=$CHANGED_LINES" >> $GITHUB_OUTPUT
+          
+          if (( CHANGED_LINES > 1000 )); then
+            echo "size=XL" >> $GITHUB_OUTPUT
+          elif (( CHANGED_LINES > 500 )); then
+            echo "size=L" >> $GITHUB_OUTPUT
+          elif (( CHANGED_LINES > 100 )); then
+            echo "size=M" >> $GITHUB_OUTPUT
+          elif (( CHANGED_LINES > 10 )); then
+            echo "size=S" >> $GITHUB_OUTPUT
+          else
+            echo "size=XS" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🎯 Apply Priority Labels
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            
+            const labels = [];
+            
+            // Priority labels based on impact
+            if ('${{ steps.analyze.outputs.critical }}' === 'true') {
+              labels.push('🔥 priority:high');
+            } else if ('${{ steps.analyze.outputs.security }}' === 'true' || '${{ steps.analyze.outputs.database }}' === 'true') {
+              labels.push('⚡ priority:medium');
+            } else {
+              labels.push('📝 priority:low');
+            }
+            
+            // Size labels
+            const size = '${{ steps.analyze.outputs.size }}';
+            labels.push(`📏 size:${size}`);
+            
+            // Type-specific labels
+            if ('${{ steps.analyze.outputs.tests }}' === 'true') {
+              labels.push('🧪 type:testing');
+            }
+            
+            if ('${{ steps.analyze.outputs.docs }}' === 'true') {
+              labels.push('📚 type:documentation');
+            }
+            
+            if ('${{ steps.analyze.outputs.security }}' === 'true') {
+              labels.push('🔒 type:security');
+            }
+            
+            if ('${{ steps.analyze.outputs.database }}' === 'true') {
+              labels.push('🗄️ type:database');
+            }
+            
+            // Apply labels
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number,
+                labels
+              });
+            }
+
+  checklist-validation:
+    name: ✅ PR Checklist Validation
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: ✅ Validate PR Checklist
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const pull_number = context.issue.number;
+            
+            const pr = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number
+            });
+            
+            const body = pr.data.body || '';
+            const title = pr.data.title || '';
+            
+            const validationResults = [];
+            
+            // Check title format
+            const titleRegex = /^(feat|fix|docs|style|refactor|test|chore|security|perf)(\(.+\))?: .+/;
+            if (!titleRegex.test(title)) {
+              validationResults.push('❌ Title should follow conventional commit format: `type(scope): description`');
+            } else {
+              validationResults.push('✅ Title follows conventional commit format');
+            }
+            
+            // Check description
+            if (body.length < 50) {
+              validationResults.push('❌ PR description should be at least 50 characters');
+            } else {
+              validationResults.push('✅ PR description is detailed enough');
+            }
+            
+            // Check for breaking changes mention
+            if (title.includes('!') || body.toLowerCase().includes('breaking change')) {
+              validationResults.push('⚠️ This PR contains breaking changes - please ensure proper documentation');
+            }
+            
+            // Check for test mentions
+            if (body.toLowerCase().includes('test') || body.toLowerCase().includes('coverage')) {
+              validationResults.push('✅ Testing mentioned in description');
+            } else {
+              validationResults.push('⚠️ Consider mentioning testing approach in the description');
+            }
+            
+            // Add comment with validation results
+            const comment = "## 🤖 Automated PR Validation\n\n" + 
+              validationResults.join('\n') + 
+              "\n\n### 📋 PR Checklist Reminder\n" +
+              "- [ ] Code follows the project's style guidelines\n" +
+              "- [ ] Tests have been added/updated for the changes\n" +
+              "- [ ] Documentation has been updated if needed\n" +
+              "- [ ] Breaking changes are clearly documented\n" +
+              "- [ ] Security implications have been considered\n" +
+              "- [ ] Performance impact has been evaluated\n\n" +
+              "### 🔍 Review Guidelines\n" +
+              "- Focus on code quality, security, and maintainability\n" +
+              "- Check for proper error handling and logging\n" +
+              "- Verify authentication and authorization logic\n" +
+              "- Ensure database changes are properly migrated\n" +
+              "- Review Docker and deployment configurations";
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: pull_number,
+              body: comment
+            });
