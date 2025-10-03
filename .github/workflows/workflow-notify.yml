@@ -1,4 +1,4 @@
-name: Deployment Notification
+name: 📢 Deployment Notification
 
 on:
   repository_dispatch:

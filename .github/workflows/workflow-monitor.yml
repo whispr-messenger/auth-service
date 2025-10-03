@@ -1,4 +1,4 @@
-name: Pipeline Monitor
+name: 🔍 Pipeline Monitor
 
 on:
   workflow_run:

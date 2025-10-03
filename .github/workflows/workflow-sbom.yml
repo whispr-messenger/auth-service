@@ -1,4 +1,4 @@
-name: SBOM Attestation Analysis
+name: 📦 SBOM Attestation Analysis
 
 on:
   repository_dispatch:
