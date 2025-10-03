@@ -25,7 +25,10 @@ jobs:
   test-and-quality:
     name: Tests & Quality Analysis
     runs-on: ubuntu-latest
-    
+
+    ####################################################################################################
+    # Services
+    ####################################################################################################
     services:
       postgres:
         image: postgres:15
@@ -40,7 +43,7 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-      
+
       redis:
         image: redis:7-alpine
         options: >-
@@ -52,6 +55,9 @@ jobs:
           - 6379:6379
 
     steps:
+      ####################################################################################################
+      # Setup
+      ####################################################################################################
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -67,12 +73,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      ####################################################################################################
+      # Linting and Formatting
+      ####################################################################################################
       - name: Run linting
         run: npm run lint
 
       - name: Run format check
         run: npx prettier --check "src/**/*.ts" "test/**/*.ts"
 
+      ####################################################################################################
+      # Unit and E2E Tests
+      ####################################################################################################
       - name: Run unit tests
         run: npm run test:cov
         env:
@@ -85,6 +97,9 @@ jobs:
           DATABASE_URL: postgresql://test:test@localhost:5432/test_db
           REDIS_URL: redis://localhost:6379
 
+      ####################################################################################################
+      # SonarQube Analysis (conditional on should_deploy)
+      ####################################################################################################
       - name: SonarQube Analysis
         if: ${{ inputs.should_deploy == 'true' }}
         uses: sonarsource/sonarqube-scan-action@v2.0.2
