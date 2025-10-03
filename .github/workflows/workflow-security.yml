@@ -29,15 +29,6 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.event.client_payload.ref }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
       - name: Run Trivy filesystem scan
         uses: aquasecurity/trivy-action@0.24.0
         with:
@@ -52,24 +43,3 @@ jobs:
         if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: 'trivy-results.sarif'
-
-      - name: Audit npm dependencies
-        run: |
-          echo "🔍 Auditing npm dependencies (high severity)..."
-          npm audit --audit-level=high --json > audit.json || true
-          if [ -s audit.json ]; then
-            HIGH=$(jq '.metadata.vulnerabilities.high' audit.json)
-            CRITICAL=$(jq '.metadata.vulnerabilities.critical' audit.json)
-            TOTAL=$(jq '.metadata.vulnerabilities.total' audit.json)
-            echo "Summary of vulnerabilities:"
-            echo "  High: $HIGH"
-            echo "  Critical: $CRITICAL"
-            echo "  Total: $TOTAL"
-            if [ "$HIGH" -gt 0 ] || [ "$CRITICAL" -gt 0 ]; then
-              echo "⚠️ High or critical vulnerabilities detected. Please review audit.json for details."
-            else
-              echo "✅ No high or critical vulnerabilities found."
-            fi
-          else
-            echo "No audit results found."
-          fi
