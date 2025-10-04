@@ -98,10 +98,20 @@ jobs:
           REDIS_URL: redis://localhost:6379
 
       ####################################################################################################
-      # SonarQube Analysis (conditional on should_deploy)
+      # SonarQube Analysis (conditional on should_deploy and secrets availability)
       ####################################################################################################
+      - name: Check SonarQube secrets
+        id: check-secrets
+        run: |
+          if [[ -n "${{ secrets.SONAR_TOKEN }}" && -n "${{ secrets.SONAR_HOST_URL }}" ]]; then
+            echo "secrets-available=true" >> $GITHUB_OUTPUT
+          else
+            echo "secrets-available=false" >> $GITHUB_OUTPUT
+            echo "⚠️ SonarQube secrets not configured. Skipping SonarQube analysis."
+          fi
+
       - name: SonarQube Analysis
-        if: ${{ inputs.should_deploy == 'true' }}
+        if: ${{ inputs.should_deploy == 'true' && steps.check-secrets.outputs.secrets-available == 'true' }}
         uses: sonarsource/sonarqube-scan-action@v2.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -109,7 +119,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
       - name: SonarQube Quality Gate
-        if: ${{ inputs.should_deploy == 'true' }}
+        if: ${{ inputs.should_deploy == 'true' && steps.check-secrets.outputs.secrets-available == 'true' }}
         uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
         timeout-minutes: 5
         env:
