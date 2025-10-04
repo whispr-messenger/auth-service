@@ -1,4 +1,4 @@
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ COPY . .
 RUN npm run build
 RUN npm ci --only=production && npm cache clean --force
 
-FROM node:18-alpine AS production
+FROM node:22-alpine AS production
 
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nestjs -u 1001
