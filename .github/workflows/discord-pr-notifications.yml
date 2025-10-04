@@ -20,7 +20,7 @@ jobs:
     if: github.event.pull_request.draft == false
 
     steps:
-      - name: Extract PR info
+      - name: Prepare PR info
         id: pr_info
         run: |
           # Extract commit info
@@ -32,33 +32,33 @@ jobs:
           # Determine notification color and action details
           case "${{ github.event.action }}" in
             "opened")
-              COLOR="3447003"  # Blue
+              COLOR="3447003"
               ACTION_EMOJI="🆕"
               ACTION_TEXT="opened"
               ;;
             "reopened")
-              COLOR="16776960"  # Yellow
+              COLOR="16776960"
               ACTION_EMOJI="🔄"
               ACTION_TEXT="reopened"
               ;;
             "closed")
               if [ "${{ github.event.pull_request.merged }}" == "true" ]; then
-                COLOR="65280"  # Green
+                COLOR="65280"
                 ACTION_EMOJI="✅"
                 ACTION_TEXT="merged"
               else
-                COLOR="16711680"  # Red
+                COLOR="16711680"
                 ACTION_EMOJI="❌"
                 ACTION_TEXT="closed"
               fi
               ;;
             "ready_for_review")
-              COLOR="3447003"  # Blue
+              COLOR="3447003"
               ACTION_EMOJI="👀"
               ACTION_TEXT="marked as ready for review"
               ;;
             *)
-              COLOR="9936031"  # Gray
+              COLOR="9936031"
               ACTION_EMOJI="📝"
               ACTION_TEXT="${{ github.event.action }}"
               ;;
@@ -69,6 +69,28 @@ jobs:
           echo "color=$COLOR" >> $GITHUB_OUTPUT
           echo "action_emoji=$ACTION_EMOJI" >> $GITHUB_OUTPUT
           echo "action_text=$ACTION_TEXT" >> $GITHUB_OUTPUT
+
+      - name: Send Discord notification
+        uses: tsickert/discord-webhook@v7.0.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          username: "GitHub Actions"
+          avatar-url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+          embed-title: "${{ steps.pr_info.outputs.action_emoji }} Pull Request ${{ steps.pr_info.outputs.action_text }}"
+          embed-description: |
+            **[${{ github.event.pull_request.title }}](${{ github.event.pull_request.html_url }})**
+            
+            🌿 `${{ github.event.pull_request.head.ref }}` → `${{ github.event.pull_request.base.ref }}`
+            👤 [${{ github.event.pull_request.user.login }}](${{ github.event.pull_request.user.html_url }})
+            📊 +${{ github.event.pull_request.additions }} -${{ github.event.pull_request.deletions }}
+            
+            ${{ steps.pr_info.outputs.labels && format('🏷️ {0}', steps.pr_info.outputs.labels) || '' }}
+          embed-url: ${{ github.event.pull_request.html_url }}
+          embed-color: ${{ steps.pr_info.outputs.color }}
+          embed-thumbnail-url: ${{ github.event.pull_request.user.avatar_url }}
+          embed-footer-text: "auth-service • PR #${{ github.event.pull_request.number }} • ${{ steps.pr_info.outputs.short_sha }}"
+          embed-footer-icon-url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+          embed-timestamp: ${{ github.event.pull_request.created_at }}
 
       - name: Prepare embed description
         id: description
@@ -135,22 +157,22 @@ jobs:
           case "${{ github.event.review.state }}" in
             "approved")
               EMOJI="✅"
-              COLOR="65280"  # Green
+              COLOR="65280"
               STATE_TEXT="approved"
               ;;
             "changes_requested")
               EMOJI="❌"
-              COLOR="16711680"  # Red
+              COLOR="16711680"
               STATE_TEXT="requested changes"
               ;;
             "commented")
               EMOJI="💬"
-              COLOR="9936031"  # Gray
+              COLOR="9936031"
               STATE_TEXT="commented"
               ;;
             *)
               EMOJI="📝"
-              COLOR="9936031"  # Gray
+              COLOR="9936031"
               STATE_TEXT="${{ github.event.review.state }}"
               ;;
           esac
@@ -159,32 +181,6 @@ jobs:
           echo "color=$COLOR" >> $GITHUB_OUTPUT
           echo "state_text=$STATE_TEXT" >> $GITHUB_OUTPUT
 
-      - name: Prepare review description
-        id: review_description
-        run: |
-          # Create the main description with PR link
-          MAIN_DESC="**[${{ github.event.pull_request.title }}](${{ github.event.review.html_url }})**"
-          
-          # Add reviewer info
-          MAIN_DESC="${MAIN_DESC}\n\n👤 **Reviewer:** [${{ github.event.review.user.login }}](${{ github.event.review.user.html_url }})"
-          
-          # Add PR author info
-          MAIN_DESC="${MAIN_DESC}\n👤 **Author:** [${{ github.event.pull_request.user.login }}](${{ github.event.pull_request.user.html_url }})"
-          
-          # Add review comment if it exists (truncated)
-          if [ -n "${{ github.event.review.body }}" ]; then
-            COMMENT=$(echo '${{ github.event.review.body }}' | head -c 300 | tr '\n' ' ')
-            if [ ${#COMMENT} -eq 300 ]; then
-              COMMENT="${COMMENT}..."
-            fi
-            MAIN_DESC="${MAIN_DESC}\n\n💬 **Comment:** ${COMMENT}"
-          fi
-          
-          # Save the description (escape for JSON)
-          echo "embed_description<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$MAIN_DESC" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
       - name: Send review notification
         uses: tsickert/discord-webhook@v7.0.0
         with:
@@ -192,7 +188,11 @@ jobs:
           username: "GitHub Actions"
           avatar-url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
           embed-title: "${{ steps.review_info.outputs.emoji }} PR Review ${{ steps.review_info.outputs.state_text }}"
-          embed-description: ${{ steps.review_description.outputs.embed_description }}
+          embed-description: |
+            **[${{ github.event.pull_request.title }}](${{ github.event.review.html_url }})**
+            
+            👤 **Reviewer:** [${{ github.event.review.user.login }}](${{ github.event.review.user.html_url }})
+            👤 **Author:** [${{ github.event.pull_request.user.login }}](${{ github.event.pull_request.user.html_url }})
           embed-url: ${{ github.event.review.html_url }}
           embed-color: ${{ steps.review_info.outputs.color }}
           embed-thumbnail-url: ${{ github.event.review.user.avatar_url }}
