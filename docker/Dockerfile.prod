@@ -2,7 +2,7 @@
 # Auth Service - Whisper Microservices
 
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \
@@ -33,7 +33,7 @@ RUN npx prisma generate && \
     npm prune --production
 
 # Production stage
-FROM gcr.io/distroless/nodejs18-debian11 AS production
+FROM gcr.io/distroless/nodejs22-debian12 AS production
 
 # Labels for GCP and container registry
 LABEL maintainer="Whisper Team" \
