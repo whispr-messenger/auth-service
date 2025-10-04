@@ -161,6 +161,9 @@ jobs:
       - name: Verify SBOM file exists
         run: |
           echo "🔍 Checking SBOM outputs..."
+          # Check both possible outputs from anchore/sbom-action as a fallback strategy:
+          # - sbom-path: traditional output that may be unreliable in some versions
+          # - sbom-file: alternative output that might be set instead
           echo "SBOM path from action: '${{ steps.sbom.outputs.sbom-path }}'"
           echo "SBOM file from action: '${{ steps.sbom.outputs.sbom-file }}'"
           if [ -f "sbom.spdx.json" ]; then
@@ -171,7 +174,8 @@ jobs:
             echo "sbom_file_path=${{ steps.sbom.outputs.sbom-path }}" >> $GITHUB_OUTPUT
           else
             echo "❌ SBOM file not found!"
-            ls -la
+            # List only SBOM-related files for focused debugging
+            ls -la *.spdx.json || find . -name '*.spdx.json' || echo "No SBOM files found"
             exit 1
           fi
         id: verify-sbom
