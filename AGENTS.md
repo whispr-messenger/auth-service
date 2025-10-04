@@ -94,7 +94,7 @@ PR titles must follow this format:
 
 **Rules:**
 - NO emojis in PR titles
-- Include JIRA ticket number in brackets at the start
+- Include Jira ticket number in brackets at the start
 - Use clear, descriptive titles
 - Write in English
 
