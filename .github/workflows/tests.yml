@@ -12,6 +12,11 @@ on:
         required: false
         type: string
         default: 'false'
+    secrets:
+      SONAR_TOKEN:
+        required: false
+      SONAR_HOST_URL:
+        required: false
 
 permissions:
   contents: read
