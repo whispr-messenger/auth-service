@@ -17,7 +17,7 @@ permissions:
   id-token: write
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '22'
 
 jobs:
   # ================================
@@ -29,9 +29,6 @@ jobs:
     with:
       ref: ${{ github.ref }}
       should_deploy: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
-    secrets:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
   # ================================
   # Security Scanning
