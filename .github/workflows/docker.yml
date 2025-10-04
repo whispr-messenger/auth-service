@@ -156,6 +156,29 @@ jobs:
         with:
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}
           format: spdx-json
+          output-file: sbom.spdx.json
+
+      - name: Verify SBOM file exists
+        run: |
+          echo "🔍 Checking SBOM outputs..."
+          # Check both possible outputs from anchore/sbom-action as a fallback strategy:
+          # - sbom-path: traditional output that may be unreliable in some versions
+          # - sbom-file: alternative output that might be set instead
+          echo "SBOM path from action: '${{ steps.sbom.outputs.sbom-path }}'"
+          echo "SBOM file from action: '${{ steps.sbom.outputs.sbom-file }}'"
+          if [ -f "sbom.spdx.json" ]; then
+            echo "✅ SBOM file exists: sbom.spdx.json"
+            echo "sbom_file_path=sbom.spdx.json" >> $GITHUB_OUTPUT
+          elif [ -n "${{ steps.sbom.outputs.sbom-path }}" ] && [ -f "${{ steps.sbom.outputs.sbom-path }}" ]; then
+            echo "✅ SBOM file exists at: ${{ steps.sbom.outputs.sbom-path }}"
+            echo "sbom_file_path=${{ steps.sbom.outputs.sbom-path }}" >> $GITHUB_OUTPUT
+          else
+            echo "❌ SBOM file not found!"
+            # List only SBOM-related files for focused debugging
+            ls -la *.spdx.json || find . -name '*.spdx.json' || echo "No SBOM files found"
+            exit 1
+          fi
+        id: verify-sbom
 
       - name: Attest SBOM to image
         uses: actions/attest-sbom@v1
@@ -163,7 +186,7 @@ jobs:
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.push.outputs.digest }}
-          sbom-path: ${{ steps.sbom.outputs.sbom-path }}
+          sbom-path: ${{ steps.verify-sbom.outputs.sbom_file_path }}
           push-to-registry: true
 
       - name: Generate provenance attestation
