@@ -1,0 +1,201 @@
+name: 🔔 Discord PR Notifications
+
+on:
+  pull_request:
+    types: [opened, reopened, closed, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # ================================
+  # Discord PR Notifications
+  # ================================
+  notify-discord:
+    name: Send Discord Notification
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Extract PR info
+        id: pr_info
+        run: |
+          # Extract commit info
+          SHORT_SHA=$(echo "${{ github.event.pull_request.head.sha }}" | cut -c1-7)
+          
+          # Get PR labels
+          LABELS=$(echo '${{ toJson(github.event.pull_request.labels) }}' | jq -r '.[].name' | tr '\n' ' ' | sed 's/ $//')
+          
+          # Determine notification color and action details
+          case "${{ github.event.action }}" in
+            "opened")
+              COLOR="3447003"  # Blue
+              ACTION_EMOJI="🆕"
+              ACTION_TEXT="opened"
+              ;;
+            "reopened")
+              COLOR="16776960"  # Yellow
+              ACTION_EMOJI="🔄"
+              ACTION_TEXT="reopened"
+              ;;
+            "closed")
+              if [ "${{ github.event.pull_request.merged }}" == "true" ]; then
+                COLOR="65280"  # Green
+                ACTION_EMOJI="✅"
+                ACTION_TEXT="merged"
+              else
+                COLOR="16711680"  # Red
+                ACTION_EMOJI="❌"
+                ACTION_TEXT="closed"
+              fi
+              ;;
+            "ready_for_review")
+              COLOR="3447003"  # Blue
+              ACTION_EMOJI="👀"
+              ACTION_TEXT="marked as ready for review"
+              ;;
+            *)
+              COLOR="9936031"  # Gray
+              ACTION_EMOJI="📝"
+              ACTION_TEXT="${{ github.event.action }}"
+              ;;
+          esac
+          
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "labels=$LABELS" >> $GITHUB_OUTPUT
+          echo "color=$COLOR" >> $GITHUB_OUTPUT
+          echo "action_emoji=$ACTION_EMOJI" >> $GITHUB_OUTPUT
+          echo "action_text=$ACTION_TEXT" >> $GITHUB_OUTPUT
+
+      - name: Prepare embed description
+        id: description
+        run: |
+          # Create the main description with PR link
+          MAIN_DESC="**[${{ github.event.pull_request.title }}](${{ github.event.pull_request.html_url }})**"
+          
+          # Add branch info
+          MAIN_DESC="${MAIN_DESC}\n\n🌿 \`${{ github.event.pull_request.head.ref }}\` → \`${{ github.event.pull_request.base.ref }}\`"
+          
+          # Add author info
+          MAIN_DESC="${MAIN_DESC}\n� [${{ github.event.pull_request.user.login }}](${{ github.event.pull_request.user.html_url }})"
+          
+          # Add changes info
+          MAIN_DESC="${MAIN_DESC}\n📊 +${{ github.event.pull_request.additions }} -${{ github.event.pull_request.deletions }}"
+          
+          # Add labels if they exist
+          if [ -n "${{ steps.pr_info.outputs.labels }}" ]; then
+            MAIN_DESC="${MAIN_DESC}\n🏷️ ${{ steps.pr_info.outputs.labels }}"
+          fi
+          
+          # Add PR description if it exists (truncated)
+          if [ -n "${{ github.event.pull_request.body }}" ]; then
+            PR_BODY=$(echo '${{ github.event.pull_request.body }}' | head -c 200 | tr '\n' ' ')
+            if [ ${#PR_BODY} -eq 200 ]; then
+              PR_BODY="${PR_BODY}..."
+            fi
+            MAIN_DESC="${MAIN_DESC}\n\n📝 ${PR_BODY}"
+          fi
+          
+          # Save the description (escape for JSON)
+          echo "embed_description<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$MAIN_DESC" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Send Discord notification
+        uses: tsickert/discord-webhook@v7.0.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          username: "GitHub Actions"
+          avatar-url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+          embed-title: "${{ steps.pr_info.outputs.action_emoji }} Pull Request ${{ steps.pr_info.outputs.action_text }}"
+          embed-description: ${{ steps.description.outputs.embed_description }}
+          embed-url: ${{ github.event.pull_request.html_url }}
+          embed-color: ${{ steps.pr_info.outputs.color }}
+          embed-thumbnail-url: ${{ github.event.pull_request.user.avatar_url }}
+          embed-footer-text: "auth-service • PR #${{ github.event.pull_request.number }} • ${{ steps.pr_info.outputs.short_sha }}"
+          embed-footer-icon-url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+          embed-timestamp: ${{ github.event.pull_request.created_at }}
+
+  # ================================
+  # Review notifications
+  # ================================
+  notify-review:
+    name: Send Review Notification
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_review'
+
+    steps:
+      - name: Extract review info
+        id: review_info
+        run: |
+          # Determine review state emoji and color
+          case "${{ github.event.review.state }}" in
+            "approved")
+              EMOJI="✅"
+              COLOR="65280"  # Green
+              STATE_TEXT="approved"
+              ;;
+            "changes_requested")
+              EMOJI="❌"
+              COLOR="16711680"  # Red
+              STATE_TEXT="requested changes"
+              ;;
+            "commented")
+              EMOJI="💬"
+              COLOR="9936031"  # Gray
+              STATE_TEXT="commented"
+              ;;
+            *)
+              EMOJI="📝"
+              COLOR="9936031"  # Gray
+              STATE_TEXT="${{ github.event.review.state }}"
+              ;;
+          esac
+          
+          echo "emoji=$EMOJI" >> $GITHUB_OUTPUT
+          echo "color=$COLOR" >> $GITHUB_OUTPUT
+          echo "state_text=$STATE_TEXT" >> $GITHUB_OUTPUT
+
+      - name: Prepare review description
+        id: review_description
+        run: |
+          # Create the main description with PR link
+          MAIN_DESC="**[${{ github.event.pull_request.title }}](${{ github.event.review.html_url }})**"
+          
+          # Add reviewer info
+          MAIN_DESC="${MAIN_DESC}\n\n👤 **Reviewer:** [${{ github.event.review.user.login }}](${{ github.event.review.user.html_url }})"
+          
+          # Add PR author info
+          MAIN_DESC="${MAIN_DESC}\n👤 **Author:** [${{ github.event.pull_request.user.login }}](${{ github.event.pull_request.user.html_url }})"
+          
+          # Add review comment if it exists (truncated)
+          if [ -n "${{ github.event.review.body }}" ]; then
+            COMMENT=$(echo '${{ github.event.review.body }}' | head -c 300 | tr '\n' ' ')
+            if [ ${#COMMENT} -eq 300 ]; then
+              COMMENT="${COMMENT}..."
+            fi
+            MAIN_DESC="${MAIN_DESC}\n\n💬 **Comment:** ${COMMENT}"
+          fi
+          
+          # Save the description (escape for JSON)
+          echo "embed_description<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$MAIN_DESC" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Send review notification
+        uses: tsickert/discord-webhook@v7.0.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          username: "GitHub Actions"
+          avatar-url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+          embed-title: "${{ steps.review_info.outputs.emoji }} PR Review ${{ steps.review_info.outputs.state_text }}"
+          embed-description: ${{ steps.review_description.outputs.embed_description }}
+          embed-url: ${{ github.event.review.html_url }}
+          embed-color: ${{ steps.review_info.outputs.color }}
+          embed-thumbnail-url: ${{ github.event.review.user.avatar_url }}
+          embed-footer-text: "auth-service • PR #${{ github.event.pull_request.number }}"
+          embed-footer-icon-url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+          embed-timestamp: ${{ github.event.review.submitted_at }}
