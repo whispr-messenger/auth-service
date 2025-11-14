@@ -22,7 +22,7 @@ services:
       - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./postgres/init:/docker-entrypoint-initdb.d
+      - ../config/01-init.sql:/docker-entrypoint-initdb.d/01-init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -34,11 +34,11 @@ services:
   redis:
     image: redis:7-alpine
     container_name: whispr-auth-redis
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
     volumes:
       - redis_data:/data
-      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+      - ../config/redis.conf:/usr/local/etc/redis/redis.conf
     command: redis-server /usr/local/etc/redis/redis.conf
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -50,11 +50,11 @@ services:
 
   auth-service:
     build:
-      context: .
-      dockerfile: docker/nestjs/Dockerfile
+      context: ../..
+      dockerfile: docker/dev/Dockerfile
     container_name: whispr-auth-api
     volumes:
-      - .:/workspace:cached
+      - ../..:/workspace:cached
       - node_modules_volume:/workspace/node_modules
       - /var/run/docker.sock:/var/run/docker.sock
     working_dir: /workspace

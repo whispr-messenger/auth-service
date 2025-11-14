@@ -1,0 +1,9 @@
+git
+curl
+wget
+postgresql-client
+redis-tools
+vim
+nano
+htop
+procps
