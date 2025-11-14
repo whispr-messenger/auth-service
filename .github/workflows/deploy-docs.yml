@@ -35,6 +35,9 @@ jobs:
       - name: Generate Compodoc documentation
         run: npm run compodoc
 
+      - name: Add .nojekyll file
+        run: touch compodoc/.nojekyll
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
@@ -46,10 +49,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
 
     steps:
       - name: Deploy to GitHub Pages
