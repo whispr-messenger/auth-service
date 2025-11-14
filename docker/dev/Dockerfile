@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y $(cat requirements.txt) \
     && rm -rf /var/lib/apt/lists/*
 
 # Installer des outils utiles
-RUN npm install -g @nestjs/cli typescript ts-node nodemon
+RUN npm install --dev
 
 # Créer l'utilisateur node si pas déjà existant
 RUN if ! id -u node > /dev/null 2>&1; then \
@@ -22,5 +22,7 @@ USER node
 # Exposer les ports
 EXPOSE 3000 9229
 
-# Commande par défaut
-CMD ["sleep", "infinity"]
+COPY ./entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
+ENTRYPOINT [ "entrypoint.sh" ]
