@@ -1,32 +1,26 @@
-FROM node:22-alpine AS builder
+FROM node:22-bookworm-slim
 
-WORKDIR /app
+COPY ./requirements.txt .
 
-COPY package*.json ./
-RUN npm install
+# Installer les dépendances système
+RUN apt-get update && apt-get install -y $(cat requirements.txt) \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY . .
-RUN npm run build
-RUN npm ci --only=production && npm cache clean --force
+# Installer des outils utiles
+RUN npm install -g @nestjs/cli typescript ts-node nodemon
 
-FROM node:22-alpine AS production
+# Créer l'utilisateur node si pas déjà existant
+RUN if ! id -u node > /dev/null 2>&1; then \
+    useradd -m -s /bin/bash node; fi
 
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nestjs -u 1001
+# Définir le répertoire de travail
+WORKDIR /workspace
 
-WORKDIR /app
+# Changer vers l'utilisateur node
+USER node
 
-COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nestjs:nodejs /app/package*.json ./
+# Exposer les ports
+EXPOSE 3000 9229
 
-RUN mkdir -p /app/logs && chown -R nestjs:nodejs /app/logs
-
-USER nestjs
-
-EXPOSE 3001
-
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node dist/health-check.js
-
-CMD ["node", "dist/main.js"]
+# Commande par défaut
+CMD ["sleep", "infinity"]
