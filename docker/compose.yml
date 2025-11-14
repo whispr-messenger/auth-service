@@ -16,7 +16,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}9 
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
     expose:
       - "5432"
@@ -58,14 +58,20 @@ services:
       - node_modules_volume:/workspace/node_modules
       - /var/run/docker.sock:/var/run/docker.sock
     working_dir: /workspace
-    command: sleep infinity  # Keep container running for dev
+    command: sh -c "npm ci && npm run start:dev"
     environment:
       NODE_ENV: development
       DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      DB_SYNCHRONIZE: "true"
       REDIS_HOST: redis
+      REDIS_PORT: 6379
       GRPC_PORT: 50051
     ports:
-      - "3000:3000"   # NestJS
+      - "3001:3000"   # NestJS
       - "9229:9229"   # Debugger
     depends_on:
       - postgres
