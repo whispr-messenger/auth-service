@@ -9,7 +9,7 @@ import {
   JwtPayload,
   TokenPair,
   DeviceFingerprint,
-} from '../../../../interfaces/verification.interface';
+} from '../interfaces/verification.interface';
 
 @Injectable()
 export class TokenService {

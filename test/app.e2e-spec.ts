@@ -16,8 +16,8 @@ import { LoginHistory } from '../src/entities/login-history.entity';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { AuthService } from '../src/services/auth.service';
 import { VerificationService } from '../src/services/verification.service';
-import { TokenService } from '../src/modules/auth/services/token/token.service';
-import { TwoFactorService } from '../src/modules/auth/services/two-factor/two-factor.service';
+import { TokenService } from '../src/services/token.service';
+import { TwoFactorService } from '../src/services/two-factor.service';
 import { DeviceService } from '../src/services/device.service';
 import { JwtService } from '@nestjs/jwt';
 
