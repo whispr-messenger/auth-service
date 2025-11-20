@@ -14,7 +14,7 @@ export class BackupCodesService {
 
   constructor(
     @InjectRepository(BackupCode)
-    private readonly backupCodeRepository: Repository<BackupCode>,
+    private readonly backupCodeRepository: Repository<BackupCode>
   ) {}
 
   async generateBackupCodes(userId: string): Promise<string[]> {
@@ -34,13 +34,13 @@ export class BackupCodesService {
           userId,
           codeHash: hashedCode,
           used: false,
-        }),
+        })
       );
     }
 
     await this.backupCodeRepository.save(backupCodes);
     this.logger.log(
-      `Generated ${this.BACKUP_CODES_COUNT} backup codes for user ${userId}`,
+      `Generated ${this.BACKUP_CODES_COUNT} backup codes for user ${userId}`
     );
 
     return codes;

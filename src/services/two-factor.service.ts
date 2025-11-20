@@ -21,7 +21,7 @@ export class TwoFactorService {
   constructor(
     @InjectRepository(UserAuth)
     private readonly userAuthRepository: Repository<UserAuth>,
-    private readonly backupCodesService: BackupCodesService,
+    private readonly backupCodesService: BackupCodesService
   ) {}
 
   async setupTwoFactor(userId: string): Promise<TwoFactorSetup> {
@@ -34,7 +34,7 @@ export class TwoFactorService {
 
     if (user.twoFactorEnabled) {
       throw new BadRequestException(
-        "L'authentification à deux facteurs est déjà activée",
+        "L'authentification à deux facteurs est déjà activée"
       );
     }
 
@@ -58,7 +58,7 @@ export class TwoFactorService {
   async enableTwoFactor(
     userId: string,
     secret: string,
-    token: string,
+    token: string
   ): Promise<void> {
     const user = await this.userAuthRepository.findOne({
       where: { id: userId },
@@ -90,7 +90,7 @@ export class TwoFactorService {
     });
     if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
       throw new BadRequestException(
-        'Authentification à deux facteurs non configurée',
+        'Authentification à deux facteurs non configurée'
       );
     }
 
@@ -108,7 +108,7 @@ export class TwoFactorService {
     // Check backup codes if TOTP fails
     const isValidBackupCode = await this.backupCodesService.verifyBackupCode(
       userId,
-      token,
+      token
     );
     return isValidBackupCode;
   }
@@ -123,7 +123,7 @@ export class TwoFactorService {
 
     if (!user.twoFactorEnabled) {
       throw new BadRequestException(
-        "L'authentification à deux facteurs n'est pas activée",
+        "L'authentification à deux facteurs n'est pas activée"
       );
     }
 
@@ -143,14 +143,14 @@ export class TwoFactorService {
 
   async generateNewBackupCodes(
     userId: string,
-    token: string,
+    token: string
   ): Promise<string[]> {
     const user = await this.userAuthRepository.findOne({
       where: { id: userId },
     });
     if (!user || !user.twoFactorEnabled) {
       throw new BadRequestException(
-        'Authentification à deux facteurs non configurée',
+        'Authentification à deux facteurs non configurée'
       );
     }
 

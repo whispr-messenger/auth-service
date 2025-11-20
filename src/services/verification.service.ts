@@ -23,12 +23,12 @@ export class VerificationService {
 
   constructor(
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-    private readonly smsService: SmsService,
+    private readonly smsService: SmsService
   ) {}
 
   async requestVerification(
     phoneNumber: string,
-    purpose: 'registration' | 'login' | 'recovery',
+    purpose: 'registration' | 'login' | 'recovery'
   ): Promise<string> {
     const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
 
@@ -49,7 +49,7 @@ export class VerificationService {
     await this.cacheManager.set(
       `verification:${verificationId}`,
       JSON.stringify(verificationData),
-      this.VERIFICATION_TTL * 1000,
+      this.VERIFICATION_TTL * 1000
     );
 
     await this.incrementRateLimit(normalizedPhone);
@@ -59,7 +59,7 @@ export class VerificationService {
       await this.smsService.sendVerificationCode(
         normalizedPhone,
         code,
-        purpose,
+        purpose
       );
     } catch (error) {
       // If SMS fails, still return the verification ID but log the error
@@ -72,7 +72,7 @@ export class VerificationService {
 
   async verifyCode(
     verificationId: string,
-    code: string,
+    code: string
   ): Promise<VerificationCode> {
     const key = `verification:${verificationId}`;
     const data = await this.cacheManager.get<string>(key);
@@ -87,7 +87,7 @@ export class VerificationService {
       await this.cacheManager.del(key);
       throw new HttpException(
         'Trop de tentatives de vérification',
-        HttpStatus.TOO_MANY_REQUESTS,
+        HttpStatus.TOO_MANY_REQUESTS
       );
     }
 
@@ -98,7 +98,7 @@ export class VerificationService {
       await this.cacheManager.set(
         key,
         JSON.stringify(verificationData),
-        Math.ceil(verificationData.expiresAt - Date.now()),
+        Math.ceil(verificationData.expiresAt - Date.now())
       );
       throw new BadRequestException('Code de vérification incorrect');
     }
@@ -133,7 +133,7 @@ export class VerificationService {
     if (count && parseInt(count) >= this.MAX_REQUESTS_PER_HOUR) {
       throw new HttpException(
         'Trop de demandes de codes de vérification',
-        HttpStatus.TOO_MANY_REQUESTS,
+        HttpStatus.TOO_MANY_REQUESTS
       );
     }
   }

@@ -21,6 +21,8 @@ function createSwaggerDocumentation(app: NestExpressApplication, port: number) {
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);
+
+  // https://docs.nestjs.com/openapi/introduction#document-options
   SwaggerModule.setup('api', app, documentFactory);
 }
 
