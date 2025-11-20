@@ -1,64 +1,72 @@
-import { webcrypto } from 'crypto';
-
-// Polyfill for crypto.randomUUID in Node.js 18
-if (!globalThis.crypto) {
-  globalThis.crypto = webcrypto as any;
-}
-
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { CacheModule } from '@nestjs/cache-manager';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import {
+  ConfigModule,
+  ConfigModuleOptions,
+  ConfigService,
+} from '@nestjs/config';
+import { TypeOrmModule, TypeOrmModuleAsyncOptions } from '@nestjs/typeorm';
+import { CacheModule, CacheModuleAsyncOptions } from '@nestjs/cache-manager';
+import {
+  ThrottlerModule,
+  ThrottlerGuard,
+  ThrottlerModuleOptions,
+} from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth.module';
 import { HealthModule } from './health/health.module';
-
 import { typeOrmModuleOptionsFactory } from './factories/typeorm';
+import { cacheModuleOptionsFactory } from './factories/cache';
+
+// Environment variables
+const configModuleOptions: ConfigModuleOptions = {
+  isGlobal: true,
+  envFilePath: '.env',
+};
+
+// Database (Postgres)
+const typeOrmModuleAsyncOptions: TypeOrmModuleAsyncOptions = {
+  imports: [ConfigModule],
+  useFactory: typeOrmModuleOptionsFactory,
+  inject: [ConfigService],
+};
+
+// Caching (Redis)
+const cacheModuleAsyncOptions: CacheModuleAsyncOptions = {
+  imports: [ConfigModule],
+  useFactory: cacheModuleOptionsFactory,
+  inject: [ConfigService],
+  isGlobal: true,
+};
+
+// Rate limiting
+// https://docs.nestjs.com/security/rate-limiting#multiple-throttler-definitions
+const throttlerModuleOptions: ThrottlerModuleOptions = [
+  {
+    name: 'short',
+    ttl: 1000,
+    limit: 3,
+  },
+  {
+    name: 'medium',
+    ttl: 10000,
+    limit: 20,
+  },
+  {
+    name: 'long',
+    ttl: 60000,
+    limit: 100,
+  },
+];
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: '.env',
-    }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: typeOrmModuleOptionsFactory,
-      inject: [ConfigService],
-    }),
-    CacheModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        store: 'redis',
-        host: configService.get('REDIS_HOST', 'redis'),
-        port: configService.get('REDIS_PORT', 6379),
-        password: configService.get('REDIS_PASSWORD'),
-        ttl: 900,
-        max: 1000,
-      }),
-      inject: [ConfigService],
-      isGlobal: true,
-    }),
-    ThrottlerModule.forRoot([
-      {
-        name: 'short',
-        ttl: 1000,
-        limit: 3,
-      },
-      {
-        name: 'medium',
-        ttl: 10000,
-        limit: 20,
-      },
-      {
-        name: 'long',
-        ttl: 60000,
-        limit: 100,
-      },
-    ]),
+    ConfigModule.forRoot(configModuleOptions),
+    TypeOrmModule.forRootAsync(typeOrmModuleAsyncOptions),
+    CacheModule.registerAsync(cacheModuleAsyncOptions),
+    ThrottlerModule.forRoot(throttlerModuleOptions),
     AuthModule,
     HealthModule,
   ],
@@ -71,4 +79,4 @@ import { typeOrmModuleOptionsFactory } from './factories/typeorm';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}
