@@ -15,13 +15,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth.module';
 import { HealthModule } from './health/health.module';
-import { UserAuth } from './entities/user-auth.entity';
-import { Device } from './entities/device.entity';
-import { PreKey } from './entities/prekey.entity';
-import { SignedPreKey } from './entities/signed-prekey.entity';
-import { IdentityKey } from './entities/identity-key.entity';
-import { BackupCode } from './entities/backup-code.entity';
-import { LoginHistory } from './entities/login-history.entity';
+
+import { typeOrmModuleOptionsFactory } from './factories/typeorm';
 
 @Module({
   imports: [
@@ -31,59 +26,7 @@ import { LoginHistory } from './entities/login-history.entity';
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => {
-        const databaseUrl = configService.get('DATABASE_URL');
-        const dbType = configService.get('DB_TYPE', 'postgres');
-
-        const baseConfig = {
-          entities: [
-            UserAuth,
-            Device,
-            PreKey,
-            SignedPreKey,
-            IdentityKey,
-            BackupCode,
-            LoginHistory,
-          ],
-          migrations: [__dirname + '/migrations/*{.ts,.js}'],
-          migrationsRun:
-            configService.get('DB_MIGRATIONS_RUN', 'false') === 'true',
-          synchronize: configService.get('DB_SYNCHRONIZE', 'false') === 'true',
-          logging: configService.get('DB_LOGGING', 'false') === 'true',
-        };
-
-        if (dbType === 'better-sqlite3') {
-          return {
-            ...baseConfig,
-            type: 'better-sqlite3',
-            database: configService.get('DB_DATABASE', ':memory:'),
-          };
-        }
-
-        if (databaseUrl) {
-          // Parse DATABASE_URL manually to avoid connection issues
-          const url = new URL(databaseUrl);
-          return {
-            ...baseConfig,
-            type: 'postgres',
-            host: url.hostname,
-            port: parseInt(url.port) || 5432,
-            username: url.username,
-            password: url.password,
-            database: url.pathname.slice(1), // Remove leading slash
-          };
-        }
-
-        return {
-          ...baseConfig,
-          type: 'postgres',
-          host: configService.get('DB_HOST', 'localhost'),
-          port: configService.get('DB_PORT', 5432),
-          username: configService.get('DB_USERNAME', 'postgres'),
-          password: configService.get('DB_PASSWORD', 'password'),
-          database: configService.get('DB_NAME', 'auth_service'),
-        };
-      },
+      useFactory: typeOrmModuleOptionsFactory,
       inject: [ConfigService],
     }),
     CacheModule.registerAsync({
@@ -128,4 +71,4 @@ import { LoginHistory } from './entities/login-history.entity';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
