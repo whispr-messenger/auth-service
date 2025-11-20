@@ -6,19 +6,19 @@ import { Repository } from 'typeorm';
 import { BadRequestException } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
-import { UserAuth } from '../../../../entities/user-auth.entity';
-import { Device } from '../../../../entities/device.entity';
-import { VerificationService } from '../../services/verification.service';
-import { TokenService } from '../token/token.service';
-import { TwoFactorService } from '../two-factor/two-factor.service';
-import { DeviceService } from '../../services/device.service';
-import { NotificationService } from '../../../../services/notification.service';
-import { RegisterDto } from '../../../../dto/auth/register.dto';
-import { LoginDto, ScanLoginDto } from '../../../../dto/auth.dto';
+import { UserAuth } from '../entities/user-auth.entity';
+import { Device } from '../entities/device.entity';
+import { VerificationService } from './verification.service';
+import { TokenService } from './token.service';
+import { TwoFactorService } from './two-factor.service';
+import { DeviceService } from './device.service';
+import { NotificationService } from './notification.service';
+import { RegisterDto } from '../dto/auth/register.dto';
+import { LoginDto, ScanLoginDto } from '../dto/auth.dto';
 import {
   TokenPair,
   DeviceFingerprint,
-} from '../../../../interfaces/verification.interface';
+} from '../interfaces/verification.interface';
 
 describe('AuthService', () => {
   let service: AuthService;

@@ -4,9 +4,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserAuth } from '../entities/user-auth.entity';
 import { AuthService } from '../services/auth.service';
-import { TokenService } from '../modules/auth/services/token/token.service';
+import { TokenService } from '../services/token.service';
 import { DeviceService } from '../services/device.service';
-import { TwoFactorService } from '../modules/auth/services/two-factor/two-factor.service';
+import { TwoFactorService } from '../services/two-factor.service';
 import { VerificationService } from '../services/verification.service';
 
 // gRPC interfaces
