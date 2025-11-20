@@ -7,7 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as speakeasy from 'speakeasy';
 import * as QRCode from 'qrcode';
-import { UserAuth } from '../entities/user-auth.entity';
+import { UserAuth } from '../../../../entities/user-auth.entity';
 import { BackupCodesService } from './backup-codes.service';
 
 interface TwoFactorSetup {
