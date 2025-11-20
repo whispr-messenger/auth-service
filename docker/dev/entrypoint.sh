@@ -2,4 +2,4 @@
 
 npm install
 
-npm run start -- -b swc
+npm run start:dev -- -b swc
