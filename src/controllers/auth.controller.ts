@@ -10,8 +10,10 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { TwoFactorService } from './services/two-factor/two-factor.service';
-import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { AuthService } from '../services/auth.service';
+import { TwoFactorService } from '../services/two-factor.service';
+import { DeviceService } from '../services/device.service';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import {
   VerificationRequestDto,
   VerificationConfirmDto,
@@ -21,17 +23,15 @@ import {
   ScanLoginDto,
   TwoFactorSetupDto,
   TwoFactorVerifyDto,
-} from '../../dto/auth';
-import { DeviceFingerprint } from '../../interfaces/verification.interface';
-import { AuthService } from './services/auth/auth.service';
-import { DeviceService } from './services/device/device.service';
+} from '../dto/auth';
+import { DeviceFingerprint } from '../interfaces/verification.interface';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly twoFactorService: TwoFactorService,
-    private readonly deviceService: DeviceService
+    private readonly deviceService: DeviceService,
   ) {}
 
   @Post('register/verify/request')
