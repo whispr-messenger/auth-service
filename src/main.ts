@@ -4,18 +4,19 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 import { webcrypto } from 'crypto';
+import { ConfigService } from '@nestjs/config';
 
 // Polyfill for crypto.randomUUID in Node.js 18
 if (!globalThis.crypto) {
   globalThis.crypto = webcrypto as any;
 }
 
-function createSwaggerDocumentation(app: NestExpressApplication) {
+function createSwaggerDocumentation(app: NestExpressApplication, port: number) {
   const config = new DocumentBuilder()
     .setTitle('Authentication Service')
     .setDescription('API documentation for the Authentication Service')
     .setVersion('1.0')
-    .addServer('http://localhost:3000', 'Development')
+    .addServer(`http://localhost:${port}`, 'Development')
     .addServer('https://api.example.com', 'Production')
     .build();
 
@@ -25,10 +26,10 @@ function createSwaggerDocumentation(app: NestExpressApplication) {
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const configService = app.get(ConfigService);
+  const port = configService.get<number>('HTTP_PORT', 3001);
 
-  createSwaggerDocumentation(app);
-
-  const port = process.env.PORT || 3001;
+  createSwaggerDocumentation(app, port);
 
   await app.listen(port);
 
