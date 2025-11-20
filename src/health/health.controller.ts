@@ -7,7 +7,7 @@ import { Cache } from 'cache-manager';
 export class HealthController {
   constructor(
     private readonly dataSource: DataSource,
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
   ) {}
 
   @Get()

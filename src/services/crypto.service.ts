@@ -108,7 +108,7 @@ export class CryptoService {
       let decrypted = decipher.update(
         encryptedData.encryptedData,
         'hex',
-        'utf8',
+        'utf8'
       );
       decrypted += decipher.final('utf8');
 
@@ -161,7 +161,7 @@ export class CryptoService {
     const expectedSignature = this.createHMAC(data, secret);
     return crypto.timingSafeEqual(
       Buffer.from(signature, 'hex'),
-      Buffer.from(expectedSignature, 'hex'),
+      Buffer.from(expectedSignature, 'hex')
     );
   }
 
@@ -185,7 +185,7 @@ export class CryptoService {
   verifyRSASignature(
     data: string,
     signature: string,
-    publicKey: string,
+    publicKey: string
   ): boolean {
     try {
       const verify = crypto.createVerify('RSA-SHA256');
@@ -203,7 +203,7 @@ export class CryptoService {
   deriveKey(
     password: string,
     salt: string,
-    iterations: number = 100000,
+    iterations: number = 100000
   ): string {
     return crypto
       .pbkdf2Sync(password, salt, iterations, this.KEY_LENGTH, 'sha256')
