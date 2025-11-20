@@ -2,4 +2,4 @@ default:
     just --list
 
 up:
-    docker compose -f docker/docker-compose.yml up -d
+    docker compose -f docker/dev/compose.yml up -d
