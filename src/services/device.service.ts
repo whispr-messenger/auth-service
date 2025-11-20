@@ -37,7 +37,7 @@ export class DeviceService {
     @InjectRepository(Device)
     private readonly deviceRepository: Repository<Device>,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-    private readonly jwtService: JwtService,
+    private readonly jwtService: JwtService
   ) {}
 
   async registerDevice(data: DeviceRegistrationData): Promise<Device> {
@@ -92,7 +92,7 @@ export class DeviceService {
   async updateLastActive(deviceId: string): Promise<void> {
     await this.deviceRepository.update(
       { id: deviceId },
-      { lastActive: new Date() },
+      { lastActive: new Date() }
     );
   }
 
@@ -126,13 +126,13 @@ export class DeviceService {
         userId: device.userId,
         exp: Math.floor(challengeData.expiresAt / 1000),
       },
-      { algorithm: 'ES256' },
+      { algorithm: 'ES256' }
     );
 
     await this.cacheManager.set(
       `qr_challenge:${challengeId}`,
       JSON.stringify(challengeData),
-      this.QR_CHALLENGE_TTL * 1000,
+      this.QR_CHALLENGE_TTL * 1000
     );
 
     return challenge;
@@ -140,7 +140,7 @@ export class DeviceService {
 
   async validateQRChallenge(
     challenge: string,
-    authenticatedDeviceId: string,
+    authenticatedDeviceId: string
   ): Promise<QRChallengeData> {
     try {
       const decoded = this.jwtService.verify(challenge, {
@@ -152,7 +152,7 @@ export class DeviceService {
       }
 
       const challengeData = await this.cacheManager.get<string>(
-        `qr_challenge:${decoded.challengeId}`,
+        `qr_challenge:${decoded.challengeId}`
       );
       if (!challengeData) {
         throw new BadRequestException('Challenge QR expiré ou invalide');
@@ -182,7 +182,7 @@ export class DeviceService {
   async updateFCMToken(deviceId: string, fcmToken: string): Promise<void> {
     await this.deviceRepository.update(
       { id: deviceId },
-      { fcmToken, lastActive: new Date() },
+      { fcmToken, lastActive: new Date() }
     );
   }
 
@@ -198,7 +198,7 @@ export class DeviceService {
   }
 
   async getDeviceStats(
-    userId: string,
+    userId: string
   ): Promise<{ total: number; active: number }> {
     const total = await this.deviceRepository.count({
       where: { userId, isVerified: true },

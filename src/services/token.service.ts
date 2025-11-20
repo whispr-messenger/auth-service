@@ -19,13 +19,13 @@ export class TokenService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
   ) {}
 
   async generateTokenPair(
     userId: string,
     deviceId: string,
-    fingerprint: DeviceFingerprint,
+    fingerprint: DeviceFingerprint
   ): Promise<TokenPair> {
     const deviceFingerprint = this.generateDeviceFingerprint(fingerprint);
     uuidv4();
@@ -62,7 +62,7 @@ export class TokenService {
     await this.cacheManager.set(
       `refresh_token:${refreshTokenId}`,
       JSON.stringify({ userId, deviceId, fingerprint: deviceFingerprint }),
-      this.REFRESH_TOKEN_TTL * 1000,
+      this.REFRESH_TOKEN_TTL * 1000
     );
 
     return { accessToken, refreshToken };
@@ -70,7 +70,7 @@ export class TokenService {
 
   async refreshAccessToken(
     refreshToken: string,
-    fingerprint: DeviceFingerprint,
+    fingerprint: DeviceFingerprint
   ): Promise<TokenPair> {
     try {
       const decoded = this.jwtService.verify(refreshToken, {
@@ -82,11 +82,11 @@ export class TokenService {
       }
 
       const tokenData = await this.cacheManager.get<string>(
-        `refresh_token:${decoded.jti}`,
+        `refresh_token:${decoded.jti}`
       );
       if (!tokenData) {
         throw new UnauthorizedException(
-          'Token de rafraîchissement expiré ou révoqué',
+          'Token de rafraîchissement expiré ou révoqué'
         );
       }
 
@@ -103,7 +103,7 @@ export class TokenService {
       return this.generateTokenPair(
         storedData.userId,
         storedData.deviceId,
-        fingerprint,
+        fingerprint
       );
     } catch (error) {
       throw new UnauthorizedException('Token de rafraîchissement invalide');
@@ -117,7 +117,7 @@ export class TokenService {
         await this.cacheManager.set(
           `revoked:${decoded.jti}`,
           JSON.stringify({ revokedAt: Date.now() }),
-          (decoded.exp - Math.floor(Date.now() / 1000)) * 1000,
+          (decoded.exp - Math.floor(Date.now() / 1000)) * 1000
         );
       }
     } catch (error) {
@@ -136,7 +136,7 @@ export class TokenService {
     await this.cacheManager.set(
       `revoked_device:${deviceId}`,
       'true',
-      this.REFRESH_TOKEN_TTL * 1000,
+      this.REFRESH_TOKEN_TTL * 1000
     );
   }
 
