@@ -2,14 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-
-import { webcrypto } from 'crypto';
 import { ConfigService } from '@nestjs/config';
-
-// Polyfill for crypto.randomUUID in Node.js 18
-if (!globalThis.crypto) {
-  globalThis.crypto = webcrypto as any;
-}
 
 function createSwaggerDocumentation(app: NestExpressApplication, port: number) {
   const config = new DocumentBuilder()
