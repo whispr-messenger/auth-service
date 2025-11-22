@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule, JwtModuleAsyncOptions } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
-import { ThrottlerModule, ThrottlerModuleOptions, ThrottlerOptions } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerModuleOptions } from '@nestjs/throttler';
 import { UserAuth } from '../entities/user-auth.entity';
 import { Device } from '../entities/device.entity';
 import { BackupCode } from '../entities/backup-code.entity';
@@ -16,7 +16,7 @@ import { TokenService } from '../services/token.service';
 import { TwoFactorService } from '../services/two-factor.service';
 import { DeviceService } from '../services/device.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { jwtModuleOptionsFactory } from 'src/factories/jwt';
+import { jwtModuleOptionsFactory } from '../factories/jwt';
 
 const jwtModuleAsyncOptions: JwtModuleAsyncOptions = {
   imports: [ConfigModule],
