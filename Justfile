@@ -12,3 +12,6 @@ logs:
 
 shell:
     docker compose -f docker/dev/compose.yml exec -it auth-service bash
+
+test:
+    docker compose -f docker/dev/compose.yml exec -it auth-service npm run test
