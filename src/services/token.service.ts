@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { v4 as uuidv4 } from 'uuid';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 import {
   JwtPayload,
   TokenPair,
