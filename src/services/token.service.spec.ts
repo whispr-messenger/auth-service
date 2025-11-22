@@ -120,7 +120,7 @@ describe('TokenService', () => {
       jwtService.sign
         .mockReturnValueOnce(newAccessToken)
         .mockReturnValueOnce(newRefreshToken);
-  cacheManager.del.mockResolvedValue(true);
+      cacheManager.del.mockResolvedValue(true);
       cacheManager.set.mockResolvedValue(undefined);
       configService.get.mockReturnValue('test-secret');
 

@@ -121,7 +121,7 @@ export class VerificationService {
         throw new BadRequestException('Numéro de téléphone invalide');
       }
       return parsed.format('E.164');
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Numéro de téléphone invalide');
     }
   }

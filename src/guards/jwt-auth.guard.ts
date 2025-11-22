@@ -28,7 +28,7 @@ export class JwtAuthGuard implements CanActivate {
 
       request.user = payload;
       return true;
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Token invalide');
     }
   }
