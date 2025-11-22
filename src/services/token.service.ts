@@ -105,7 +105,7 @@ export class TokenService {
         storedData.deviceId,
         fingerprint
       );
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Token de rafraîchissement invalide');
     }
   }
@@ -120,7 +120,7 @@ export class TokenService {
           (decoded.exp - Math.floor(Date.now() / 1000)) * 1000
         );
       }
-    } catch (error) {
+    } catch {
       // Token déjà invalide, pas besoin de le révoquer
     }
   }
@@ -148,7 +148,7 @@ export class TokenService {
   validateToken(token: string): JwtPayload {
     try {
       return this.jwtService.verify(token, { algorithms: ['ES256'] });
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Token invalide');
     }
   }
