@@ -119,7 +119,7 @@ describe('DeviceService', () => {
         userId: 'user-id',
       });
       cacheManager.get.mockResolvedValue(JSON.stringify(challengeData));
-      cacheManager.del.mockResolvedValue(undefined);
+  cacheManager.del.mockResolvedValue(true);
 
       const result = await service.validateQRChallenge(
         challenge,
@@ -188,7 +188,7 @@ describe('DeviceService', () => {
         userId: 'user-id',
       });
       cacheManager.get.mockResolvedValue(JSON.stringify(expiredChallengeData));
-      cacheManager.del.mockResolvedValue(undefined);
+  cacheManager.del.mockResolvedValue(true);
 
       await expect(
         service.validateQRChallenge(challenge, authenticatedDeviceId)
