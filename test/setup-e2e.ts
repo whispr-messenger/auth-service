@@ -17,15 +17,19 @@ process.env.REDIS_PORT = '6379';
 process.env.SMS_PROVIDER = 'mock';
 process.env.BCRYPT_ROUNDS = '4';
 
-// Mock cache-manager-redis-store
-jest.mock('cache-manager-redis-store', () => ({
-  create: jest.fn(() => ({
+// Mock @keyv/redis (replaced cache-manager-redis-store)
+// The app constructs a new KeyvRedis(...) and uses it as a store.
+// Provide a mock constructor that returns an object with cache-like methods.
+jest.mock('@keyv/redis', () => {
+  const mockCtor = jest.fn().mockImplementation(() => ({
     get: jest.fn(),
     set: jest.fn(),
-    del: jest.fn(),
-    reset: jest.fn(),
-  })),
-}));
+    delete: jest.fn(),
+    clear: jest.fn(),
+  }));
+  // Ensure ES module default import works: export { default: mockCtor }
+  return { __esModule: true, default: mockCtor };
+});
 
 // Mock SmsService
 jest.mock('../src/services/sms.service', () => ({
