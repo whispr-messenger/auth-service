@@ -62,7 +62,7 @@ services:
       - node_modules_volume:/workspace/node_modules
       - /var/run/docker.sock:/var/run/docker.sock
     working_dir: /workspace
-    command: sleep infinity  # Keep container running for dev
+    # command: sleep infinity  # Keep container running for dev
     ports:
       - "3001:${HTTP_PORT}"   # NestJS
       - "9229:9229"   # Debugger
@@ -75,6 +75,12 @@ services:
       redis:
         condition: service_healthy
         restart: true
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${HTTP_PORT}/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   node_modules_volume:
