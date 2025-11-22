@@ -1,10 +1,3 @@
-// Polyfill for crypto in Node.js test environment
-import { webcrypto } from 'crypto';
-
-if (!global.crypto) {
-  global.crypto = webcrypto as any;
-}
-
 // Mock environment variables for testing
 process.env.NODE_ENV = 'test';
 process.env.DB_TYPE = 'postgres';
