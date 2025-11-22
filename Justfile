@@ -9,3 +9,6 @@ down:
 
 logs:
     docker compose -f docker/dev/compose.yml logs --follow
+
+shell:
+    docker compose -f docker/dev/compose.yml exec -it auth-service bash
