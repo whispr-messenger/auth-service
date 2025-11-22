@@ -9,7 +9,7 @@ import { BackupCode } from '../entities/backup-code.entity';
 import { LoginHistory } from '../entities/login-history.entity';
 import { DataSourceOptions } from 'typeorm';
 
-// Register new TypeORM entites here
+// Register new TypeORM entities here
 const ENTITIES = [
   UserAuth,
   Device,
