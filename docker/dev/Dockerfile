@@ -12,4 +12,4 @@ WORKDIR /workspace
 COPY ./docker/dev/entrypoint.sh /tmp/entrypoint.sh
 RUN chmod +x /tmp/entrypoint.sh
 
-ENTRYPOINT [ "/usr/bin/tini", "--", "/bin/sh", "/tmp/entrypoint.sh" ]
+ENTRYPOINT [ "/usr/bin/tini", "--", "/bin/bash", "/tmp/entrypoint.sh" ]
