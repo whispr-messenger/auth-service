@@ -90,7 +90,6 @@ export async function typeOrmModuleOptionsFactory(
   const dataSourceOptions: DataSourceOptions =
     getDataSourceOptions(configService);
 
-  // return createPostgresConfig(configService, dbConfig);
   return {
     ...databaseConfig,
     ...dataSourceOptions,
