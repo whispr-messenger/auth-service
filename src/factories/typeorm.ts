@@ -37,7 +37,7 @@ function parseDatabaseUrl(url: string): DatabaseConfig {
   const parsed = new URL(url);
   return {
     host: parsed.hostname,
-    port: parseInt(parsed.port) || DEFAULT_POSTGRES_PORT,
+    port: parseInt(parsed.port, 10) || DEFAULT_POSTGRES_PORT,
     username: parsed.username,
     password: parsed.password,
     database: parsed.pathname.slice(1),
