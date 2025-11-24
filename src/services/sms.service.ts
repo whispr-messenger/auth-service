@@ -23,7 +23,7 @@ export class SmsService {
   async sendVerificationCode(
     phoneNumber: string,
     code: string,
-    purpose: string,
+    purpose: string
   ): Promise<void> {
     const message = this.buildMessage(code, purpose);
 
@@ -39,7 +39,7 @@ export class SmsService {
       this.logger.error(`Failed to send SMS to ${phoneNumber}:`, error);
       throw new HttpException(
         "Erreur lors de l'envoi du SMS",
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
@@ -72,7 +72,7 @@ export class SmsService {
         method: 'POST',
         headers: {
           Authorization: `Basic ${Buffer.from(
-            `${this.twilioAccountSid}:${this.twilioAuthToken}`,
+            `${this.twilioAccountSid}:${this.twilioAuthToken}`
           ).toString('base64')}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
@@ -81,7 +81,7 @@ export class SmsService {
           To: phoneNumber,
           Body: message,
         }),
-      },
+      }
     );
 
     if (!response.ok) {
@@ -92,7 +92,7 @@ export class SmsService {
 
   async sendSecurityAlert(
     phoneNumber: string,
-    alertType: 'new_device' | 'suspicious_login' | 'password_change',
+    alertType: 'new_device' | 'suspicious_login' | 'password_change'
   ): Promise<void> {
     const messages = {
       new_device:
@@ -107,7 +107,7 @@ export class SmsService {
 
     if (this.isDevelopment) {
       this.logger.log(
-        `[DEV MODE] Security alert to ${phoneNumber}: ${message}`,
+        `[DEV MODE] Security alert to ${phoneNumber}: ${message}`
       );
       return;
     }
@@ -118,7 +118,7 @@ export class SmsService {
     } catch (error) {
       this.logger.error(
         `Failed to send security alert to ${phoneNumber}:`,
-        error,
+        error
       );
       // Don't throw here as security alerts are not critical for user flow
     }

@@ -60,7 +60,7 @@ describe('VerificationService', () => {
       expect(mockSmsService.sendVerificationCode).toHaveBeenCalledWith(
         phoneNumber,
         expect.any(String),
-        purpose,
+        purpose
       );
     });
   });
@@ -91,7 +91,7 @@ describe('VerificationService', () => {
       mockCacheManager.get.mockResolvedValue(null);
 
       await expect(service.verifyCode(verificationId, code)).rejects.toThrow(
-        BadRequestException,
+        BadRequestException
       );
     });
 
@@ -108,7 +108,7 @@ describe('VerificationService', () => {
       mockCacheManager.set.mockResolvedValue(undefined);
 
       await expect(
-        service.verifyCode(verificationId, '000000'),
+        service.verifyCode(verificationId, '000000')
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -125,7 +125,7 @@ describe('VerificationService', () => {
       mockCacheManager.del.mockResolvedValue(undefined);
 
       await expect(
-        service.verifyCode(verificationId, '000000'),
+        service.verifyCode(verificationId, '000000')
       ).rejects.toThrow(HttpException);
     });
   });
@@ -137,7 +137,7 @@ describe('VerificationService', () => {
       await service.consumeVerification('test-verification-id');
 
       expect(mockCacheManager.del).toHaveBeenCalledWith(
-        'verification:test-verification-id',
+        'verification:test-verification-id'
       );
     });
   });

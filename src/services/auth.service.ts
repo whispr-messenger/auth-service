@@ -32,11 +32,11 @@ export class AuthService {
     private readonly verificationService: VerificationService,
     private readonly tokenService: TokenService,
     private readonly twoFactorService: TwoFactorService,
-    private readonly deviceService: DeviceService,
+    private readonly deviceService: DeviceService
   ) {}
 
   async requestRegistrationVerification(
-    dto: VerificationRequestDto,
+    dto: VerificationRequestDto
   ): Promise<{ verificationId: string }> {
     const existingUser = await this.userAuthRepository.findOne({
       where: { phoneNumber: dto.phoneNumber },
@@ -44,20 +44,20 @@ export class AuthService {
 
     if (existingUser) {
       throw new ConflictException(
-        'Un compte existe déjà avec ce numéro de téléphone',
+        'An account with this phone number already exists.'
       );
     }
 
     const verificationId = await this.verificationService.requestVerification(
       dto.phoneNumber,
-      'registration',
+      'registration'
     );
 
     return { verificationId };
   }
 
   async confirmRegistrationVerification(
-    dto: VerificationConfirmDto,
+    dto: VerificationConfirmDto
   ): Promise<{ verified: boolean }> {
     await this.verificationService.verifyCode(dto.verificationId, dto.code);
     return { verified: true };
@@ -65,16 +65,16 @@ export class AuthService {
 
   async register(
     dto: RegisterDto,
-    fingerprint: DeviceFingerprint,
+    fingerprint: DeviceFingerprint
   ): Promise<TokenPair> {
     const verificationData = await this.verificationService.verifyCode(
       dto.verificationId,
-      '',
+      ''
     );
 
     if (verificationData.purpose !== 'registration') {
       throw new BadRequestException(
-        "Code de vérification invalide pour l'inscription",
+        "Code de vérification invalide pour l'inscription"
       );
     }
 
@@ -84,7 +84,7 @@ export class AuthService {
 
     if (existingUser) {
       throw new ConflictException(
-        'Un compte existe déjà avec ce numéro de téléphone',
+        'Un compte existe déjà avec ce numéro de téléphone'
       );
     }
 
@@ -115,12 +115,12 @@ export class AuthService {
     return this.tokenService.generateTokenPair(
       savedUser.id,
       deviceId,
-      fingerprint,
+      fingerprint
     );
   }
 
   async requestLoginVerification(
-    dto: VerificationRequestDto,
+    dto: VerificationRequestDto
   ): Promise<{ verificationId: string }> {
     const user = await this.userAuthRepository.findOne({
       where: { phoneNumber: dto.phoneNumber },
@@ -128,24 +128,24 @@ export class AuthService {
 
     if (!user) {
       throw new BadRequestException(
-        'Aucun compte trouvé avec ce numéro de téléphone',
+        'Aucun compte trouvé avec ce numéro de téléphone'
       );
     }
 
     const verificationId = await this.verificationService.requestVerification(
       dto.phoneNumber,
-      'login',
+      'login'
     );
 
     return { verificationId };
   }
 
   async confirmLoginVerification(
-    dto: VerificationConfirmDto,
+    dto: VerificationConfirmDto
   ): Promise<{ verified: boolean; requires2FA: boolean }> {
     const verificationData = await this.verificationService.verifyCode(
       dto.verificationId,
-      dto.code,
+      dto.code
     );
 
     const user = await this.userAuthRepository.findOne({
@@ -164,16 +164,16 @@ export class AuthService {
 
   async login(
     dto: LoginDto,
-    fingerprint: DeviceFingerprint,
+    fingerprint: DeviceFingerprint
   ): Promise<TokenPair> {
     const verificationData = await this.verificationService.verifyCode(
       dto.verificationId,
-      '',
+      ''
     );
 
     if (verificationData.purpose !== 'login') {
       throw new BadRequestException(
-        'Code de vérification invalide pour la connexion',
+        'Code de vérification invalide pour la connexion'
       );
     }
 
@@ -209,7 +209,7 @@ export class AuthService {
 
   async refreshToken(
     dto: RefreshTokenDto,
-    fingerprint: DeviceFingerprint,
+    fingerprint: DeviceFingerprint
   ): Promise<TokenPair> {
     return this.tokenService.refreshAccessToken(dto.refreshToken, fingerprint);
   }
@@ -224,11 +224,11 @@ export class AuthService {
 
   async scanLogin(
     dto: ScanLoginDto,
-    fingerprint: DeviceFingerprint,
+    fingerprint: DeviceFingerprint
   ): Promise<TokenPair> {
     const challengeData = await this.deviceService.validateQRChallenge(
       dto.challenge,
-      dto.authenticatedDeviceId,
+      dto.authenticatedDeviceId
     );
 
     let deviceId: string;
@@ -256,7 +256,7 @@ export class AuthService {
     return this.tokenService.generateTokenPair(
       challengeData.userId,
       deviceId,
-      fingerprint,
+      fingerprint
     );
   }
 

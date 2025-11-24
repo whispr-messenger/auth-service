@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BackupCode } from '../entities/backup-code.entity';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -14,7 +14,7 @@ export class BackupCodesService {
 
   constructor(
     @InjectRepository(BackupCode)
-    private readonly backupCodeRepository: Repository<BackupCode>,
+    private readonly backupCodeRepository: Repository<BackupCode>
   ) {}
 
   async generateBackupCodes(userId: string): Promise<string[]> {
@@ -34,13 +34,13 @@ export class BackupCodesService {
           userId,
           codeHash: hashedCode,
           used: false,
-        }),
+        })
       );
     }
 
     await this.backupCodeRepository.save(backupCodes);
     this.logger.log(
-      `Generated ${this.BACKUP_CODES_COUNT} backup codes for user ${userId}`,
+      `Generated ${this.BACKUP_CODES_COUNT} backup codes for user ${userId}`
     );
 
     return codes;

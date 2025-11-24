@@ -1,16 +1,31 @@
 import { Controller, Get, Inject } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DataSource } from 'typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 
+@ApiTags('Health')
 @Controller('health')
 export class HealthController {
   constructor(
     private readonly dataSource: DataSource,
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
   ) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'Check service health',
+    description:
+      'Returns the health status of the service and its dependencies (database and cache)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Health check completed successfully',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'One or more services are unhealthy',
+  })
   async check() {
     console.log('Health check started');
     const health = {
@@ -55,6 +70,18 @@ export class HealthController {
   }
 
   @Get('ready')
+  @ApiOperation({
+    summary: 'Check service readiness',
+    description: 'Returns whether the service is ready to accept traffic',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Service is ready',
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'Service is not ready',
+  })
   async readiness() {
     try {
       await this.dataSource.query('SELECT 1');
@@ -66,6 +93,14 @@ export class HealthController {
   }
 
   @Get('live')
+  @ApiOperation({
+    summary: 'Check service liveness',
+    description: 'Returns whether the service is alive and responding',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Service is alive',
+  })
   alive() {
     return {
       status: 'alive',

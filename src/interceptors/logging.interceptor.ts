@@ -22,7 +22,7 @@ export class LoggingInterceptor implements NestInterceptor {
 
     // Log request
     this.logger.log(
-      `Incoming Request: ${method} ${url} - IP: ${ip} - User-Agent: ${userAgent}`,
+      `Incoming Request: ${method} ${url} - IP: ${ip} - User-Agent: ${userAgent}`
     );
 
     return next.handle().pipe(
@@ -30,16 +30,16 @@ export class LoggingInterceptor implements NestInterceptor {
         next: () => {
           const duration = Date.now() - startTime;
           this.logger.log(
-            `Outgoing Response: ${method} ${url} - Status: ${response.statusCode} - Duration: ${duration}ms`,
+            `Outgoing Response: ${method} ${url} - Status: ${response.statusCode} - Duration: ${duration}ms`
           );
         },
         error: (error) => {
           const duration = Date.now() - startTime;
           this.logger.error(
-            `Request Error: ${method} ${url} - Status: ${error.status || 500} - Duration: ${duration}ms - Error: ${error.message}`,
+            `Request Error: ${method} ${url} - Status: ${error.status || 500} - Duration: ${duration}ms - Error: ${error.message}`
           );
         },
-      }),
+      })
     );
   }
 }
