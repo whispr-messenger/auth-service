@@ -31,7 +31,7 @@ export class UserGrpcClient implements OnModuleInit {
 
       const userServiceUrl = this.configService.get<string>(
         'USER_SERVICE_GRPC_URL',
-        'user-service:50052',
+        'user-service:50052'
       );
 
       this.client = new userProto.UserService(
@@ -44,7 +44,7 @@ export class UserGrpcClient implements OnModuleInit {
           'grpc.http2.max_pings_without_data': 0,
           'grpc.http2.min_time_between_pings_ms': 10000,
           'grpc.http2.min_ping_interval_without_data_ms': 300000,
-        },
+        }
       );
 
       this.logger.log(`User gRPC client connected to ${userServiceUrl}`);
@@ -120,7 +120,7 @@ export class UserGrpcClient implements OnModuleInit {
             return reject(error);
           }
           resolve(response);
-        },
+        }
       );
     });
   }
@@ -128,7 +128,7 @@ export class UserGrpcClient implements OnModuleInit {
   async searchUsers(
     query: string,
     limit: number = 10,
-    offset: number = 0,
+    offset: number = 0
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.client) {
@@ -154,7 +154,7 @@ export class UserGrpcClient implements OnModuleInit {
   async getUserContacts(
     userId: string,
     limit: number = 50,
-    offset: number = 0,
+    offset: number = 0
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.client) {
@@ -180,7 +180,7 @@ export class UserGrpcClient implements OnModuleInit {
   async addContact(
     userId: string,
     contactUserId: string,
-    displayName?: string,
+    displayName?: string
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.client) {
@@ -227,7 +227,7 @@ export class UserGrpcClient implements OnModuleInit {
   async blockUser(
     userId: string,
     blockedUserId: string,
-    reason?: string,
+    reason?: string
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.client) {
@@ -274,7 +274,7 @@ export class UserGrpcClient implements OnModuleInit {
   async getBlockedUsers(
     userId: string,
     limit: number = 50,
-    offset: number = 0,
+    offset: number = 0
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.client) {
@@ -316,7 +316,7 @@ export class UserGrpcClient implements OnModuleInit {
             return reject(error);
           }
           resolve(response);
-        },
+        }
       );
     });
   }
@@ -335,7 +335,7 @@ export class UserGrpcClient implements OnModuleInit {
             return reject(error);
           }
           resolve(response);
-        },
+        }
       );
     });
   }

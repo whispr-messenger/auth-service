@@ -176,7 +176,7 @@ describe('AuthService', () => {
 
       expect(verificationService.verifyCode).toHaveBeenCalledWith(
         registerDto.verificationId,
-        '',
+        ''
       );
       expect(userAuthRepository.save).toHaveBeenCalled();
       expect(deviceService.registerDevice).toHaveBeenCalled();
@@ -194,7 +194,7 @@ describe('AuthService', () => {
       userAuthRepository.findOne.mockResolvedValue(mockUserAuth);
 
       await expect(
-        service.register(registerDto, mockFingerprint),
+        service.register(registerDto, mockFingerprint)
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -241,7 +241,7 @@ describe('AuthService', () => {
       userAuthRepository.findOne.mockResolvedValue(null);
 
       await expect(service.login(loginDto, mockFingerprint)).rejects.toThrow(
-        BadRequestException,
+        BadRequestException
       );
     });
   });
@@ -271,7 +271,7 @@ describe('AuthService', () => {
 
       expect(deviceService.validateQRChallenge).toHaveBeenCalledWith(
         scanLoginDto.challenge,
-        scanLoginDto.authenticatedDeviceId,
+        scanLoginDto.authenticatedDeviceId
       );
       expect(deviceService.registerDevice).toHaveBeenCalled();
       expect(result).toEqual(mockTokenPair);
@@ -279,11 +279,11 @@ describe('AuthService', () => {
 
     it('should throw BadRequestException with invalid challenge', async () => {
       deviceService.validateQRChallenge.mockRejectedValue(
-        new BadRequestException('Invalid challenge'),
+        new BadRequestException('Invalid challenge')
       );
 
       await expect(
-        service.scanLogin(scanLoginDto, mockFingerprint),
+        service.scanLogin(scanLoginDto, mockFingerprint)
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -296,7 +296,7 @@ describe('AuthService', () => {
       const result = await service.getUserDevices(mockUserAuth.id);
 
       expect(deviceService.getUserDevices).toHaveBeenCalledWith(
-        mockUserAuth.id,
+        mockUserAuth.id
       );
       expect(result).toEqual(devices);
     });
@@ -311,20 +311,20 @@ describe('AuthService', () => {
 
       expect(deviceService.revokeDevice).toHaveBeenCalledWith(
         mockUserAuth.id,
-        mockDevice.id,
+        mockDevice.id
       );
       expect(tokenService.revokeAllTokensForDevice).toHaveBeenCalledWith(
-        mockDevice.id,
+        mockDevice.id
       );
     });
 
     it('should throw BadRequestException if device not found', async () => {
       deviceService.revokeDevice.mockRejectedValue(
-        new BadRequestException('Device not found'),
+        new BadRequestException('Device not found')
       );
 
       await expect(
-        service.revokeDevice(mockUserAuth.id, 'invalid-id'),
+        service.revokeDevice(mockUserAuth.id, 'invalid-id')
       ).rejects.toThrow(BadRequestException);
     });
   });

@@ -22,7 +22,7 @@ export class NotificationService {
     private readonly deviceRepository: Repository<Device>,
     @InjectRepository(UserAuth)
     private readonly userAuthRepository: Repository<UserAuth>,
-    private readonly smsService: SmsService,
+    private readonly smsService: SmsService
   ) {}
 
   async notifyNewDeviceLogin(data: NotificationData): Promise<void> {
@@ -39,12 +39,12 @@ export class NotificationService {
       await this.smsService.sendSecurityAlert(user.phoneNumber, 'new_device');
 
       this.logger.log(
-        `New device login notification sent to ${user.phoneNumber}`,
+        `New device login notification sent to ${user.phoneNumber}`
       );
     } catch (error) {
       this.logger.error(
         `Failed to send new device notification: ${error.message}`,
-        error.stack,
+        error.stack
       );
     }
   }
@@ -62,14 +62,14 @@ export class NotificationService {
 
       await this.smsService.sendSecurityAlert(
         user.phoneNumber,
-        'suspicious_login',
+        'suspicious_login'
       );
 
       this.logger.log(`QR login notification sent to ${user.phoneNumber}`);
     } catch (error) {
       this.logger.error(
         `Failed to send QR login notification: ${error.message}`,
-        error.stack,
+        error.stack
       );
     }
   }
@@ -82,23 +82,23 @@ export class NotificationService {
 
       if (!user) {
         this.logger.warn(
-          `User not found for revocation notification: ${userId}`,
+          `User not found for revocation notification: ${userId}`
         );
         return;
       }
 
       await this.smsService.sendSecurityAlert(
         user.phoneNumber,
-        'suspicious_login',
+        'suspicious_login'
       );
 
       this.logger.log(
-        `Device revocation notification sent to ${user.phoneNumber}`,
+        `Device revocation notification sent to ${user.phoneNumber}`
       );
     } catch (error) {
       this.logger.error(
         `Failed to send device revocation notification: ${error.message}`,
-        error.stack,
+        error.stack
       );
     }
   }
@@ -116,16 +116,16 @@ export class NotificationService {
 
       await this.smsService.sendSecurityAlert(
         user.phoneNumber,
-        'password_change',
+        'password_change'
       );
 
       this.logger.log(
-        `2FA status change notification sent to ${user.phoneNumber}`,
+        `2FA status change notification sent to ${user.phoneNumber}`
       );
     } catch (error) {
       this.logger.error(
         `Failed to send 2FA status notification: ${error.message}`,
-        error.stack,
+        error.stack
       );
     }
   }
@@ -138,7 +138,7 @@ export class NotificationService {
     } catch (error) {
       this.logger.error(
         `Failed to send password reset notification: ${error.message}`,
-        error.stack,
+        error.stack
       );
     }
   }

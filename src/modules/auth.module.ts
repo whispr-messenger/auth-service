@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtModuleAsyncOptions } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerModuleOptions } from '@nestjs/throttler';
 import { UserAuth } from '../entities/user-auth.entity';
 import { Device } from '../entities/device.entity';
 import { BackupCode } from '../entities/backup-code.entity';
@@ -16,35 +16,32 @@ import { TokenService } from '../services/token.service';
 import { TwoFactorService } from '../services/two-factor.service';
 import { DeviceService } from '../services/device.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { jwtModuleOptionsFactory } from '../factories/jwt';
+
+const jwtModuleAsyncOptions: JwtModuleAsyncOptions = {
+  imports: [ConfigModule],
+  useFactory: jwtModuleOptionsFactory,
+  inject: [ConfigService],
+};
+
+const cacheConfig: { ttl: number; max: number } = {
+  ttl: 900,
+  max: 1000,
+};
+
+const throttlerModuleOptions: ThrottlerModuleOptions = [
+  {
+    ttl: 60000,
+    limit: 10,
+  },
+];
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserAuth, Device, BackupCode]),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        privateKey: configService.get<string>('JWT_PRIVATE_KEY'),
-        publicKey: configService.get<string>('JWT_PUBLIC_KEY'),
-        signOptions: {
-          algorithm: 'ES256',
-          expiresIn: '1h',
-        },
-        verifyOptions: {
-          algorithms: ['ES256'],
-        },
-      }),
-      inject: [ConfigService],
-    }),
-    CacheModule.register({
-      ttl: 900,
-      max: 1000,
-    }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000,
-        limit: 10,
-      },
-    ]),
+    JwtModule.registerAsync(jwtModuleAsyncOptions),
+    CacheModule.register(cacheConfig),
+    ThrottlerModule.forRoot(throttlerModuleOptions),
   ],
   controllers: [AuthController],
   providers: [

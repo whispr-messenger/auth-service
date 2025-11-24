@@ -80,12 +80,12 @@ export class AuthGrpcService {
     private readonly tokenService: TokenService,
     private readonly deviceService: DeviceService,
     private readonly twoFactorService: TwoFactorService,
-    private readonly verificationService: VerificationService,
+    private readonly verificationService: VerificationService
   ) {}
 
   async validateToken(
     call: GrpcCall<ValidateTokenRequest>,
-    callback: GrpcCallback,
+    callback: GrpcCallback
   ) {
     try {
       const { token } = call.request;
@@ -125,7 +125,7 @@ export class AuthGrpcService {
 
   async refreshToken(
     call: GrpcCall<RefreshTokenRequest>,
-    callback: GrpcCallback,
+    callback: GrpcCallback
   ) {
     try {
       const { refresh_token } = call.request;
@@ -180,7 +180,7 @@ export class AuthGrpcService {
 
   async getUserInfo(
     call: GrpcCall<GetUserInfoRequest>,
-    callback: GrpcCallback,
+    callback: GrpcCallback
   ) {
     try {
       const { user_id } = call.request;
@@ -215,7 +215,7 @@ export class AuthGrpcService {
 
   async getUserProfile(
     call: GrpcCall<GetUserInfoRequest>,
-    callback: GrpcCallback,
+    callback: GrpcCallback
   ) {
     try {
       const { user_id } = call.request;
@@ -251,7 +251,7 @@ export class AuthGrpcService {
 
   async checkPermission(
     call: GrpcCall<CheckPermissionRequest>,
-    callback: GrpcCallback,
+    callback: GrpcCallback
   ) {
     try {
       const { user_id, resource, action } = call.request;
@@ -283,7 +283,7 @@ export class AuthGrpcService {
 
   async registerDevice(
     call: GrpcCall<RegisterDeviceRequest>,
-    callback: GrpcCallback,
+    callback: GrpcCallback
   ) {
     try {
       const { user_id, device_name, device_type, public_key, ip_address } =
@@ -321,7 +321,7 @@ export class AuthGrpcService {
 
   async revokeDevice(
     call: GrpcCall<RevokeDeviceRequest>,
-    callback: GrpcCallback,
+    callback: GrpcCallback
   ) {
     try {
       const { user_id, device_id } = call.request;
@@ -342,7 +342,7 @@ export class AuthGrpcService {
 
   async getUserDevices(
     call: GrpcCall<GetUserInfoRequest>,
-    callback: GrpcCallback,
+    callback: GrpcCallback
   ) {
     try {
       const { user_id } = call.request;
@@ -373,14 +373,14 @@ export class AuthGrpcService {
 
   async verifyTwoFactor(
     call: GrpcCall<VerifyTwoFactorRequest>,
-    callback: GrpcCallback,
+    callback: GrpcCallback
   ) {
     try {
       const { user_id, code } = call.request;
 
       const isValid = await this.twoFactorService.verifyTwoFactor(
         user_id,
-        code,
+        code
       );
 
       callback(null, {
@@ -397,7 +397,7 @@ export class AuthGrpcService {
 
   async generateQRCode(
     call: GrpcCall<GenerateQRCodeRequest>,
-    callback: GrpcCallback,
+    callback: GrpcCallback
   ) {
     try {
       const { device_id } = call.request;
@@ -421,14 +421,14 @@ export class AuthGrpcService {
 
   async validateQRCode(
     call: GrpcCall<ValidateQRCodeRequest>,
-    callback: GrpcCallback,
+    callback: GrpcCallback
   ) {
     try {
       const { challenge_id, device_info } = call.request;
 
       const result = await this.deviceService.validateQRChallenge(
         challenge_id,
-        device_info,
+        device_info
       );
 
       callback(null, {
@@ -460,7 +460,7 @@ export class AuthGrpcService {
   private checkUserPermission(
     roles: string[],
     resource: string,
-    action: string,
+    action: string
   ): boolean {
     const rolePermissions = {
       user: [

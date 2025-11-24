@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { v4 as uuidv4 } from 'uuid';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 import {
   JwtPayload,
   TokenPair,
@@ -19,13 +19,13 @@ export class TokenService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
   ) {}
 
   async generateTokenPair(
     userId: string,
     deviceId: string,
-    fingerprint: DeviceFingerprint,
+    fingerprint: DeviceFingerprint
   ): Promise<TokenPair> {
     const deviceFingerprint = this.generateDeviceFingerprint(fingerprint);
     uuidv4();
@@ -62,7 +62,7 @@ export class TokenService {
     await this.cacheManager.set(
       `refresh_token:${refreshTokenId}`,
       JSON.stringify({ userId, deviceId, fingerprint: deviceFingerprint }),
-      this.REFRESH_TOKEN_TTL * 1000,
+      this.REFRESH_TOKEN_TTL * 1000
     );
 
     return { accessToken, refreshToken };
@@ -70,7 +70,7 @@ export class TokenService {
 
   async refreshAccessToken(
     refreshToken: string,
-    fingerprint: DeviceFingerprint,
+    fingerprint: DeviceFingerprint
   ): Promise<TokenPair> {
     try {
       const decoded = this.jwtService.verify(refreshToken, {
@@ -82,11 +82,11 @@ export class TokenService {
       }
 
       const tokenData = await this.cacheManager.get<string>(
-        `refresh_token:${decoded.jti}`,
+        `refresh_token:${decoded.jti}`
       );
       if (!tokenData) {
         throw new UnauthorizedException(
-          'Token de rafraîchissement expiré ou révoqué',
+          'Token de rafraîchissement expiré ou révoqué'
         );
       }
 
@@ -103,9 +103,9 @@ export class TokenService {
       return this.generateTokenPair(
         storedData.userId,
         storedData.deviceId,
-        fingerprint,
+        fingerprint
       );
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Token de rafraîchissement invalide');
     }
   }
@@ -117,10 +117,10 @@ export class TokenService {
         await this.cacheManager.set(
           `revoked:${decoded.jti}`,
           JSON.stringify({ revokedAt: Date.now() }),
-          (decoded.exp - Math.floor(Date.now() / 1000)) * 1000,
+          (decoded.exp - Math.floor(Date.now() / 1000)) * 1000
         );
       }
-    } catch (error) {
+    } catch {
       // Token déjà invalide, pas besoin de le révoquer
     }
   }
@@ -136,7 +136,7 @@ export class TokenService {
     await this.cacheManager.set(
       `revoked_device:${deviceId}`,
       'true',
-      this.REFRESH_TOKEN_TTL * 1000,
+      this.REFRESH_TOKEN_TTL * 1000
     );
   }
 
@@ -148,7 +148,7 @@ export class TokenService {
   validateToken(token: string): JwtPayload {
     try {
       return this.jwtService.verify(token, { algorithms: ['ES256'] });
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Token invalide');
     }
   }

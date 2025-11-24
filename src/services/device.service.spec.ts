@@ -96,7 +96,7 @@ describe('DeviceService', () => {
       deviceRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        service.generateQRChallenge('invalid-device-id'),
+        service.generateQRChallenge('invalid-device-id')
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -119,21 +119,21 @@ describe('DeviceService', () => {
         userId: 'user-id',
       });
       cacheManager.get.mockResolvedValue(JSON.stringify(challengeData));
-      cacheManager.del.mockResolvedValue(undefined);
+      cacheManager.del.mockResolvedValue(true);
 
       const result = await service.validateQRChallenge(
         challenge,
-        authenticatedDeviceId,
+        authenticatedDeviceId
       );
 
       expect(jwtService.verify).toHaveBeenCalledWith(challenge, {
         algorithms: ['ES256'],
       });
       expect(cacheManager.get).toHaveBeenCalledWith(
-        `qr_challenge:${challengeId}`,
+        `qr_challenge:${challengeId}`
       );
       expect(cacheManager.del).toHaveBeenCalledWith(
-        `qr_challenge:${challengeId}`,
+        `qr_challenge:${challengeId}`
       );
       expect(result).toEqual(challengeData);
     });
@@ -150,7 +150,7 @@ describe('DeviceService', () => {
       });
 
       await expect(
-        service.validateQRChallenge(challenge, authenticatedDeviceId),
+        service.validateQRChallenge(challenge, authenticatedDeviceId)
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -167,7 +167,7 @@ describe('DeviceService', () => {
       cacheManager.get.mockResolvedValue(null);
 
       await expect(
-        service.validateQRChallenge(challenge, authenticatedDeviceId),
+        service.validateQRChallenge(challenge, authenticatedDeviceId)
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -188,10 +188,10 @@ describe('DeviceService', () => {
         userId: 'user-id',
       });
       cacheManager.get.mockResolvedValue(JSON.stringify(expiredChallengeData));
-      cacheManager.del.mockResolvedValue(undefined);
+      cacheManager.del.mockResolvedValue(true);
 
       await expect(
-        service.validateQRChallenge(challenge, authenticatedDeviceId),
+        service.validateQRChallenge(challenge, authenticatedDeviceId)
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -258,7 +258,7 @@ describe('DeviceService', () => {
       deviceRepository.findOne.mockResolvedValue(null);
 
       await expect(service.revokeDevice(userId, deviceId)).rejects.toThrow(
-        NotFoundException,
+        NotFoundException
       );
     });
   });

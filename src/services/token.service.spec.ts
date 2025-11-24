@@ -75,7 +75,7 @@ describe('TokenService', () => {
       const result = await service.generateTokenPair(
         userId,
         deviceId,
-        mockFingerprint,
+        mockFingerprint
       );
 
       expect(jwtService.sign).toHaveBeenCalledTimes(2);
@@ -120,13 +120,13 @@ describe('TokenService', () => {
       jwtService.sign
         .mockReturnValueOnce(newAccessToken)
         .mockReturnValueOnce(newRefreshToken);
-      cacheManager.del.mockResolvedValue(undefined);
+      cacheManager.del.mockResolvedValue(true);
       cacheManager.set.mockResolvedValue(undefined);
       configService.get.mockReturnValue('test-secret');
 
       const result = await service.refreshAccessToken(
         refreshToken,
-        mockFingerprint,
+        mockFingerprint
       );
 
       expect(jwtService.verify).toHaveBeenCalledWith(refreshToken, {
@@ -147,7 +147,7 @@ describe('TokenService', () => {
       });
 
       await expect(
-        service.refreshAccessToken(invalidRefreshToken, mockFingerprint),
+        service.refreshAccessToken(invalidRefreshToken, mockFingerprint)
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -166,7 +166,7 @@ describe('TokenService', () => {
       cacheManager.get.mockResolvedValue(null);
 
       await expect(
-        service.refreshAccessToken(refreshToken, mockFingerprint),
+        service.refreshAccessToken(refreshToken, mockFingerprint)
       ).rejects.toThrow(UnauthorizedException);
     });
   });
@@ -190,7 +190,7 @@ describe('TokenService', () => {
       expect(cacheManager.set).toHaveBeenCalledWith(
         `revoked:${tokenId}`,
         expect.any(String),
-        expect.any(Number),
+        expect.any(Number)
       );
     });
 
@@ -200,7 +200,7 @@ describe('TokenService', () => {
       jwtService.decode.mockReturnValue(null);
 
       await expect(
-        service.revokeToken(invalidRefreshToken),
+        service.revokeToken(invalidRefreshToken)
       ).resolves.not.toThrow();
       expect(jwtService.decode).toHaveBeenCalledWith(invalidRefreshToken);
     });

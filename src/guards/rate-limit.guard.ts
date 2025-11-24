@@ -45,7 +45,7 @@ export class RateLimitGuard implements CanActivate {
           message: 'Trop de tentatives. Veuillez réessayer plus tard.',
           retryAfter: Math.ceil((entry.resetTime - now) / 1000),
         },
-        HttpStatus.TOO_MANY_REQUESTS,
+        HttpStatus.TOO_MANY_REQUESTS
       );
     }
 
@@ -58,7 +58,7 @@ export class RateLimitGuard implements CanActivate {
     response.setHeader('X-RateLimit-Remaining', Math.max(0, 10 - entry.count));
     response.setHeader(
       'X-RateLimit-Reset',
-      new Date(entry.resetTime).toISOString(),
+      new Date(entry.resetTime).toISOString()
     );
 
     return true;
