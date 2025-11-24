@@ -30,7 +30,7 @@ export class MediaGrpcClient implements OnModuleInit {
         .media as any;
       const mediaServiceUrl = this.configService.get<string>(
         'MEDIA_SERVICE_GRPC_URL',
-        'media-service:50053',
+        'media-service:50053'
       );
 
       this.client = new mediaProto.MediaService(
@@ -43,7 +43,7 @@ export class MediaGrpcClient implements OnModuleInit {
           'grpc.http2.max_pings_without_data': 0,
           'grpc.http2.min_time_between_pings_ms': 10000,
           'grpc.http2.min_ping_interval_without_data_ms': 300000,
-        },
+        }
       );
 
       this.logger.log(`Media gRPC client connected to ${mediaServiceUrl}`);
@@ -66,7 +66,7 @@ export class MediaGrpcClient implements OnModuleInit {
             return reject(error);
           }
           resolve(response);
-        },
+        }
       );
     });
   }
@@ -77,7 +77,7 @@ export class MediaGrpcClient implements OnModuleInit {
     limit: number = 20,
     offset: number = 0,
     sortBy: string = 'uploaded_at',
-    sortOrder: string = 'desc',
+    sortOrder: string = 'desc'
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.client) {
@@ -117,7 +117,7 @@ export class MediaGrpcClient implements OnModuleInit {
             return reject(error);
           }
           resolve(response);
-        },
+        }
       );
     });
   }
@@ -127,7 +127,7 @@ export class MediaGrpcClient implements OnModuleInit {
     userId: string,
     previewType: string = 'thumbnail',
     width?: number,
-    height?: number,
+    height?: number
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.client) {
@@ -155,7 +155,7 @@ export class MediaGrpcClient implements OnModuleInit {
   async getPreview(
     fileId: string,
     userId: string,
-    previewType: string = 'thumbnail',
+    previewType: string = 'thumbnail'
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.client) {
@@ -181,7 +181,7 @@ export class MediaGrpcClient implements OnModuleInit {
   async updateFileMetadata(
     fileId: string,
     userId: string,
-    metadata: any,
+    metadata: any
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.client) {
@@ -218,7 +218,7 @@ export class MediaGrpcClient implements OnModuleInit {
             return reject(error);
           }
           resolve(response);
-        },
+        }
       );
     });
   }
@@ -229,7 +229,7 @@ export class MediaGrpcClient implements OnModuleInit {
     category?: string,
     mimeType?: string,
     limit: number = 20,
-    offset: number = 0,
+    offset: number = 0
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.client) {
@@ -269,7 +269,7 @@ export class MediaGrpcClient implements OnModuleInit {
             return reject(error);
           }
           resolve(response);
-        },
+        }
       );
     });
   }

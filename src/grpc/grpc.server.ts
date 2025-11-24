@@ -12,7 +12,7 @@ export class GrpcServer implements OnModuleInit {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly authGrpcService: AuthGrpcService,
+    private readonly authGrpcService: AuthGrpcService
   ) {
     this.server = new grpc.Server();
   }
@@ -37,38 +37,38 @@ export class GrpcServer implements OnModuleInit {
 
       this.server.addService(authProto.AuthService.service, {
         validateToken: this.authGrpcService.validateToken.bind(
-          this.authGrpcService,
+          this.authGrpcService
         ),
         refreshToken: this.authGrpcService.refreshToken.bind(
-          this.authGrpcService,
+          this.authGrpcService
         ),
         login: this.authGrpcService.login.bind(this.authGrpcService),
         getUserInfo: this.authGrpcService.getUserInfo.bind(
-          this.authGrpcService,
+          this.authGrpcService
         ),
         getUserProfile: this.authGrpcService.getUserProfile.bind(
-          this.authGrpcService,
+          this.authGrpcService
         ),
         checkPermission: this.authGrpcService.checkPermission.bind(
-          this.authGrpcService,
+          this.authGrpcService
         ),
         registerDevice: this.authGrpcService.registerDevice.bind(
-          this.authGrpcService,
+          this.authGrpcService
         ),
         revokeDevice: this.authGrpcService.revokeDevice.bind(
-          this.authGrpcService,
+          this.authGrpcService
         ),
         getUserDevices: this.authGrpcService.getUserDevices.bind(
-          this.authGrpcService,
+          this.authGrpcService
         ),
         verifyTwoFactor: this.authGrpcService.verifyTwoFactor.bind(
-          this.authGrpcService,
+          this.authGrpcService
         ),
         generateQRCode: this.authGrpcService.generateQRCode.bind(
-          this.authGrpcService,
+          this.authGrpcService
         ),
         validateQRCode: this.authGrpcService.validateQRCode.bind(
-          this.authGrpcService,
+          this.authGrpcService
         ),
       });
 
@@ -85,7 +85,7 @@ export class GrpcServer implements OnModuleInit {
           }
           this.logger.log(`gRPC server started on ${grpcHost}:${port}`);
           this.server.start();
-        },
+        }
       );
     } catch (error) {
       this.logger.error('Error starting gRPC server:', error);
