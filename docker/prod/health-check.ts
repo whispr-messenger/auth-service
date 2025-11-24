@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import * as http from 'http';
+import * as http from 'node:http';
 
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
