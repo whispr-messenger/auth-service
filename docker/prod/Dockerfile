@@ -15,22 +15,18 @@ RUN apk add --no-cache \
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files (including lockfile) and install full deps for build
 COPY package*.json ./
+COPY package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+# Copy tsconfig and source, then build
 COPY tsconfig*.json ./
-
-# Install dependencies with optimizations
-RUN npm ci --only=production --no-audit --no-fund && \
-    npm cache clean --force
-
-# Copy source code
 COPY src/ ./src/
-COPY prisma/ ./prisma/
+RUN npm run build
 
-# Generate Prisma client and build application
-RUN npx prisma generate && \
-    npm run build && \
-    npm prune --production
+# Remove devDependencies to keep only production deps
+RUN npm prune --production
 
 # Production stage
 FROM gcr.io/distroless/nodejs22-debian12 AS production
@@ -48,14 +44,14 @@ LABEL maintainer="Whisper Team" \
 # Set working directory
 WORKDIR /app
 
-# Copy built application from builder stage
-COPY --from=builder --chown=nonroot:nonroot /app/node_modules ./node_modules
-COPY --from=builder --chown=nonroot:nonroot /app/dist ./dist
-COPY --from=builder --chown=nonroot:nonroot /app/prisma ./prisma
-COPY --from=builder --chown=nonroot:nonroot /app/package*.json ./
+# Copy built application and production deps from builder
+# Use numeric UID/GID 65532 for nonroot in distroless images
+COPY --from=builder --chown=65532:65532 /app/node_modules ./node_modules
+COPY --from=builder --chown=65532:65532 /app/dist ./dist
+COPY --from=builder --chown=65532:65532 /app/package*.json ./
 
-# Create necessary directories with proper permissions
-USER nonroot
+# Run as non-root (distroless typically maps to uid 65532)
+USER 65532
 
 # Environment variables for production
 ENV NODE_ENV=production \
@@ -66,15 +62,15 @@ ENV NODE_ENV=production \
     METRICS_ENABLED=true \
     HEALTH_CHECK_TIMEOUT=5000
 
-# Expose ports
+# Expose ports (documentation only)
 EXPOSE 3001 50051
 
-# Health check optimized for GCP
+# Health check optimized for GCP (ensure dist/health-check.js is produced by build)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD ["node", "dist/health-check.js"]
 
 # Start the application
-CMD ["node", "dist/main.js"]
+CMD ["dist/main.js"]
 
 # Security and optimization metadata
 LABEL security.scan="enabled" \
