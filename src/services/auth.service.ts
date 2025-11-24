@@ -44,7 +44,7 @@ export class AuthService {
 
     if (existingUser) {
       throw new ConflictException(
-        'Un compte existe déjà avec ce numéro de téléphone'
+        'An account with this phone number already exists.'
       );
     }
 
