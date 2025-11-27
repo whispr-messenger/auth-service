@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: whispr-auth-service-deployment
+  namespace: whispr-prod
+  labels:
+    app: whispr-messenger
+    tier: backend
+    environment: production
+  annotations:
+    description: "Authentication microservice for Whispr Messenger"
+    maintainer: "gabriel.lopez@epitech.eu"
+
+spec:
+  selector:
+    matchLabels:
+      app: whispr-auth-service
+
+  template:
+    metadata:
+      labels:
+        app: whispr-auth-service-prod
+
+    # Pod template specification
+    spec:
+      containers:
+      - name: whispr-auth-api
+        # The image is automatically updated by the CD pipeline with yq
+        image: empty
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
