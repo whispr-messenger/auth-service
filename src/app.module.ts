@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { Module, Provider } from '@nestjs/common'
 import {
     ConfigModule,
     ConfigModuleOptions,
@@ -66,6 +66,11 @@ const throttlerModuleOptions: ThrottlerModuleOptions = [
     LONG_THROTTLER,
 ]
 
+const throttlerGuardProvider: Provider = {
+    provide: APP_GUARD,
+    useClass: ThrottlerGuard,
+}
+
 @Module({
     imports: [
         ConfigModule.forRoot(configModuleOptions),
@@ -74,11 +79,6 @@ const throttlerModuleOptions: ThrottlerModuleOptions = [
         ThrottlerModule.forRoot(throttlerModuleOptions),
         HealthModule,
     ],
-    providers: [
-        {
-            provide: APP_GUARD,
-            useClass: ThrottlerGuard,
-        },
-    ],
+    providers: [throttlerGuardProvider],
 })
 export class AppModule {}
