@@ -4,7 +4,6 @@ const js = require('@eslint/js');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
 const tsParser = require('@typescript-eslint/parser');
 const prettierConfig = require('eslint-config-prettier');
-const prettierPlugin = require('eslint-plugin-prettier');
 const pluginJest = require('eslint-plugin-jest');
 
 // ESLint v9 uses a flat config format exported as an array of configuration objects
@@ -26,7 +25,7 @@ module.exports = [
       parser: tsParser,
 
       parserOptions: {
-        project: './tsconfig.json', // Path to TypeScript config for type-aware linting
+        project: './tsconfig.jsonc', // Path to TypeScript config for type-aware linting
         tsconfigRootDir: __dirname, // Root directory for parser (CommonJS)
         sourceType: 'module', // Use ES module syntax (import/export) in project files
       },
@@ -41,6 +40,8 @@ module.exports = [
         console: 'readonly',
         __dirname: 'readonly',
         Buffer: 'readonly',
+        require: 'readonly',
+        NodeJS: 'readonly',
 
         // Browser / runtime globals used (e.g. fetch in some services)
         fetch: 'readonly',
@@ -49,7 +50,6 @@ module.exports = [
 
     plugins: {
       '@typescript-eslint': tsPlugin,
-      prettier: prettierPlugin,
       jest: pluginJest,
     },
 
@@ -58,8 +58,6 @@ module.exports = [
       ...tsPlugin.configs.recommended.rules,
       // Spread Prettier config to disable conflicting ESLint rules
       ...prettierConfig.rules,
-      // Spread Prettier plugin rules to run Prettier as an ESLint rule
-      ...prettierPlugin.configs.recommended.rules,
 
       // Spread Jest plugin rules
       ...pluginJest.configs.recommended.rules,
