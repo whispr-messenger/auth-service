@@ -5,6 +5,12 @@ on:
     workflows: [🚀 CI Pipeline]
     types: [completed]
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to deploy (leave empty for latest)'
+        required: false
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -12,7 +18,7 @@ env:
 
 jobs:
   update-deployment:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
+    if: ${{ (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     name: Update Deployment Manifest
 
@@ -40,14 +46,24 @@ jobs:
 
       - name: Update image tag in deployment
         run: |
-          # Get the commit SHA from the triggering CI workflow
-          # Use head_sha which is the actual commit SHA string
-          COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
-
-          # If empty, use github.sha as fallback
-          if [ -z "$COMMIT_SHA" ]; then
-            COMMIT_SHA="${{ github.sha }}"
-            echo "Using github.sha as fallback: $COMMIT_SHA"
+          # Determine the commit SHA based on trigger type
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual trigger - use input or current commit
+            if [ -n "${{ inputs.commit_sha }}" ]; then
+              COMMIT_SHA="${{ inputs.commit_sha }}"
+              echo "Using manually provided commit SHA: $COMMIT_SHA"
+            else
+              COMMIT_SHA="${{ github.sha }}"
+              echo "Using current commit SHA: $COMMIT_SHA"
+            fi
+          else
+            # Automatic trigger from CI workflow
+            COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+            # If empty, use github.sha as fallback
+            if [ -z "$COMMIT_SHA" ]; then
+              COMMIT_SHA="${{ github.sha }}"
+              echo "Using github.sha as fallback: $COMMIT_SHA"
+            fi
           fi
 
           # Extract short SHA safely using printf (7 characters, matching docker metadata-action default)
@@ -85,9 +101,22 @@ jobs:
             exit 0
           fi
 
-          git add k8s/deployment.yaml
-          git commit -m "chore: Update deployment image to latest build
+          # Determine commit SHA for commit message
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TRIGGER_SHA="${{ inputs.commit_sha }}"
+            if [ -z "$TRIGGER_SHA" ]; then
+              TRIGGER_SHA="${{ github.sha }}"
+            fi
+            COMMIT_MSG="🔧 chore(deploy): update deployment image to latest build
+
+          Updated by CD workflow (manual trigger) for commit: ${TRIGGER_SHA}"
+          else
+            COMMIT_MSG="🔧 chore(deploy): update deployment image to latest build
 
           Updated by CD workflow for commit: ${{ github.event.workflow_run.head_sha }}"
+          fi
+
+          git add k8s/deployment.yaml
+          git commit -m "${COMMIT_MSG}"
 
           git push https://x-access-token:${{ steps.generate_token.outputs.token }}@github.com/${{ github.repository }}.git main
