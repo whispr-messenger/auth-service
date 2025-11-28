@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-// import { GrpcMethod } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserAuth } from '../entities/user-auth.entity';
@@ -14,9 +13,7 @@ interface GrpcCall<T = any> {
   request: T;
 }
 
-interface GrpcCallback<T = any> {
-  (error: any, response: T): void;
-}
+type GrpcCallback<T = any> = (error: any, response: T) => void;
 
 interface ValidateTokenRequest {
   token: string;
