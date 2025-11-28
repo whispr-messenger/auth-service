@@ -81,7 +81,7 @@ spec:
         # Liveness probe - checks if the container is alive
         livenessProbe:
           httpGet:
-            path: /health/ready
+            path: /health/live
             port: http
           initialDelaySeconds: 60
           periodSeconds: 30
@@ -103,7 +103,7 @@ spec:
         # Startup probe - gives more time for initial startup
         startupProbe:
           httpGet:
-            path: /health/ready
+            path: /health/live
             port: http
           initialDelaySeconds: 0
           periodSeconds: 10
