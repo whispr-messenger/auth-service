@@ -13,8 +13,6 @@ import {
 } from '@nestjs/throttler'
 import { APP_GUARD } from '@nestjs/core'
 
-import { AppController } from './app.controller'
-import { AppService } from './app.service'
 import { HealthModule } from './health/health.module'
 import { typeOrmModuleOptionsFactory } from './factories/typeorm'
 import { cacheModuleOptionsFactory } from './factories/cache'
@@ -68,9 +66,8 @@ const throttlerModuleOptions: ThrottlerModuleOptions = [
         ThrottlerModule.forRoot(throttlerModuleOptions),
         HealthModule,
     ],
-    controllers: [AppController],
+    controllers: [],
     providers: [
-        AppService,
         {
             provide: APP_GUARD,
             useClass: ThrottlerGuard,
