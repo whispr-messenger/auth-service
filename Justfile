@@ -21,8 +21,16 @@ down ENV:
         echo "{{ENV}}: Accepted values are 'dev' or 'prod'." >&2
     fi
 
-logs:
-    docker compose -f docker/dev/compose.yml logs --follow
+logs ENV:
+    #!/bin/bash
+    if [ "{{ENV}}" = "dev" ]; then
+        docker compose -f docker/{{ENV}}/compose.yml logs --follow
+    elif [ "{{ENV}}" = "prod" ]; then
+        docker compose -f docker/{{ENV}}/compose.yml logs --follow
+    else
+        echo "{{ENV}}: Accepted values are 'dev' or 'prod'." >&2
+    fi
+
 
 shell:
     docker compose -f docker/dev/compose.yml exec -it auth-service bash
