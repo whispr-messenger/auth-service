@@ -17,6 +17,7 @@ import { APP_GUARD } from '@nestjs/core'
 import { HealthModule } from './modules/health/health.module'
 import { typeOrmModuleOptionsFactory } from './factories/typeorm'
 import { cacheModuleOptionsFactory } from './factories/cache'
+import { AuthModule } from './modules/auth/auth.module'
 
 // Environment variables
 const configModuleOptions: ConfigModuleOptions = {
@@ -78,6 +79,7 @@ const throttlerGuardProvider: Provider = {
         CacheModule.registerAsync(cacheModuleAsyncOptions),
         ThrottlerModule.forRoot(throttlerModuleOptions),
         HealthModule,
+        AuthModule,
     ],
     providers: [throttlerGuardProvider],
 })
