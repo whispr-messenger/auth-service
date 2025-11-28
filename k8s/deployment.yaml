@@ -41,7 +41,7 @@ spec:
       containers:
       - name: whispr-auth-api
         # The image is automatically updated by the CD pipeline with yq
-        image: empty
+        image: busybox:latest # Placeholder, replaced by CD pipeline
 
         ports:
         - name: http
