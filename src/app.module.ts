@@ -15,7 +15,6 @@ import { APP_GUARD } from '@nestjs/core';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-// import { AuthModule } from './modules/auth.module';
 import { HealthModule } from './health/health.module';
 import { typeOrmModuleOptionsFactory } from './factories/typeorm';
 import { cacheModuleOptionsFactory } from './factories/cache';
@@ -67,7 +66,6 @@ const throttlerModuleOptions: ThrottlerModuleOptions = [
     TypeOrmModule.forRootAsync(typeOrmModuleAsyncOptions),
     CacheModule.registerAsync(cacheModuleAsyncOptions),
     ThrottlerModule.forRoot(throttlerModuleOptions),
-    // AuthModule,
     HealthModule,
   ],
   controllers: [AppController],
