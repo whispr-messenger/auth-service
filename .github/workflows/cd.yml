@@ -109,11 +109,11 @@ jobs:
             fi
             COMMIT_MSG="🔧 chore(deploy): update deployment image to latest build
 
-          Updated by CD workflow (manual trigger) for commit: ${TRIGGER_SHA}"
+Updated by CD workflow (manual trigger) for commit: ${TRIGGER_SHA}"
           else
             COMMIT_MSG="🔧 chore(deploy): update deployment image to latest build
 
-          Updated by CD workflow for commit: ${{ github.event.workflow_run.head_sha }}"
+Updated by CD workflow for commit: ${{ github.event.workflow_run.head_sha }}"
           fi
 
           git add k8s/deployment.yaml
