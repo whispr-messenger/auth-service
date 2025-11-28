@@ -88,6 +88,6 @@ jobs:
           git add k8s/deployment.yaml
           git commit -m "chore: Update deployment image to latest build
 
-          Updated by CD workflow for commit: ${{ github.event.workflow_run.head_commit }}"
+          Updated by CD workflow for commit: ${{ github.event.workflow_run.head_sha }}"
 
-          git push origin main
+          git push https://x-access-token:${{ steps.generate_token.outputs.token }}@github.com/${{ github.repository }}.git main
