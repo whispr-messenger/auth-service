@@ -44,10 +44,16 @@ test-report.html
 azure-pipelines.yml
 
 # Docker
-docker/dev/
+docker/dev/.env
+docker/dev/compose.yml
 Dockerfile
 docker-compose*.yml
 .dockerignore
+
+# Keep dev docker files needed for build
+!docker/dev/Dockerfile
+!docker/dev/entrypoint.sh
+!docker/dev/requirements.txt
 
 # Keep production docker files
 !docker/prod/check-env.js
