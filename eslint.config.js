@@ -25,7 +25,7 @@ module.exports = [
       parser: tsParser,
 
       parserOptions: {
-        project: './tsconfig.jsonc', // Path to TypeScript config for type-aware linting
+        project: './tsconfig.json', // Path to TypeScript config for type-aware linting
         tsconfigRootDir: __dirname, // Root directory for parser (CommonJS)
         sourceType: 'module', // Use ES module syntax (import/export) in project files
       },
