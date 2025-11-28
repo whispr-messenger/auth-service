@@ -92,9 +92,9 @@ jobs:
 
       - name: Commit and push changes
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
           # Check if there are changes to commit
           if git diff --quiet k8s/deployment.yaml; then
             echo "No changes to commit"
