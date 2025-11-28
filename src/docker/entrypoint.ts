@@ -12,9 +12,6 @@ try {
   import('../main.js');
 } catch (err) {
   // If environment checks failed, log and exit non-zero so container fails fast
-  console.error(
-    'Entrypoint failed:',
-    err instanceof Error ? err.message : err,
-  );
+  console.error('Entrypoint failed:', err instanceof Error ? err.message : err);
   process.exit(1);
 }
