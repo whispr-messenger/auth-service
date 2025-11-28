@@ -14,7 +14,7 @@ import {
 } from '@nestjs/throttler'
 import { APP_GUARD } from '@nestjs/core'
 
-import { HealthModule } from './health/health.module'
+import { HealthModule } from './modules/health/health.module'
 import { typeOrmModuleOptionsFactory } from './factories/typeorm'
 import { cacheModuleOptionsFactory } from './factories/cache'
 
