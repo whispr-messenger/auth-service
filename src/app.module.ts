@@ -10,6 +10,7 @@ import {
     ThrottlerModule,
     ThrottlerGuard,
     ThrottlerModuleOptions,
+    ThrottlerOptions,
 } from '@nestjs/throttler'
 import { APP_GUARD } from '@nestjs/core'
 
@@ -40,22 +41,29 @@ const cacheModuleAsyncOptions: CacheModuleAsyncOptions = {
 
 // Rate limiting
 // https://docs.nestjs.com/security/rate-limiting#multiple-throttler-definitions
+
+const SHORT_THROTTLER: ThrottlerOptions = {
+    name: 'short',
+    ttl: 1000,
+    limit: 3,
+}
+
+const MEDIUM_THOTTLER: ThrottlerOptions = {
+    name: 'medium',
+    ttl: 10000,
+    limit: 20,
+}
+
+const LONG_THROTTLER: ThrottlerOptions = {
+    name: 'long',
+    ttl: 60000,
+    limit: 100,
+}
+
 const throttlerModuleOptions: ThrottlerModuleOptions = [
-    {
-        name: 'short',
-        ttl: 1000,
-        limit: 3,
-    },
-    {
-        name: 'medium',
-        ttl: 10000,
-        limit: 20,
-    },
-    {
-        name: 'long',
-        ttl: 60000,
-        limit: 100,
-    },
+    SHORT_THROTTLER,
+    MEDIUM_THOTTLER,
+    LONG_THROTTLER,
 ]
 
 @Module({
@@ -66,7 +74,6 @@ const throttlerModuleOptions: ThrottlerModuleOptions = [
         ThrottlerModule.forRoot(throttlerModuleOptions),
         HealthModule,
     ],
-    controllers: [],
     providers: [
         {
             provide: APP_GUARD,
