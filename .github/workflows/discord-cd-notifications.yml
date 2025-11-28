@@ -16,7 +16,7 @@ jobs:
   notify-cd-start:
     name: Send CD Start Notification
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.event == 'workflow_run' && github.event.action == 'requested'
+    if: github.event.action == 'requested'
 
     steps:
       - name: Extract commit details
@@ -52,7 +52,7 @@ jobs:
   notify-cd-complete:
     name: Send CD Completion Notification
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.event == 'workflow_run' && github.event.action == 'completed'
+    if: github.event.action == 'completed'
 
     steps:
       - name: Determine completion status
