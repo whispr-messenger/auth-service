@@ -17,7 +17,12 @@ import { APP_GUARD } from '@nestjs/core'
 import { HealthModule } from './modules/health/health.module'
 import { typeOrmModuleOptionsFactory } from './factories/typeorm'
 import { cacheModuleOptionsFactory } from './factories/cache'
-import { AuthModule } from './modules/auth/auth.module'
+import { AuthModule } from './modules/authentication/auth.module'
+import { DevicesModule } from './modules/devices/devices.module'
+import { TokenModule } from './modules/token/token.module'
+import { TokensModule } from './modules/tokens/tokens.module'
+import { TwoFactorAuthenticationModule } from './modules/two-factor-authentication/two-factor-authentication.module'
+import { PhoneVerificationModule } from './modules/phone-verification/phone-verification.module'
 
 // Environment variables
 const configModuleOptions: ConfigModuleOptions = {
@@ -80,6 +85,11 @@ const throttlerGuardProvider: Provider = {
         ThrottlerModule.forRoot(throttlerModuleOptions),
         HealthModule,
         AuthModule,
+        DevicesModule,
+        TokenModule,
+        TokensModule,
+        TwoFactorAuthenticationModule,
+        PhoneVerificationModule,
     ],
     providers: [throttlerGuardProvider],
 })
