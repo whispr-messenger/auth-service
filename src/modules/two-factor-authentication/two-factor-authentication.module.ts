@@ -9,9 +9,9 @@ import { TokensModule } from '../tokens/tokens.module';
 import { JwtAuthGuard } from '../authentication/guards/jwt-auth.guard';
 
 @Module({
-    providers: [TwoFactorAuthenticationService, BackupCodesService, JwtAuthGuard],
-    controllers: [TwoFactorAuthenticationController],
-    imports: [TypeOrmModule.forFeature([UserAuth, BackupCode]), TokensModule],
-    exports: [BackupCodesService],
+	providers: [TwoFactorAuthenticationService, BackupCodesService, JwtAuthGuard],
+	controllers: [TwoFactorAuthenticationController],
+	imports: [TypeOrmModule.forFeature([UserAuth, BackupCode]), TokensModule],
+	exports: [BackupCodesService],
 })
 export class TwoFactorAuthenticationModule {}
