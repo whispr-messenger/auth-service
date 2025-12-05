@@ -4,7 +4,7 @@ default:
 up ENV:
     #!/bin/bash
     if [ "{{ENV}}" = "dev" ]; then
-        docker compose -f docker/dev/compose.yml up -d
+        docker compose -f docker/dev/compose.yml up -d --build
     elif [ "{{ENV}}" = "prod" ]; then
         docker compose -f docker/prod/compose.yml up --detach --build
     else

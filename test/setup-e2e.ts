@@ -1,3 +1,5 @@
+// import crypto from 'node:crypto';
+
 // Mock environment variables for testing
 process.env.NODE_ENV = 'test';
 process.env.DB_TYPE = 'postgres';
@@ -21,36 +23,36 @@ process.env.BCRYPT_ROUNDS = '4';
 // The app constructs a new KeyvRedis(...) and uses it as a store.
 // Provide a mock constructor that returns an object with cache-like methods.
 jest.mock('@keyv/redis', () => {
-  const mockCtor = jest.fn().mockImplementation(() => ({
-    get: jest.fn(),
-    set: jest.fn(),
-    delete: jest.fn(),
-    clear: jest.fn(),
-  }));
-  // Ensure ES module default import works: export { default: mockCtor }
-  return { __esModule: true, default: mockCtor };
+	const mockCtor = jest.fn().mockImplementation(() => ({
+		get: jest.fn(),
+		set: jest.fn(),
+		delete: jest.fn(),
+		clear: jest.fn(),
+	}));
+	// Ensure ES module default import works: export { default: mockCtor }
+	return { __esModule: true, default: mockCtor };
 });
 
 // Mock SmsService
-jest.mock('../src/services/sms.service', () => ({
-  SmsService: jest.fn().mockImplementation(() => ({
-    sendSms: jest.fn().mockResolvedValue(true),
-  })),
+jest.mock('../src/modules/phone-verification/services/sms/sms.service', () => ({
+	SmsService: jest.fn().mockImplementation(() => ({
+		sendSms: jest.fn().mockResolvedValue(true),
+	})),
 }));
 
-// Mock NotificationService
-jest.mock('../src/services/notification.service', () => ({
-  NotificationService: jest.fn().mockImplementation(() => ({
-    sendPushNotification: jest.fn().mockResolvedValue(true),
-  })),
-}));
+// Mock NotificationService - this service might not exist anymore
+// jest.mock('../src/services/notification.service', () => ({
+//     NotificationService: jest.fn().mockImplementation(() => ({
+//         sendPushNotification: jest.fn().mockResolvedValue(true),
+//     })),
+// }))
 
 // Mock TypeORM for e2e tests
 jest.mock('typeorm', () => ({
-  ...jest.requireActual('typeorm'),
-  DataSource: jest.fn().mockImplementation(() => ({
-    initialize: jest.fn().mockResolvedValue(undefined),
-    destroy: jest.fn().mockResolvedValue(undefined),
-    isInitialized: true,
-  })),
+	...jest.requireActual('typeorm'),
+	DataSource: jest.fn().mockImplementation(() => ({
+		initialize: jest.fn().mockResolvedValue(undefined),
+		destroy: jest.fn().mockResolvedValue(undefined),
+		isInitialized: true,
+	})),
 }));

@@ -1,12 +1,5 @@
 FROM node:22-alpine AS builder
 
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    git \
-    curl
-
 WORKDIR /app
 
 # Copy package files (including lockfile) and install full deps for build
