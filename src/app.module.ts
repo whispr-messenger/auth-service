@@ -1,82 +1,81 @@
-import { Module } from '@nestjs/common';
-import {
-  ConfigModule,
-  ConfigModuleOptions,
-  ConfigService,
-} from '@nestjs/config';
+import { Module, Provider } from '@nestjs/common';
+import { ConfigModule, ConfigModuleOptions, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleAsyncOptions } from '@nestjs/typeorm';
 import { CacheModule, CacheModuleAsyncOptions } from '@nestjs/cache-manager';
-import {
-  ThrottlerModule,
-  ThrottlerGuard,
-  ThrottlerModuleOptions,
-} from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard, ThrottlerModuleOptions, ThrottlerOptions } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-// import { AuthModule } from './modules/auth.module';
-import { HealthModule } from './health/health.module';
+import { HealthModule } from './modules/health/health.module';
 import { typeOrmModuleOptionsFactory } from './factories/typeorm';
 import { cacheModuleOptionsFactory } from './factories/cache';
+import { AuthModule } from './modules/authentication/auth.module';
+import { DevicesModule } from './modules/devices/devices.module';
+import { TokensModule } from './modules/tokens/tokens.module';
+import { TwoFactorAuthenticationModule } from './modules/two-factor-authentication/two-factor-authentication.module';
+import { PhoneVerificationModule } from './modules/phone-verification/phone-verification.module';
 
 // Environment variables
 const configModuleOptions: ConfigModuleOptions = {
-  isGlobal: true,
-  envFilePath: '.env',
+	isGlobal: true,
+	envFilePath: '.env',
 };
 
 // Database (Postgres)
 const typeOrmModuleAsyncOptions: TypeOrmModuleAsyncOptions = {
-  imports: [ConfigModule],
-  useFactory: typeOrmModuleOptionsFactory,
-  inject: [ConfigService],
+	imports: [ConfigModule],
+	useFactory: typeOrmModuleOptionsFactory,
+	inject: [ConfigService],
 };
 
 // Caching (Redis)
 const cacheModuleAsyncOptions: CacheModuleAsyncOptions = {
-  imports: [ConfigModule],
-  useFactory: cacheModuleOptionsFactory,
-  inject: [ConfigService],
-  isGlobal: true,
+	imports: [ConfigModule],
+	useFactory: cacheModuleOptionsFactory,
+	inject: [ConfigService],
+	isGlobal: true,
 };
 
 // Rate limiting
 // https://docs.nestjs.com/security/rate-limiting#multiple-throttler-definitions
-const throttlerModuleOptions: ThrottlerModuleOptions = [
-  {
-    name: 'short',
-    ttl: 1000,
-    limit: 3,
-  },
-  {
-    name: 'medium',
-    ttl: 10000,
-    limit: 20,
-  },
-  {
-    name: 'long',
-    ttl: 60000,
-    limit: 100,
-  },
-];
+
+const SHORT_THROTTLER: ThrottlerOptions = {
+	name: 'short',
+	ttl: 1000,
+	limit: 3,
+};
+
+const MEDIUM_THOTTLER: ThrottlerOptions = {
+	name: 'medium',
+	ttl: 10000,
+	limit: 20,
+};
+
+const LONG_THROTTLER: ThrottlerOptions = {
+	name: 'long',
+	ttl: 60000,
+	limit: 100,
+};
+
+const throttlerModuleOptions: ThrottlerModuleOptions = [SHORT_THROTTLER, MEDIUM_THOTTLER, LONG_THROTTLER];
+
+const throttlerGuardProvider: Provider = {
+	provide: APP_GUARD,
+	useClass: ThrottlerGuard,
+};
 
 @Module({
-  imports: [
-    ConfigModule.forRoot(configModuleOptions),
-    TypeOrmModule.forRootAsync(typeOrmModuleAsyncOptions),
-    CacheModule.registerAsync(cacheModuleAsyncOptions),
-    ThrottlerModule.forRoot(throttlerModuleOptions),
-    // AuthModule,
-    HealthModule,
-  ],
-  controllers: [AppController],
-  providers: [
-    AppService,
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
-  ],
+	imports: [
+		ConfigModule.forRoot(configModuleOptions),
+		TypeOrmModule.forRootAsync(typeOrmModuleAsyncOptions),
+		CacheModule.registerAsync(cacheModuleAsyncOptions),
+		ThrottlerModule.forRoot(throttlerModuleOptions),
+		HealthModule,
+		AuthModule,
+		DevicesModule,
+		TokensModule,
+		TwoFactorAuthenticationModule,
+		PhoneVerificationModule,
+	],
+	providers: [throttlerGuardProvider],
 })
 export class AppModule {}
