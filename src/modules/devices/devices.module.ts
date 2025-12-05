@@ -9,9 +9,9 @@ import { Device } from './device.entity';
 import { UserAuth } from '../two-factor-authentication/user-auth.entity';
 
 @Module({
-    providers: [DevicesService, QuickResponseCodeService],
-    controllers: [DevicesController, QuickResponseCodeController],
-    imports: [TypeOrmModule.forFeature([Device, UserAuth]), TokensModule],
-    exports: [DevicesService, QuickResponseCodeService],
+	providers: [DevicesService, QuickResponseCodeService],
+	controllers: [DevicesController, QuickResponseCodeController],
+	imports: [TypeOrmModule.forFeature([Device, UserAuth]), TokensModule],
+	exports: [DevicesService, QuickResponseCodeService],
 })
 export class DevicesModule {}

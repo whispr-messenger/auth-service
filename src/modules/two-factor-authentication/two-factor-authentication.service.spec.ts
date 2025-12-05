@@ -1,20 +1,42 @@
-import { Test, TestingModule } from '@nestjs/testing'
-import { TwoFactorAuthenticationService } from './two-factor-authentication.service'
+import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { TwoFactorAuthenticationService } from './two-factor-authentication.service';
+import { BackupCodesService } from './backup-codes/backup-codes.service';
+import { UserAuth } from './user-auth.entity';
 
 describe('TwoFactorAuthenticationService', () => {
-    let service: TwoFactorAuthenticationService
+	let service: TwoFactorAuthenticationService;
 
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            providers: [TwoFactorAuthenticationService],
-        }).compile()
+	const mockUserAuthRepository = {
+		findOne: jest.fn(),
+		save: jest.fn(),
+		create: jest.fn(),
+	};
 
-        service = module.get<TwoFactorAuthenticationService>(
-            TwoFactorAuthenticationService
-        )
-    })
+	const mockBackupCodesService = {
+		generateBackupCodes: jest.fn(),
+		validateBackupCode: jest.fn(),
+	};
 
-    it('should be defined', () => {
-        expect(service).toBeDefined()
-    })
-})
+	beforeEach(async () => {
+		const module: TestingModule = await Test.createTestingModule({
+			providers: [
+				TwoFactorAuthenticationService,
+				{
+					provide: getRepositoryToken(UserAuth),
+					useValue: mockUserAuthRepository,
+				},
+				{
+					provide: BackupCodesService,
+					useValue: mockBackupCodesService,
+				},
+			],
+		}).compile();
+
+		service = module.get<TwoFactorAuthenticationService>(TwoFactorAuthenticationService);
+	});
+
+	it('should be defined', () => {
+		expect(service).toBeDefined();
+	});
+});
