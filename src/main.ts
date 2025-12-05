@@ -1,34 +1,30 @@
 import { NestFactory } from '@nestjs/core';
+import { Logger, VersioningType } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { createSwaggerDocumentation } from './factories/swagger';
 
-function createSwaggerDocumentation(app: NestExpressApplication, port: number) {
-  const config = new DocumentBuilder()
-    .setTitle('Authentication Service')
-    .setDescription('API documentation for the Authentication Service')
-    .setVersion('1.0')
-    .addServer(`http://localhost:${port}`, 'Development')
-    .addServer('https://api.example.com', 'Production')
-    .build();
-
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-
-  // https://docs.nestjs.com/openapi/introduction#document-options
-  SwaggerModule.setup('api', app, documentFactory);
-}
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
+  const logger = new Logger('Bootstrap');
   const port = configService.get<number>('HTTP_PORT', 3001);
 
-  createSwaggerDocumentation(app, port);
+  app.setGlobalPrefix('auth');
+
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+    prefix: 'v',
+  });
+
+  createSwaggerDocumentation(app, port, configService);
 
   await app.listen(port);
 
-  console.log(`Application is running on: http://localhost:${port}`);
+  logger.log(`Application is running on: http://0.0.0.0:${port}`);
 }
 
 bootstrap();
