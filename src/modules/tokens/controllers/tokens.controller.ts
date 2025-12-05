@@ -1,15 +1,8 @@
-import {
-    Body,
-    Controller,
-    HttpCode,
-    HttpStatus,
-    Request,
-    Post,
-} from '@nestjs/common'
-import { ApiOperation, ApiResponse } from '@nestjs/swagger'
-import { DeviceFingerprint } from '../devices/device-fingerprint.interface'
-import { TokensService } from './tokens.service'
-import { RefreshTokenDto } from './refresh-token.dto'
+import { Body, Controller, HttpCode, HttpStatus, Request, Post } from '@nestjs/common';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { DeviceFingerprint } from '../../devices/device-fingerprint.interface';
+import { TokensService } from '../services/tokens.service';
+import { RefreshTokenDto } from '../dto/refresh-token.dto';
 
 @Controller('tokens')
 export class TokensController {
@@ -29,11 +22,8 @@ export class TokensController {
             ipAddress: req.ip,
             deviceType: 'unknown',
             timestamp: Date.now(),
-        }
+        };
 
-        return this.tokensService.refreshAccessToken(
-            dto.refreshToken,
-            fingerprint
-        )
+        return this.tokensService.refreshAccessToken(dto.refreshToken, fingerprint);
     }
 }

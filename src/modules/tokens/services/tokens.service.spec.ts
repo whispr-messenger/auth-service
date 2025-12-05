@@ -5,8 +5,8 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { UnauthorizedException } from '@nestjs/common';
 
-import { TokensService } from '../tokens/services/tokens.service';
-import { DeviceFingerprint } from '../devices/device-fingerprint.interface';
+import { TokensService } from './tokens.service';
+import { DeviceFingerprint } from '../../devices/device-fingerprint.interface';
 
 describe('TokensService', () => {
     let service: TokensService;
