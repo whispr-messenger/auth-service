@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Device } from '../../devices/device.entity';
 import { UserAuth } from '../../two-factor-authentication/user-auth.entity';
-import { SmsService } from './sms.service';
+import { SmsService } from 'src/modules/phone-verification/services/sms/sms.service';
 
 interface NotificationData {
 	userId: string;
