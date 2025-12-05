@@ -115,9 +115,11 @@
   },
   "prettier": {
     "trailingComma": "es5",
+    "tab": true,
     "tabWidth": 4,
-    "semi": false,
-    "singleQuote": true
+    "semi": true,
+    "singleQuote": true,
+    "printWidth": 110
   },
   "lint-staged": {
     "*.ts": [
