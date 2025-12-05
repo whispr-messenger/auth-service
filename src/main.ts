@@ -10,8 +10,9 @@ async function bootstrap() {
 	const configService = app.get(ConfigService);
 	const logger = new Logger('Bootstrap');
 	const port = configService.get<number>('HTTP_PORT', 3001);
+	const globalPrefix = 'auth';
 
-	app.setGlobalPrefix('auth');
+	app.setGlobalPrefix(globalPrefix);
 
 	app.enableVersioning({
 		type: VersioningType.URI,
@@ -19,7 +20,7 @@ async function bootstrap() {
 		prefix: 'v',
 	});
 
-	createSwaggerDocumentation(app, port, configService);
+	createSwaggerDocumentation(app, port, configService, globalPrefix);
 
 	await app.listen(port);
 
