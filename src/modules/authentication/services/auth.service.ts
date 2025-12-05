@@ -92,6 +92,7 @@ export class AuthService {
         }
 
         user.lastAuthenticatedAt = new Date();
+
         await this.userAuthRepository.save(user);
 
         await this.verificationService.consumeVerification(dto.verificationId);
