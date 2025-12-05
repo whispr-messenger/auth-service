@@ -115,7 +115,7 @@
   },
   "prettier": {
     "trailingComma": "es5",
-    "tab": true,
+    "useTabs": true,
     "tabWidth": 4,
     "semi": true,
     "singleQuote": true,
