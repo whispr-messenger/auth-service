@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../src/app.module';
 import { ValidationPipe } from '@nestjs/common';
-import request from 'supertest';
 import { JwtAuthGuard } from '../src/modules/authentication/guards/jwt-auth.guard';
 import { RateLimitGuard } from '../src/modules/authentication/guards/rate-limit.guard';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -15,11 +14,14 @@ import { BackupCode } from '../src/modules/authentication/entities/backup-code.e
 import { LoginHistory } from '../src/modules/authentication/entities/login-history.entity';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { AuthService } from '../src/modules/authentication/services/auth.service';
-import { VerificationService } from '../src/modules/authentication/services/verification.service';
 import { TokensService } from '../src/modules/tokens/services/tokens.service';
-import { TwoFactorService } from '../src/modules/authentication/services/two-factor.service';
-import { DeviceService } from '../src/modules/authentication/services/device.service';
 import { JwtService } from '@nestjs/jwt';
+import { PhoneVerificationService } from 'src/modules/phone-verification/services/phone-verification/phone-verification.service';
+import { TwoFactorAuthenticationService } from 'src/modules/two-factor-authentication/two-factor-authentication.service';
+import { DevicesService } from 'src/modules/devices/devices.service';
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const request = require('supertest');
 
 describe('AuthController (e2e)', () => {
 	let app: INestApplication;
@@ -98,13 +100,13 @@ describe('AuthController (e2e)', () => {
 				.useValue(mockCacheManager)
 				.overrideProvider(AuthService)
 				.useValue(mockAuthService)
-				.overrideProvider(VerificationService)
+				.overrideProvider(PhoneVerificationService)
 				.useValue(mockVerificationService)
 				.overrideProvider(TokensService)
 				.useValue(mockTokenService)
-				.overrideProvider(TwoFactorService)
+				.overrideProvider(TwoFactorAuthenticationService)
 				.useValue(mockTwoFactorService)
-				.overrideProvider(DeviceService)
+				.overrideProvider(DevicesService)
 				.useValue(mockDeviceService)
 				.overrideProvider(JwtService)
 				.useValue(mockJwtService)
@@ -142,8 +144,12 @@ describe('AuthController (e2e)', () => {
 
 	describe('Health Check', () => {
 		it('should return application info', async () => {
-			const response = await request(app.getHttpServer()).get('/').expect(200);
+			const response = await request(app.getHttpServer()).get('/health').expect(200);
 			expect(response).toBeDefined();
+			expect(response.body).toBeDefined();
+			expect(response.body.status).toBeDefined();
+			expect(response.body.timestamp).toBeDefined();
+			expect(response.body.services).toBeDefined();
 		});
 	});
 });
