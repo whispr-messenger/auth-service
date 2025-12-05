@@ -1,10 +1,14 @@
-import { Module } from '@nestjs/common'
-import { PhoneVerificationController } from './phone-verification.controller'
-import { PhoneVerificationService } from './phone-verification.service'
-import { SmsService } from './sms/sms.service'
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { PhoneVerificationService } from './services/phone-verification/phone-verification.service';
+import { SmsService } from './services/sms/sms.service';
+import { PhoneVerificationController } from './controllers/phone-verification.controller';
+import { UserAuth } from '../two-factor-authentication/user-auth.entity';
 
 @Module({
-    controllers: [PhoneVerificationController],
     providers: [PhoneVerificationService, SmsService],
+    controllers: [PhoneVerificationController],
+    imports: [TypeOrmModule.forFeature([UserAuth])],
+    exports: [PhoneVerificationService],
 })
 export class PhoneVerificationModule {}

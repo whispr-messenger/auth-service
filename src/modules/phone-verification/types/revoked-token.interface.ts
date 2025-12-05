@@ -1,3 +1,3 @@
 export interface RevokedToken {
-    revokedAt: number
+    revokedAt: number;
 }
