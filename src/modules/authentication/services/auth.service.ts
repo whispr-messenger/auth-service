@@ -11,100 +11,100 @@ import { TokensService } from 'src/modules/tokens/services/tokens.service';
 
 @Injectable()
 export class AuthService {
-    constructor(
-        @InjectRepository(UserAuth)
-        private readonly userAuthRepository: Repository<UserAuth>,
-        private readonly verificationService: PhoneVerificationService,
-        private readonly tokenService: TokensService,
-        private readonly deviceService: DevicesService
-    ) {}
+	constructor(
+		@InjectRepository(UserAuth)
+		private readonly userAuthRepository: Repository<UserAuth>,
+		private readonly verificationService: PhoneVerificationService,
+		private readonly tokenService: TokensService,
+		private readonly deviceService: DevicesService
+	) {}
 
-    async register(dto: RegisterDto, fingerprint: DeviceFingerprint): Promise<TokenPair> {
-        const verificationData = await this.verificationService.verifyCode(dto.verificationId, '');
+	async register(dto: RegisterDto, fingerprint: DeviceFingerprint): Promise<TokenPair> {
+		const verificationData = await this.verificationService.verifyCode(dto.verificationId, '');
 
-        if (verificationData.purpose !== 'registration') {
-            throw new BadRequestException("Code de vérification invalide pour l'inscription");
-        }
+		if (verificationData.purpose !== 'registration') {
+			throw new BadRequestException("Code de vérification invalide pour l'inscription");
+		}
 
-        const existingUser = await this.userAuthRepository.findOne({
-            where: { phoneNumber: verificationData.phoneNumber },
-        });
+		const existingUser = await this.userAuthRepository.findOne({
+			where: { phoneNumber: verificationData.phoneNumber },
+		});
 
-        if (existingUser) {
-            throw new ConflictException('Un compte existe déjà avec ce numéro de téléphone');
-        }
+		if (existingUser) {
+			throw new ConflictException('Un compte existe déjà avec ce numéro de téléphone');
+		}
 
-        const user = this.userAuthRepository.create({
-            phoneNumber: verificationData.phoneNumber,
-            twoFactorEnabled: false,
-            lastAuthenticatedAt: new Date(),
-        });
+		const user = this.userAuthRepository.create({
+			phoneNumber: verificationData.phoneNumber,
+			twoFactorEnabled: false,
+			lastAuthenticatedAt: new Date(),
+		});
 
-        const savedUser = await this.userAuthRepository.save(user);
+		const savedUser = await this.userAuthRepository.save(user);
 
-        let deviceId: string;
+		let deviceId: string;
 
-        if (dto.deviceName && dto.deviceType && dto.publicKey) {
-            const device = await this.deviceService.registerDevice({
-                userId: savedUser.id,
-                deviceName: dto.deviceName,
-                deviceType: dto.deviceType,
-                publicKey: dto.publicKey,
-                ipAddress: fingerprint.ipAddress,
-            });
-            deviceId = device.id;
-        } else {
-            deviceId = 'web-session';
-        }
+		if (dto.deviceName && dto.deviceType && dto.publicKey) {
+			const device = await this.deviceService.registerDevice({
+				userId: savedUser.id,
+				deviceName: dto.deviceName,
+				deviceType: dto.deviceType,
+				publicKey: dto.publicKey,
+				ipAddress: fingerprint.ipAddress,
+			});
+			deviceId = device.id;
+		} else {
+			deviceId = 'web-session';
+		}
 
-        await this.verificationService.consumeVerification(dto.verificationId);
+		await this.verificationService.consumeVerification(dto.verificationId);
 
-        return this.tokenService.generateTokenPair(savedUser.id, deviceId, fingerprint);
-    }
+		return this.tokenService.generateTokenPair(savedUser.id, deviceId, fingerprint);
+	}
 
-    async login(dto: LoginDto, fingerprint: DeviceFingerprint): Promise<TokenPair> {
-        const verificationData = await this.verificationService.verifyCode(dto.verificationId, '');
+	async login(dto: LoginDto, fingerprint: DeviceFingerprint): Promise<TokenPair> {
+		const verificationData = await this.verificationService.verifyCode(dto.verificationId, '');
 
-        if (verificationData.purpose !== 'login') {
-            throw new BadRequestException('Code de vérification invalide pour la connexion');
-        }
+		if (verificationData.purpose !== 'login') {
+			throw new BadRequestException('Code de vérification invalide pour la connexion');
+		}
 
-        const user = await this.userAuthRepository.findOne({
-            where: { phoneNumber: verificationData.phoneNumber },
-        });
+		const user = await this.userAuthRepository.findOne({
+			where: { phoneNumber: verificationData.phoneNumber },
+		});
 
-        if (!user) {
-            throw new BadRequestException('Utilisateur non trouvé');
-        }
+		if (!user) {
+			throw new BadRequestException('Utilisateur non trouvé');
+		}
 
-        let deviceId: string;
-        if (dto.deviceName && dto.deviceType && dto.publicKey) {
-            const device = await this.deviceService.registerDevice({
-                userId: user.id,
-                deviceName: dto.deviceName,
-                deviceType: dto.deviceType,
-                publicKey: dto.publicKey,
-                ipAddress: fingerprint.ipAddress,
-            });
-            deviceId = device.id;
-        } else {
-            deviceId = 'web-session';
-        }
+		let deviceId: string;
+		if (dto.deviceName && dto.deviceType && dto.publicKey) {
+			const device = await this.deviceService.registerDevice({
+				userId: user.id,
+				deviceName: dto.deviceName,
+				deviceType: dto.deviceType,
+				publicKey: dto.publicKey,
+				ipAddress: fingerprint.ipAddress,
+			});
+			deviceId = device.id;
+		} else {
+			deviceId = 'web-session';
+		}
 
-        user.lastAuthenticatedAt = new Date();
+		user.lastAuthenticatedAt = new Date();
 
-        await this.userAuthRepository.save(user);
+		await this.userAuthRepository.save(user);
 
-        await this.verificationService.consumeVerification(dto.verificationId);
+		await this.verificationService.consumeVerification(dto.verificationId);
 
-        return this.tokenService.generateTokenPair(user.id, deviceId, fingerprint);
-    }
+		return this.tokenService.generateTokenPair(user.id, deviceId, fingerprint);
+	}
 
-    async logout(userId: string, deviceId: string): Promise<void> {
-        await this.tokenService.revokeAllTokensForDevice(deviceId);
+	async logout(userId: string, deviceId: string): Promise<void> {
+		await this.tokenService.revokeAllTokensForDevice(deviceId);
 
-        if (deviceId !== 'web-session') {
-            await this.deviceService.updateLastActive(deviceId);
-        }
-    }
+		if (deviceId !== 'web-session') {
+			await this.deviceService.updateLastActive(deviceId);
+		}
+	}
 }

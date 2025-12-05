@@ -6,9 +6,9 @@ import { PhoneVerificationController } from './controllers/phone-verification.co
 import { UserAuth } from '../two-factor-authentication/user-auth.entity';
 
 @Module({
-    providers: [PhoneVerificationService, SmsService],
-    controllers: [PhoneVerificationController],
-    imports: [TypeOrmModule.forFeature([UserAuth])],
-    exports: [PhoneVerificationService],
+	providers: [PhoneVerificationService, SmsService],
+	controllers: [PhoneVerificationController],
+	imports: [TypeOrmModule.forFeature([UserAuth])],
+	exports: [PhoneVerificationService],
 })
 export class PhoneVerificationModule {}

@@ -1,18 +1,29 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TokensController } from './tokens.controller';
+import { TokensService } from '../services/tokens.service';
 
 describe('TokensController', () => {
-    let controller: TokensController;
+	let controller: TokensController;
 
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            controllers: [TokensController],
-        }).compile();
+	const mockTokensService = {
+		refreshAccessToken: jest.fn(),
+	};
 
-        controller = module.get<TokensController>(TokensController);
-    });
+	beforeEach(async () => {
+		const module: TestingModule = await Test.createTestingModule({
+			controllers: [TokensController],
+			providers: [
+				{
+					provide: TokensService,
+					useValue: mockTokensService,
+				},
+			],
+		}).compile();
 
-    it('should be defined', () => {
-        expect(controller).toBeDefined();
-    });
+		controller = module.get<TokensController>(TokensController);
+	});
+
+	it('should be defined', () => {
+		expect(controller).toBeDefined();
+	});
 });

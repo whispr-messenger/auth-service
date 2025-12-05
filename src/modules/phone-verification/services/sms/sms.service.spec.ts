@@ -1,18 +1,29 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { SmsService } from './sms.service';
 
 describe('SmsService', () => {
-    let service: SmsService;
+	let service: SmsService;
 
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            providers: [SmsService],
-        }).compile();
+	const mockConfigService = {
+		get: jest.fn(),
+	};
 
-        service = module.get<SmsService>(SmsService);
-    });
+	beforeEach(async () => {
+		const module: TestingModule = await Test.createTestingModule({
+			providers: [
+				SmsService,
+				{
+					provide: ConfigService,
+					useValue: mockConfigService,
+				},
+			],
+		}).compile();
 
-    it('should be defined', () => {
-        expect(service).toBeDefined();
-    });
+		service = module.get<SmsService>(SmsService);
+	});
+
+	it('should be defined', () => {
+		expect(service).toBeDefined();
+	});
 });

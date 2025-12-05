@@ -1,18 +1,34 @@
-import { Test, TestingModule } from '@nestjs/testing'
-import { BackupCodesService } from './backup-codes.service'
+import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { BackupCodesService } from './backup-codes.service';
+import { BackupCode } from '../../authentication/entities/backup-code.entity';
 
 describe('BackupCodesService', () => {
-    let service: BackupCodesService
+	let service: BackupCodesService;
 
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            providers: [BackupCodesService],
-        }).compile()
+	const mockBackupCodeRepository = {
+		findOne: jest.fn(),
+		save: jest.fn(),
+		create: jest.fn(),
+		find: jest.fn(),
+		remove: jest.fn(),
+	};
 
-        service = module.get<BackupCodesService>(BackupCodesService)
-    })
+	beforeEach(async () => {
+		const module: TestingModule = await Test.createTestingModule({
+			providers: [
+				BackupCodesService,
+				{
+					provide: getRepositoryToken(BackupCode),
+					useValue: mockBackupCodeRepository,
+				},
+			],
+		}).compile();
 
-    it('should be defined', () => {
-        expect(service).toBeDefined()
-    })
-})
+		service = module.get<BackupCodesService>(BackupCodesService);
+	});
+
+	it('should be defined', () => {
+		expect(service).toBeDefined();
+	});
+});

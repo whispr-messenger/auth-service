@@ -5,9 +5,9 @@ import { TokensController } from './controllers/tokens.controller';
 import { TokensService } from './services/tokens.service';
 
 @Module({
-    providers: [TokensService],
-    controllers: [TokensController],
-    imports: [JwtModule, CacheModule.register()],
-    exports: [TokensService, JwtModule],
+	providers: [TokensService],
+	controllers: [TokensController],
+	imports: [JwtModule, CacheModule.register()],
+	exports: [TokensService, JwtModule],
 })
 export class TokensModule {}
