@@ -61,7 +61,7 @@ function buildSwaggerDocument(
 		.setDescription('API documentation for the Authentication Service')
 		.setVersion('1.0')
 		.addServer(`http://localhost:${port}`, 'Development')
-		.addServer('https://api.example.com', 'Production');
+		.addServer('https://whispr.epitech-msc2026.me', 'Production');
 
 	if (isProduction) {
 		builder
@@ -85,16 +85,23 @@ function createSwaggerUiOptions(githubClientId: string, swaggerOAuthCallbackUrl:
 	};
 }
 
-function createSwaggerCustomOptions(swaggerUiOptions: SwaggerUiOptions): SwaggerCustomOptions {
-	return {
-		swaggerOptions: swaggerUiOptions,
+function createSwaggerCustomOptions(swaggerUiOptions?: SwaggerUiOptions): SwaggerCustomOptions {
+	const customOptions: SwaggerCustomOptions = {
+		useGlobalPrefix: true,
 	};
+
+	if (swaggerUiOptions) {
+		customOptions.swaggerOptions = swaggerUiOptions;
+	}
+
+	return customOptions;
 }
 
 export function createSwaggerDocumentation(
 	app: NestExpressApplication,
 	port: number,
-	configService: ConfigService
+	configService: ConfigService,
+	globalPrefix?: string
 ) {
 	const logger = new Logger('Swagger');
 	const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED', true);
@@ -108,6 +115,7 @@ export function createSwaggerDocumentation(
 	const isProduction = nodeEnv === 'production';
 	const securitySchemeName = 'oauth2-github';
 	const swaggerConfig = getSwaggerConfig(port, configService);
+	const swaggerRoute = [globalPrefix, 'swagger'].filter(Boolean).join('/');
 
 	const githubOauth2SecurityScheme = createGithubOAuth2SecurityScheme(
 		swaggerConfig.githubAuthorizationUrl,
@@ -115,7 +123,10 @@ export function createSwaggerDocumentation(
 	);
 
 	const config = buildSwaggerDocument(port, githubOauth2SecurityScheme, securitySchemeName, isProduction);
-	const documentFactory = () => SwaggerModule.createDocument(app, config);
+	const documentFactory = () =>
+		SwaggerModule.createDocument(app, config, {
+			ignoreGlobalPrefix: false,
+		});
 
 	let swaggerCustomOptions: SwaggerCustomOptions;
 
@@ -126,12 +137,12 @@ export function createSwaggerDocumentation(
 		);
 		swaggerCustomOptions = createSwaggerCustomOptions(swaggerUiOptions);
 	} else {
-		swaggerCustomOptions = {};
+		swaggerCustomOptions = createSwaggerCustomOptions();
 	}
 
 	SwaggerModule.setup('swagger', app, documentFactory, swaggerCustomOptions);
 
-	logger.log(`Swagger documentation available at: http://0.0.0.0:${port}/swagger`);
+	logger.log(`Swagger documentation available at: http://0.0.0.0:${port}/${swaggerRoute}`);
 
 	if (!isProduction) {
 		logger.log('OAuth authentication is disabled in development mode');
