@@ -1,12 +1,12 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { UserAuth } from '../modules/two-factor-authentication/user-auth.entity';
-import { Device } from '../modules/devices/device.entity';
-import { PreKey } from '../modules/authentication/entities/prekey.entity';
-import { SignedPreKey } from '../modules/authentication/entities/signed-prekey.entity';
-import { IdentityKey } from '../modules/authentication/entities/identity-key.entity';
-import { BackupCode } from '../modules/authentication/entities/backup-code.entity';
-import { LoginHistory } from '../modules/authentication/entities/login-history.entity';
+import { UserAuth } from '../two-factor-authentication/user-auth.entity';
+import { Device } from '../devices/device.entity';
+import { PreKey } from '../authentication/entities/prekey.entity';
+import { SignedPreKey } from '../authentication/entities/signed-prekey.entity';
+import { IdentityKey } from '../authentication/entities/identity-key.entity';
+import { BackupCode } from '../authentication/entities/backup-code.entity';
+import { LoginHistory } from '../authentication/entities/login-history.entity';
 import { DataSourceOptions } from 'typeorm';
 
 // Register new TypeORM entities here
