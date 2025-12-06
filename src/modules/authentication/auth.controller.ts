@@ -6,7 +6,7 @@ import { DeviceFingerprint } from '../devices/device-fingerprint.interface';
 import { RegisterDto, LoginDto } from './dto/auth';
 
 @ApiTags('Authentication')
-@Controller('auth')
+@Controller()
 export class AuthController {
 	constructor(private readonly authService: AuthService) {}
 
