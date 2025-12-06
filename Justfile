@@ -7,8 +7,10 @@ up ENV:
         docker compose -f docker/dev/compose.yml up -d --build
     elif [ "{{ENV}}" = "prod" ]; then
         docker compose -f docker/prod/compose.yml up --detach --build
+    elif [ "{{ENV}}" = "doc" ]; then
+        docker compose -f docker/doc/compose.yml up --detach
     else
-        echo "{{ENV}}: Accepted values are 'dev' or 'prod'." >&2
+        echo "{{ENV}}: Accepted values are 'dev', 'prod' or 'doc'." >&2
     fi
 
 down ENV:
@@ -17,8 +19,10 @@ down ENV:
         docker compose -f docker/dev/compose.yml down --volumes
     elif [ "{{ENV}}" = "prod" ]; then
         docker compose -f docker/prod/compose.yml down --volumes
+    elif [ "{{ENV}}" = "doc" ]; then
+        docker compose -f docker/doc/compose.yml up --detach
     else
-        echo "{{ENV}}: Accepted values are 'dev' or 'prod'." >&2
+        echo "{{ENV}}: Accepted values are 'dev', 'prod' or 'doc'." >&2
     fi
 
 logs ENV:
