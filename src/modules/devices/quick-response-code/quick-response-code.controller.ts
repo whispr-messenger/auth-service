@@ -5,27 +5,22 @@ import { DeviceFingerprint } from '../device-fingerprint.interface';
 import { ScanLoginDto } from '../scan-login.dto';
 import { QuickResponseCodeService } from './quick-response-code.service';
 
-@Controller('quick-response-code')
+@Controller('qr-code')
 export class QuickResponseCodeController {
 	constructor(private readonly quickResponseCodeService: QuickResponseCodeService) {}
 
-	@Post('/challeng/:deviceId')
+	@Post('/challenge/:deviceId')
 	@UseGuards(JwtAuthGuard)
 	@ApiBearerAuth()
-	@ApiOperation({
-		summary: 'Generate QR code challenge for device authentication',
-	})
-	@ApiResponse({
-		status: 200,
-		description: 'QR challenge generated successfully',
-	})
+	@ApiOperation({ summary: 'Generate QR code challenge for device authentication' })
+	@ApiResponse({ status: 200, description: 'QR challenge generated successfully' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
 	@ApiResponse({ status: 404, description: 'Device not found' })
 	async generateQRChallenge(@Param('deviceId') deviceId: string) {
 		return this.quickResponseCodeService.generateQRChallenge(deviceId);
 	}
 
-	@Post('scan-login')
+	@Post('scan')
 	@HttpCode(HttpStatus.OK)
 	@ApiOperation({ summary: 'Login by scanning QR code' })
 	@ApiResponse({ status: 200, description: 'QR code login successful' })
