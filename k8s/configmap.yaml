@@ -36,7 +36,13 @@ data:
   USER_SERVICE_GRPC_URL: "user-service:50052"
   MEDIA_SERVICE_GRPC_URL: "media-service:50053"
 
+  # Swagger Configuration
+  SWAGGER_ENABLED: "true"
+  SWAGGER_OAUTH_CALLBACK_URL: "https://whispr.epitech-msc2026.me/auth/swagger/oauth/callback"
+  GITHUB_OAUTH_AUTH_URL: "https://github.com/login/oauth/authorize"
+  GITHUB_OAUTH_TOKEN_URL: "https://github.com/login/oauth/access_token"
+
   # Feature Flags
   ENABLE_CORS: "true"
-  ENABLE_SWAGGER: "false"  # Should be false in production
   HOT_RELOAD: "false"  # Should be false in production
+
