@@ -3,16 +3,15 @@ import { ConfigModule, ConfigModuleOptions, ConfigService } from '@nestjs/config
 import { TypeOrmModule, TypeOrmModuleAsyncOptions } from '@nestjs/typeorm';
 import { CacheModule, CacheModuleAsyncOptions } from '@nestjs/cache-manager';
 import { ThrottlerModule, ThrottlerGuard, ThrottlerModuleOptions, ThrottlerOptions } from '@nestjs/throttler';
+import { HealthModule } from '../health/health.module';
+import { AuthModule } from '../authentication/auth.module';
+import { DevicesModule } from '../devices/devices.module';
+import { TokensModule } from '../tokens/tokens.module';
+import { TwoFactorAuthenticationModule } from '../two-factor-authentication/two-factor-authentication.module';
+import { PhoneVerificationModule } from '../phone-verification/phone-verification.module';
+import { typeOrmModuleOptionsFactory } from './typeorm';
+import { cacheModuleOptionsFactory } from './cache';
 import { APP_GUARD } from '@nestjs/core';
-
-import { HealthModule } from './modules/health/health.module';
-import { typeOrmModuleOptionsFactory } from './factories/typeorm';
-import { cacheModuleOptionsFactory } from './factories/cache';
-import { AuthModule } from './modules/authentication/auth.module';
-import { DevicesModule } from './modules/devices/devices.module';
-import { TokensModule } from './modules/tokens/tokens.module';
-import { TwoFactorAuthenticationModule } from './modules/two-factor-authentication/two-factor-authentication.module';
-import { PhoneVerificationModule } from './modules/phone-verification/phone-verification.module';
 
 // Environment variables
 const configModuleOptions: ConfigModuleOptions = {
