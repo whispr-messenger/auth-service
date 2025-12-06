@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { AppModule } from '../src/app.module';
+import { AppModule } from '../src/modules/app/app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { JwtAuthGuard } from '../src/modules/authentication/guards/jwt-auth.guard';
 import { RateLimitGuard } from '../src/modules/authentication/guards/rate-limit.guard';
