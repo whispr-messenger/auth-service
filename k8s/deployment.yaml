@@ -12,6 +12,7 @@ metadata:
     maintainer: "gabriel.lopez@epitech.eu"
 spec:
   replicas: 1
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: auth-service
