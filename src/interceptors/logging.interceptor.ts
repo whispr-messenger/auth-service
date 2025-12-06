@@ -21,15 +21,17 @@ export class LoggingInterceptor implements NestInterceptor {
 			tap({
 				next: () => {
 					const duration = Date.now() - startTime;
-					this.logger.log(
-						`Outgoing Response: ${method} ${url} - Status: ${response.statusCode} - Duration: ${duration}ms`
-					);
+					const outgoingMsg = `Outgoing Response: ${method} ${url}`;
+					const statusMsg = `Status: ${response.statusCode}`;
+					const durationMsg = `Duration: ${duration}ms`;
+					this.logger.log(`${outgoingMsg} - ${statusMsg} - ${durationMsg}`);
 				},
 				error: (error) => {
 					const duration = Date.now() - startTime;
-					this.logger.error(
-						`Request Error: ${method} ${url} - Status: ${error.status || 500} - Duration: ${duration}ms - Error: ${error.message}`
-					);
+					const requestMsg = `Request Error: ${method} ${url}`;
+					const statusMsg = `Status: ${error.status || 500}`;
+					const durationMsg = `Duration: ${duration}ms - Error: ${error.message}`;
+					this.logger.error(`${requestMsg} - ${statusMsg}  - ${durationMsg}`);
 				},
 			})
 		);
