@@ -12,7 +12,7 @@ export class SmsService {
 	constructor(private readonly configService: ConfigService) {
 		this.twilioAccountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID') || '';
 		this.twilioAuthToken = this.configService.get<string>('TWILIO_AUTH_TOKEN') || '';
-		this.twilioPhoneNumber = this.configService.get<string>('TWILIO_PHONE_NUMBER') || '';
+		this.twilioPhoneNumber = this.configService.get<string>('TWILIO_FROM_NUMBER') || '';
 		this.isDevelopment = this.configService.get<string>('NODE_ENV') !== 'production';
 	}
 
