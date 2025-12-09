@@ -8,3 +8,7 @@ nano
 htop
 procps
 tini
+python3
+make
+g++
+build-essential
