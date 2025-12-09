@@ -4,4 +4,5 @@ export interface VerificationCode {
 	purpose: 'registration' | 'login' | 'recovery';
 	attempts: number;
 	expiresAt: number;
+	verified?: boolean;
 }
