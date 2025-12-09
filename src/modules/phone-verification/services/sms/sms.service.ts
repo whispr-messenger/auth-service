@@ -8,16 +8,25 @@ export class SmsService {
 	private readonly twilioAuthToken: string;
 	private readonly twilioPhoneNumber: string;
 	private readonly isDevelopment: boolean;
+	private readonly isDemoMode: boolean;
 
 	constructor(private readonly configService: ConfigService) {
 		this.twilioAccountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID') || '';
 		this.twilioAuthToken = this.configService.get<string>('TWILIO_AUTH_TOKEN') || '';
 		this.twilioPhoneNumber = this.configService.get<string>('TWILIO_FROM_NUMBER') || '';
 		this.isDevelopment = this.configService.get<string>('NODE_ENV') !== 'production';
+		this.isDemoMode = this.configService.get<string>('DEMO_MODE') === 'true';
 	}
 
 	async sendVerificationCode(phoneNumber: string, code: string, purpose: string): Promise<void> {
 		const message = this.buildMessage(code, purpose);
+
+		if (this.isDemoMode) {
+			this.logger.log(
+				`[DEMO MODE] SMS to ${phoneNumber}: the verification code is in the response payload.`
+			);
+			return;
+		}
 
 		if (this.isDevelopment) {
 			this.logger.log(`[DEV MODE] SMS to ${phoneNumber}: ${message}`);
