@@ -82,6 +82,7 @@ export default function runEnvChecks(): void {
 	checkOptional('LOG_LEVEL', 'info');
 	checkOptional('METRICS_ENABLED', 'true');
 	checkOptional('HEALTH_CHECK_TIMEOUT', '5000');
+	checkOptional('DEMO_MODE', 'false');
 
 	console.log('\n==================================================');
 

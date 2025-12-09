@@ -5,21 +5,27 @@ import {
 	HttpStatus,
 	Inject,
 	Injectable,
+	Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 import { VerificationRequestDto, VerificationConfirmDto } from '../../../authentication/dto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { parsePhoneNumberWithError } from 'libphonenumber-js';
 import { Cache } from 'cache-manager';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import { Repository } from 'typeorm';
+import { FindOneOptions, Repository } from 'typeorm';
 import { UserAuth } from '../../../two-factor-authentication/user-auth.entity';
 import { SmsService } from '../sms/sms.service';
 import { VerificationCode } from '../../types/verification-code.interface';
+import { verificationPurpose } from '../../types/verification-purpose.type';
+import { VerificationRequestResponse } from '../../types/verification-request-response.interface';
 
 @Injectable()
 export class PhoneVerificationService {
+	private readonly logger = new Logger(PhoneVerificationService.name);
+	private readonly isDemoMode = this.configService.get<string>('DEMO_MODE') === 'true';
 	private readonly VERIFICATION_TTL = 15 * 60;
 	private readonly MAX_ATTEMPTS = 5;
 	private readonly RATE_LIMIT_TTL = 60 * 60;
@@ -30,13 +36,14 @@ export class PhoneVerificationService {
 		@InjectRepository(UserAuth)
 		private readonly userAuthRepository: Repository<UserAuth>,
 		@Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-		private readonly smsService: SmsService
+		private readonly smsService: SmsService,
+		private readonly configService: ConfigService
 	) {}
 
 	async requestVerification(
 		phoneNumber: string,
-		purpose: 'registration' | 'login' | 'recovery'
-	): Promise<string> {
+		purpose: verificationPurpose
+	): Promise<VerificationRequestResponse> {
 		const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
 
 		await this.checkRateLimit(normalizedPhone);
@@ -70,7 +77,12 @@ export class PhoneVerificationService {
 			console.log(`Verification code for ${normalizedPhone}: ${code}`);
 		}
 
-		return verificationId;
+		if (this.isDemoMode) {
+			this.logger.debug('Demo mode is activated: sending verification code in response payload.');
+			return { verificationId, code };
+		}
+
+		return { verificationId };
 	}
 
 	async verifyCode(verificationId: string, code: string): Promise<VerificationCode> {
@@ -143,18 +155,17 @@ export class PhoneVerificationService {
 		await this.cacheManager.set(key, current, this.RATE_LIMIT_TTL * 1000);
 	}
 
-	async requestRegistrationVerification(dto: VerificationRequestDto): Promise<{ verificationId: string }> {
-		const existingUser = await this.userAuthRepository.findOne({
-			where: { phoneNumber: dto.phoneNumber },
-		});
+	async requestRegistrationVerification(dto: VerificationRequestDto): Promise<VerificationRequestResponse> {
+		const filter: FindOneOptions<UserAuth> = { where: { phoneNumber: dto.phoneNumber } };
+		const existingUser = await this.userAuthRepository.findOne(filter);
 
 		if (existingUser) {
 			throw new ConflictException('An account with this phone number already exists.');
 		}
 
-		const verificationId = await this.requestVerification(dto.phoneNumber, 'registration');
+		const result = await this.requestVerification(dto.phoneNumber, 'registration');
 
-		return { verificationId };
+		return result;
 	}
 
 	async confirmRegistrationVerification(dto: VerificationConfirmDto): Promise<{ verified: boolean }> {
@@ -162,7 +173,9 @@ export class PhoneVerificationService {
 		return { verified: true };
 	}
 
-	async requestLoginVerification(dto: VerificationRequestDto): Promise<{ verificationId: string }> {
+	async requestLoginVerification(
+		dto: VerificationRequestDto
+	): Promise<{ verificationId: string; code?: string }> {
 		const user = await this.userAuthRepository.findOne({
 			where: { phoneNumber: dto.phoneNumber },
 		});
@@ -171,9 +184,9 @@ export class PhoneVerificationService {
 			throw new BadRequestException('Aucun compte trouvé avec ce numéro de téléphone');
 		}
 
-		const verificationId = await this.requestVerification(dto.phoneNumber, 'login');
+		const result = await this.requestVerification(dto.phoneNumber, 'login');
 
-		return { verificationId };
+		return result;
 	}
 
 	async confirmLoginVerification(
