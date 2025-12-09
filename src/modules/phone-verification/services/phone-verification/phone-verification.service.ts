@@ -95,6 +95,11 @@ export class PhoneVerificationService {
 
 		const verificationData: VerificationCode = JSON.parse(data);
 
+		// Si déjà vérifié et aucun code fourni, retourner les données
+		if (verificationData.verified && code === '') {
+			return verificationData;
+		}
+
 		if (verificationData.attempts >= this.MAX_ATTEMPTS) {
 			await this.cacheManager.del(key);
 			throw new HttpException('Trop de tentatives de vérification', HttpStatus.TOO_MANY_REQUESTS);
@@ -169,7 +174,17 @@ export class PhoneVerificationService {
 	}
 
 	async confirmRegistrationVerification(dto: VerificationConfirmDto): Promise<{ verified: boolean }> {
-		await this.verifyCode(dto.verificationId, dto.code);
+		const verificationData = await this.verifyCode(dto.verificationId, dto.code);
+
+		// Marquer la vérification comme confirmée dans le cache
+		verificationData.verified = true;
+		const key = `verification:${dto.verificationId}`;
+		await this.cacheManager.set(
+			key,
+			JSON.stringify(verificationData),
+			Math.ceil(verificationData.expiresAt - Date.now())
+		);
+
 		return { verified: true };
 	}
 
@@ -193,6 +208,15 @@ export class PhoneVerificationService {
 		dto: VerificationConfirmDto
 	): Promise<{ verified: boolean; requires2FA: boolean }> {
 		const verificationData = await this.verifyCode(dto.verificationId, dto.code);
+
+		// Marquer la vérification comme confirmée dans le cache
+		verificationData.verified = true;
+		const key = `verification:${dto.verificationId}`;
+		await this.cacheManager.set(
+			key,
+			JSON.stringify(verificationData),
+			Math.ceil(verificationData.expiresAt - Date.now())
+		);
 
 		const user = await this.userAuthRepository.findOne({
 			where: { phoneNumber: verificationData.phoneNumber },
