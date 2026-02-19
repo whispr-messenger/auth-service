@@ -9,7 +9,8 @@ import { SignedPreKey } from '../src/modules/authentication/entities/signed-prek
 import { IdentityKey } from '../src/modules/authentication/entities/identity-key.entity';
 import { BackupCode } from '../src/modules/authentication/entities/backup-code.entity';
 import { LoginHistory } from '../src/modules/authentication/entities/login-history.entity';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { CacheService } from '../src/cache';
+import { RedisConfig } from '../src/config/redis.config';
 import { JwtAuthGuard } from '../src/modules/authentication/guards/jwt-auth.guard';
 import { RateLimitGuard } from '../src/modules/authentication/guards/rate-limit.guard';
 import { TokensService } from '../src/modules/tokens/services/tokens.service';
@@ -50,11 +51,16 @@ describe('Registration Flow (e2e)', () => {
 		update: jest.fn(),
 	};
 
-	const mockCacheManager = {
+	const mockCacheService = {
 		get: jest.fn(),
 		set: jest.fn(),
 		del: jest.fn(),
-		reset: jest.fn(),
+	};
+
+	const mockRedisConfig = {
+		health: { isHealthy: true, lastError: null },
+		getClient: jest.fn(),
+		onModuleDestroy: jest.fn(),
 	};
 
 	const mockTokensService = {
@@ -76,18 +82,18 @@ describe('Registration Flow (e2e)', () => {
 			expiresAt: Date.now() + 600000, // 10 minutes
 		};
 
-		mockCacheManager.get.mockImplementation((key: string) => {
+		mockCacheService.get.mockImplementation((key: string) => {
 			if (key.startsWith('phone_verification:') || key.startsWith('verification:')) {
-				return Promise.resolve(JSON.stringify(verificationData));
+				return Promise.resolve(verificationData);
 			}
 			if (key.startsWith('phone_verification_confirmed:')) {
-				return Promise.resolve(JSON.stringify({ ...verificationData, verified: true }));
+				return Promise.resolve({ ...verificationData, verified: true });
 			}
 			return Promise.resolve(null);
 		});
 
-		mockCacheManager.set.mockResolvedValue(undefined);
-		mockCacheManager.del.mockResolvedValue(undefined);
+		mockCacheService.set.mockResolvedValue(undefined);
+		mockCacheService.del.mockResolvedValue(undefined);
 
 		// Configuration du repository utilisateur
 		mockUserAuthRepository.save.mockImplementation((user) =>
@@ -124,8 +130,10 @@ describe('Registration Flow (e2e)', () => {
 			.useValue(mockGenericRepository)
 			.overrideProvider(getRepositoryToken(LoginHistory))
 			.useValue(mockGenericRepository)
-			.overrideProvider(CACHE_MANAGER)
-			.useValue(mockCacheManager)
+			.overrideProvider(RedisConfig)
+			.useValue(mockRedisConfig)
+			.overrideProvider(CacheService)
+			.useValue(mockCacheService)
 			.overrideProvider(TokensService)
 			.useValue(mockTokensService)
 			.overrideGuard(JwtAuthGuard)
@@ -174,16 +182,14 @@ describe('Registration Flow (e2e)', () => {
 			);
 
 			// Mock pour l'étape de confirmation
-			mockCacheManager.get.mockResolvedValueOnce(
-				JSON.stringify({
-					phoneNumber,
-					hashedCode,
-					attempts: 0,
-					purpose: 'registration',
-					verified: false,
-					expiresAt: Date.now() + 600000,
-				})
-			);
+			mockCacheService.get.mockResolvedValueOnce({
+				phoneNumber,
+				hashedCode,
+				attempts: 0,
+				purpose: 'registration',
+				verified: false,
+				expiresAt: Date.now() + 600000,
+			});
 
 			// Étape 2: Confirmation du code de vérification
 			const confirmResponse = await request(app.getHttpServer())
@@ -197,16 +203,14 @@ describe('Registration Flow (e2e)', () => {
 			expect(confirmResponse.body).toHaveProperty('verified', true);
 
 			// Mock pour l'étape d'inscription
-			mockCacheManager.get.mockResolvedValueOnce(
-				JSON.stringify({
-					phoneNumber,
-					hashedCode,
-					attempts: 0,
-					purpose: 'registration',
-					verified: true,
-					expiresAt: Date.now() + 600000,
-				})
-			);
+			mockCacheService.get.mockResolvedValueOnce({
+				phoneNumber,
+				hashedCode,
+				attempts: 0,
+				purpose: 'registration',
+				verified: true,
+				expiresAt: Date.now() + 600000,
+			});
 
 			// Étape 3: Inscription finale avec les informations utilisateur
 			const registerResponse = await request(app.getHttpServer())
@@ -316,16 +320,14 @@ describe('Registration Flow (e2e)', () => {
 		it('should handle registration without optional device information', async () => {
 			const hashedCode = '$2b$04$hNEZ6JtFsapGYT98FOxCHu1gK/saVIYrB5Y1kcTTu1in9xurqRD.G';
 			// Configuration pour le scénario sans device
-			mockCacheManager.get.mockResolvedValueOnce(
-				JSON.stringify({
-					phoneNumber: '+33612345678',
-					hashedCode: hashedCode,
-					attempts: 0,
-					purpose: 'registration',
-					verified: true,
-					expiresAt: Date.now() + 600000,
-				})
-			);
+			mockCacheService.get.mockResolvedValueOnce({
+				phoneNumber: '+33612345678',
+				hashedCode: hashedCode,
+				attempts: 0,
+				purpose: 'registration',
+				verified: true,
+				expiresAt: Date.now() + 600000,
+			});
 
 			const verificationId = '550e8400-e29b-41d4-a716-446655440000';
 
@@ -356,16 +358,14 @@ describe('Registration Flow (e2e)', () => {
 				twoFactorEnabled: false,
 			});
 
-			mockCacheManager.get.mockResolvedValueOnce(
-				JSON.stringify({
-					phoneNumber: '+33612345678',
-					hashedCode: hashedCode,
-					attempts: 0,
-					purpose: 'registration',
-					verified: true,
-					expiresAt: Date.now() + 600000,
-				})
-			);
+			mockCacheService.get.mockResolvedValueOnce({
+				phoneNumber: '+33612345678',
+				hashedCode: hashedCode,
+				attempts: 0,
+				purpose: 'registration',
+				verified: true,
+				expiresAt: Date.now() + 600000,
+			});
 
 			const response = await request(app.getHttpServer())
 				.post('/register')
@@ -422,16 +422,14 @@ describe('Registration Flow (e2e)', () => {
 
 		beforeEach(() => {
 			const hashedCode = '$2b$04$hNEZ6JtFsapGYT98FOxCHu1gK/saVIYrB5Y1kcTTu1in9xurqRD.G';
-			mockCacheManager.get.mockResolvedValue(
-				JSON.stringify({
-					phoneNumber: '+33612345678',
-					hashedCode: hashedCode,
-					attempts: 0,
-					purpose: 'registration',
-					verified: true,
-					expiresAt: Date.now() + 600000,
-				})
-			);
+			mockCacheService.get.mockResolvedValue({
+				phoneNumber: '+33612345678',
+				hashedCode: hashedCode,
+				attempts: 0,
+				purpose: 'registration',
+				verified: true,
+				expiresAt: Date.now() + 600000,
+			});
 		});
 		it('should validate firstName is a string', async () => {
 			const response = await request(app.getHttpServer())

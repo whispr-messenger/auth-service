@@ -1,15 +1,5 @@
-import { CacheOptions } from '@nestjs/cache-manager';
-import { ConfigService } from '@nestjs/config';
-import KeyvRedis from '@keyv/redis';
-
-export function cacheModuleOptionsFactory(configService: ConfigService): CacheOptions {
-	const redis_host = configService.get('REDIS_HOST', 'redis');
-	const redis_port = configService.get('REDIS_PORT', 6379);
-	const redis_url = `redis://${redis_host}:${redis_port}`;
-
-	return {
-		stores: [new KeyvRedis(redis_url)],
-		ttl: 900,
-		max: 1000,
-	};
-}
+/**
+ * @deprecated Replaced by CacheModule (src/cache/cache.module.ts) using ioredis with Sentinel support.
+ * This file is kept for reference only and is no longer imported.
+ * See: src/cache/cache.module.ts, src/cache/cache.service.ts, src/config/redis.config.ts
+ */

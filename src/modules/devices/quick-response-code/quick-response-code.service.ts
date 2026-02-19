@@ -1,14 +1,7 @@
-import {
-	BadRequestException,
-	ForbiddenException,
-	Inject,
-	Injectable,
-	NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { QRChallengeData } from './quick-response-challenge-data.interface';
 import { JwtService } from '@nestjs/jwt';
-import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Repository } from 'typeorm';
 import { Device } from '../device.entity';
 import { ScanLoginDto } from '../scan-login.dto';
@@ -18,13 +11,14 @@ import { DevicesService } from '../devices.service';
 import { TokensService } from 'src/modules/tokens/services/tokens.service';
 import { UserAuth } from 'src/modules/two-factor-authentication/user-auth.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { CacheService } from '../../../cache/cache.service';
 
 @Injectable()
 export class QuickResponseCodeService {
 	private readonly QR_CHALLENGE_TTL = 5 * 60;
 
 	constructor(
-		@Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+		private readonly cacheService: CacheService,
 		private readonly jwtService: JwtService,
 		private readonly deviceService: DevicesService,
 		private readonly tokenService: TokensService,
@@ -65,11 +59,7 @@ export class QuickResponseCodeService {
 			{ algorithm: 'ES256' }
 		);
 
-		await this.cacheManager.set(
-			`qr_challenge:${challengeId}`,
-			JSON.stringify(challengeData),
-			this.QR_CHALLENGE_TTL * 1000
-		);
+		await this.cacheService.set(`qr_challenge:${challengeId}`, challengeData, this.QR_CHALLENGE_TTL);
 
 		return challenge;
 	}
@@ -113,21 +103,21 @@ export class QuickResponseCodeService {
 				throw new ForbiddenException('Appareil non autorisé pour ce challenge');
 			}
 
-			const challengeData = await this.cacheManager.get<string>(`qr_challenge:${decoded.challengeId}`);
+			const challengeData = await this.cacheService.get<QRChallengeData>(
+				`qr_challenge:${decoded.challengeId}`
+			);
 			if (!challengeData) {
 				throw new BadRequestException('Challenge QR expiré ou invalide');
 			}
 
-			const data: QRChallengeData = JSON.parse(challengeData);
-
-			if (data.expiresAt < Date.now()) {
-				await this.cacheManager.del(`qr_challenge:${decoded.challengeId}`);
+			if (challengeData.expiresAt < Date.now()) {
+				await this.cacheService.del(`qr_challenge:${decoded.challengeId}`);
 				throw new BadRequestException('Challenge QR expiré');
 			}
 
-			await this.cacheManager.del(`qr_challenge:${decoded.challengeId}`);
+			await this.cacheService.del(`qr_challenge:${decoded.challengeId}`);
 
-			return data;
+			return challengeData;
 		} catch (error) {
 			if (error instanceof BadRequestException || error instanceof ForbiddenException) {
 				throw error;
