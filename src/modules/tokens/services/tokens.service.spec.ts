@@ -1,17 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
 import { UnauthorizedException } from '@nestjs/common';
 
 import { TokensService } from './tokens.service';
+import { CacheService } from '../../../cache';
 import { DeviceFingerprint } from '../../devices/device-fingerprint.interface';
 
 describe('TokensService', () => {
 	let service: TokensService;
 	let jwtService: jest.Mocked<JwtService>;
-	let cacheManager: jest.Mocked<Cache>;
+	let cacheService: jest.Mocked<CacheService>;
 	let configService: jest.Mocked<ConfigService>;
 
 	const mockFingerprint: DeviceFingerprint = {
@@ -40,7 +39,7 @@ describe('TokensService', () => {
 					},
 				},
 				{
-					provide: CACHE_MANAGER,
+					provide: CacheService,
 					useValue: {
 						get: jest.fn(),
 						set: jest.fn(),
@@ -52,7 +51,7 @@ describe('TokensService', () => {
 
 		service = module.get<TokensService>(TokensService);
 		jwtService = module.get(JwtService);
-		cacheManager = module.get(CACHE_MANAGER);
+		cacheService = module.get(CacheService);
 		configService = module.get(ConfigService);
 	});
 
@@ -68,12 +67,12 @@ describe('TokensService', () => {
 			const refreshToken = 'refresh-token';
 
 			jwtService.sign.mockReturnValueOnce(accessToken).mockReturnValueOnce(refreshToken);
-			cacheManager.set.mockResolvedValue(undefined);
+			cacheService.set.mockResolvedValue(undefined);
 
 			const result = await service.generateTokenPair(userId, deviceId, mockFingerprint);
 
 			expect(jwtService.sign).toHaveBeenCalledTimes(2);
-			expect(cacheManager.set).toHaveBeenCalled();
+			expect(cacheService.set).toHaveBeenCalled();
 			expect(result).toEqual({
 				accessToken,
 				refreshToken,
@@ -108,10 +107,10 @@ describe('TokensService', () => {
 			};
 
 			jwtService.verify.mockReturnValue(decodedToken);
-			cacheManager.get.mockResolvedValue(JSON.stringify(cachedData));
+			cacheService.get.mockResolvedValue(cachedData);
 			jwtService.sign.mockReturnValueOnce(newAccessToken).mockReturnValueOnce(newRefreshToken);
-			cacheManager.del.mockResolvedValue(true);
-			cacheManager.set.mockResolvedValue(undefined);
+			cacheService.del.mockResolvedValue(undefined);
+			cacheService.set.mockResolvedValue(undefined);
 			configService.get.mockReturnValue('test-secret');
 
 			const result = await service.refreshAccessToken(refreshToken, mockFingerprint);
@@ -119,7 +118,7 @@ describe('TokensService', () => {
 			expect(jwtService.verify).toHaveBeenCalledWith(refreshToken, {
 				algorithms: ['ES256'],
 			});
-			expect(cacheManager.get).toHaveBeenCalledWith(`refresh_token:${tokenId}`);
+			expect(cacheService.get).toHaveBeenCalledWith(`refresh_token:${tokenId}`);
 			expect(result).toEqual({
 				accessToken: newAccessToken,
 				refreshToken: newRefreshToken,
@@ -150,7 +149,7 @@ describe('TokensService', () => {
 			};
 
 			jwtService.verify.mockReturnValue(decodedToken);
-			cacheManager.get.mockResolvedValue(null);
+			cacheService.get.mockResolvedValue(null);
 
 			await expect(service.refreshAccessToken(refreshToken, mockFingerprint)).rejects.toThrow(
 				UnauthorizedException
@@ -169,14 +168,14 @@ describe('TokensService', () => {
 			};
 
 			jwtService.decode.mockReturnValue(decodedToken);
-			cacheManager.set.mockResolvedValue(undefined);
+			cacheService.set.mockResolvedValue(undefined);
 
 			await service.revokeToken(refreshToken);
 
 			expect(jwtService.decode).toHaveBeenCalledWith(refreshToken);
-			expect(cacheManager.set).toHaveBeenCalledWith(
+			expect(cacheService.set).toHaveBeenCalledWith(
 				`revoked:${tokenId}`,
-				expect.any(String),
+				expect.any(Object),
 				expect.any(Number)
 			);
 		});
