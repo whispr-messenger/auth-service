@@ -37,9 +37,9 @@ describe('AuthController (e2e)', () => {
 	};
 
 	const mockCacheService = {
-		get: jest.fn(),
-		set: jest.fn(),
-		del: jest.fn(),
+		get: jest.fn().mockResolvedValue('ok'),
+		set: jest.fn().mockResolvedValue(undefined),
+		del: jest.fn().mockResolvedValue(undefined),
 	};
 
 	const mockRedisConfig = {
