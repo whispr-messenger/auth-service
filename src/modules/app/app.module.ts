@@ -1,7 +1,6 @@
 import { Module, Provider } from '@nestjs/common';
 import { ConfigModule, ConfigModuleOptions, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleAsyncOptions } from '@nestjs/typeorm';
-import { CacheModule, CacheModuleAsyncOptions } from '@nestjs/cache-manager';
 import { ThrottlerModule, ThrottlerGuard, ThrottlerModuleOptions, ThrottlerOptions } from '@nestjs/throttler';
 import { HealthModule } from '../health/health.module';
 import { AuthModule } from '../authentication/auth.module';
@@ -10,7 +9,7 @@ import { TokensModule } from '../tokens/tokens.module';
 import { TwoFactorAuthenticationModule } from '../two-factor-authentication/two-factor-authentication.module';
 import { PhoneVerificationModule } from '../phone-verification/phone-verification.module';
 import { typeOrmModuleOptionsFactory } from './typeorm';
-import { cacheModuleOptionsFactory } from './cache';
+import { CacheModule } from '../../cache/cache.module';
 import { APP_GUARD } from '@nestjs/core';
 
 // Environment variables
@@ -24,14 +23,6 @@ const typeOrmModuleAsyncOptions: TypeOrmModuleAsyncOptions = {
 	imports: [ConfigModule],
 	useFactory: typeOrmModuleOptionsFactory,
 	inject: [ConfigService],
-};
-
-// Caching (Redis)
-const cacheModuleAsyncOptions: CacheModuleAsyncOptions = {
-	imports: [ConfigModule],
-	useFactory: cacheModuleOptionsFactory,
-	inject: [ConfigService],
-	isGlobal: true,
 };
 
 // Rate limiting
@@ -66,7 +57,7 @@ const throttlerGuardProvider: Provider = {
 	imports: [
 		ConfigModule.forRoot(configModuleOptions),
 		TypeOrmModule.forRootAsync(typeOrmModuleAsyncOptions),
-		CacheModule.registerAsync(cacheModuleAsyncOptions),
+		CacheModule,
 		ThrottlerModule.forRoot(throttlerModuleOptions),
 		HealthModule,
 		AuthModule,

@@ -1,12 +1,11 @@
-import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'node:crypto';
 import { DeviceFingerprint } from '../../devices/device-fingerprint.interface';
 import { TokenPair } from '../types/token-pair.interface';
 import { JwtPayload } from '../types/jwt-payload.interface';
+import { CacheService } from '../../../cache/cache.service';
 
 @Injectable()
 export class TokensService {
@@ -15,7 +14,7 @@ export class TokensService {
 
 	constructor(
 		private readonly jwtService: JwtService,
-		@Inject(CACHE_MANAGER) private readonly cacheManager: Cache
+		private readonly cacheService: CacheService
 	) {}
 
 	async generateTokenPair(
@@ -54,14 +53,10 @@ export class TokensService {
 			expiresIn: this.REFRESH_TOKEN_TTL,
 		});
 
-		await this.cacheManager.set(
+		await this.cacheService.set(
 			`refresh_token:${refreshTokenId}`,
-			JSON.stringify({
-				userId,
-				deviceId,
-				fingerprint: deviceFingerprint,
-			}),
-			this.REFRESH_TOKEN_TTL * 1000
+			{ userId, deviceId, fingerprint: deviceFingerprint },
+			this.REFRESH_TOKEN_TTL
 		);
 
 		return { accessToken, refreshToken };
@@ -77,12 +72,15 @@ export class TokensService {
 				throw new UnauthorizedException('Token de rafraîchissement invalide');
 			}
 
-			const tokenData = await this.cacheManager.get<string>(`refresh_token:${decoded.tokenId}`);
-			if (!tokenData) {
+			const storedData = await this.cacheService.get<{
+				userId: string;
+				deviceId: string;
+				fingerprint: string;
+			}>(`refresh_token:${decoded.tokenId}`);
+			if (!storedData) {
 				throw new UnauthorizedException('Token de rafraîchissement expiré ou révoqué');
 			}
 
-			const storedData = JSON.parse(tokenData);
 			const currentFingerprint = this.generateDeviceFingerprint(fingerprint);
 
 			if (storedData.fingerprint !== currentFingerprint) {
@@ -102,10 +100,10 @@ export class TokensService {
 		try {
 			const decoded = this.jwtService.decode(token) as any;
 			if (decoded && decoded.tokenId) {
-				await this.cacheManager.set(
+				await this.cacheService.set(
 					`revoked:${decoded.tokenId}`,
-					JSON.stringify({ revokedAt: Date.now() }),
-					(decoded.exp - Math.floor(Date.now() / 1000)) * 1000
+					{ revokedAt: Date.now() },
+					decoded.exp - Math.floor(Date.now() / 1000)
 				);
 			}
 		} catch {
@@ -114,18 +112,15 @@ export class TokensService {
 	}
 
 	async revokeRefreshToken(tokenId: string): Promise<void> {
-		await this.cacheManager.del(`refresh_token:${tokenId}`);
+		await this.cacheService.del(`refresh_token:${tokenId}`);
 	}
 
 	async revokeAllTokensForDevice(deviceId: string): Promise<void> {
-		// Note: Cache manager doesn't support pattern matching like Redis
-		// This would need to be implemented differently or use a different approach
-		// For now, we'll mark the device as revoked
-		await this.cacheManager.set(`revoked_device:${deviceId}`, 'true', this.REFRESH_TOKEN_TTL * 1000);
+		await this.cacheService.set(`revoked_device:${deviceId}`, 'true', this.REFRESH_TOKEN_TTL);
 	}
 
 	async isTokenRevoked(tokenId: string): Promise<boolean> {
-		const revoked = await this.cacheManager.get(`revoked:${tokenId}`);
+		const revoked = await this.cacheService.get<string>(`revoked:${tokenId}`);
 		return !!revoked;
 	}
 

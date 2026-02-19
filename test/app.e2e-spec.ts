@@ -12,7 +12,8 @@ import { SignedPreKey } from '../src/modules/authentication/entities/signed-prek
 import { IdentityKey } from '../src/modules/authentication/entities/identity-key.entity';
 import { BackupCode } from '../src/modules/authentication/entities/backup-code.entity';
 import { LoginHistory } from '../src/modules/authentication/entities/login-history.entity';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { CacheService } from '../src/cache';
+import { RedisConfig } from '../src/config/redis.config';
 import { AuthService } from '../src/modules/authentication/services/auth.service';
 import { TokensService } from '../src/modules/tokens/services/tokens.service';
 import { JwtService } from '@nestjs/jwt';
@@ -35,11 +36,16 @@ describe('AuthController (e2e)', () => {
 		update: jest.fn(),
 	};
 
-	const mockCacheManager = {
+	const mockCacheService = {
 		get: jest.fn(),
 		set: jest.fn(),
 		del: jest.fn(),
-		reset: jest.fn(),
+	};
+
+	const mockRedisConfig = {
+		health: { isHealthy: true, lastError: null },
+		getClient: jest.fn(),
+		onModuleDestroy: jest.fn(),
 	};
 
 	const mockAuthService = {
@@ -96,8 +102,10 @@ describe('AuthController (e2e)', () => {
 				.useValue(mockRepository)
 				.overrideProvider(getRepositoryToken(LoginHistory))
 				.useValue(mockRepository)
-				.overrideProvider(CACHE_MANAGER)
-				.useValue(mockCacheManager)
+				.overrideProvider(RedisConfig)
+				.useValue(mockRedisConfig)
+				.overrideProvider(CacheService)
+				.useValue(mockCacheService)
 				.overrideProvider(AuthService)
 				.useValue(mockAuthService)
 				.overrideProvider(PhoneVerificationService)

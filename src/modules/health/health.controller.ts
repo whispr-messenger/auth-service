@@ -1,15 +1,16 @@
-import { Controller, Get, Inject, Logger } from '@nestjs/common';
+import { Controller, Get, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DataSource } from 'typeorm';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
+import { CacheService } from '../../cache/cache.service';
+import { RedisConfig } from '../../config/redis.config';
 
 @ApiTags('Health')
 @Controller('health')
 export class HealthController {
 	constructor(
 		private readonly dataSource: DataSource,
-		@Inject(CACHE_MANAGER) private readonly cacheManager: Cache
+		private readonly cacheService: CacheService,
+		private readonly redisConfig: RedisConfig
 	) {}
 
 	private logger = new Logger(HealthController.name);
@@ -20,7 +21,7 @@ export class HealthController {
 		description: 'Returns the health status of the service and its dependencies (database and cache)',
 	})
 	@ApiResponse({ status: 200, description: 'Health check completed successfully' })
-	@ApiResponse({ status: 500, description: 'One or more services are unhealthy' })
+	@ApiResponse({ status: 503, description: 'One or more services are unhealthy' })
 	async check() {
 		this.logger.debug('Health check started');
 
@@ -43,22 +44,27 @@ export class HealthController {
 			health.services.database = 'healthy';
 			this.logger.debug('Database check passed');
 		} catch (error) {
-			this.logger.error('Database check failed:', error.message);
+			if (process.env.NODE_ENV !== 'test') {
+				this.logger.error('Database check failed:', error.message);
+			}
 			health.services.database = 'unhealthy';
 			health.status = 'error';
 		}
 
 		// Check cache connection
 		try {
-			this.logger.debug('Checking cache connection');
-			await this.cacheManager.set('health-check', 'ok', 1000);
-			await this.cacheManager.get('health-check');
+			await this.checkCacheHealth();
 			health.services.cache = 'healthy';
-			this.logger.debug('Cache check passed');
 		} catch (error) {
-			this.logger.error('Cache check failed:', error.message);
+			if (process.env.NODE_ENV !== 'test') {
+				this.logger.error('Cache check failed:', error.message);
+			}
 			health.services.cache = 'unhealthy';
 			health.status = 'error';
+		}
+
+		if (health.status !== 'ok') {
+			throw new ServiceUnavailableException(health);
 		}
 
 		this.logger.debug('Health check completed:', health);
@@ -75,10 +81,32 @@ export class HealthController {
 	async readiness() {
 		try {
 			await this.dataSource.query('SELECT 1');
-			await this.cacheManager.set('readiness-check', 'ok', 1000);
+			await this.checkCacheHealth();
 			return { status: 'ready' };
 		} catch (error) {
-			return { status: 'not ready', error: error.message };
+			this.logger.error('Readiness check failed:', error.message);
+			throw new ServiceUnavailableException({
+				status: 'not ready',
+				error: error.message,
+			});
+		}
+	}
+
+	private async checkCacheHealth() {
+		this.logger.debug('Checking cache connection');
+
+		// Check internal health tracker
+		const health = this.redisConfig.health;
+		if (!health.isHealthy) {
+			throw health.lastError || new Error('Redis connection is unhealthy');
+		}
+
+		// Verify functional cache operations
+		await this.cacheService.set('health-check', 'ok', 10);
+		const result = await this.cacheService.get<string>('health-check');
+
+		if (result !== 'ok') {
+			throw new Error('Cache operation failed: unexpected result');
 		}
 	}
 
