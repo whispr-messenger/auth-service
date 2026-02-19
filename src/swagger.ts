@@ -8,8 +8,8 @@ function buildSwaggerDocument(port: number) {
 		.setTitle('Authentication Service')
 		.setDescription('API documentation for the Authentication Service')
 		.setVersion('1.0')
+		.addServer('https://whispr.epitech.beer', 'Production')
 		.addServer(`http://localhost:${port}`, 'Development')
-		.addServer('https://whispr.epitech-msc2026.me', 'Production')
 		.build();
 }
 
