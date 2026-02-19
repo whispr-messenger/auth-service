@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule, JwtModuleAsyncOptions } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { CacheModule } from '@nestjs/cache-manager';
 import { ThrottlerModule, ThrottlerModuleOptions } from '@nestjs/throttler';
 import { UserAuth } from '../two-factor-authentication/user-auth.entity';
 import { Device } from '../devices/device.entity';
@@ -24,11 +23,6 @@ const jwtModuleAsyncOptions: JwtModuleAsyncOptions = {
 	imports: [ConfigModule],
 	useFactory: jwtModuleOptionsFactory,
 	inject: [ConfigService],
-};
-
-const cacheConfig: { ttl: number; max: number } = {
-	ttl: 900,
-	max: 1000,
 };
 
 const throttlerModuleOptions: ThrottlerModuleOptions = [
@@ -55,7 +49,6 @@ const throttlerModuleOptions: ThrottlerModuleOptions = [
 			SignedPreKey,
 		]),
 		JwtModule.registerAsync(jwtModuleAsyncOptions),
-		CacheModule.register(cacheConfig),
 		ThrottlerModule.forRoot(throttlerModuleOptions),
 		TokensModule,
 		DevicesModule,

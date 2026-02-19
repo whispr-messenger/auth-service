@@ -3,17 +3,15 @@ import {
 	ConflictException,
 	HttpException,
 	HttpStatus,
-	Inject,
 	Injectable,
 	Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { VerificationRequestDto, VerificationConfirmDto } from '../../../authentication/dto';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { parsePhoneNumberWithError } from 'libphonenumber-js';
-import { Cache } from 'cache-manager';
 import * as bcrypt from 'bcrypt';
+import { CacheService } from '../../../../cache';
 import { v4 as uuidv4 } from 'uuid';
 import { FindOneOptions, Repository } from 'typeorm';
 import { UserAuth } from '../../../two-factor-authentication/user-auth.entity';
@@ -35,7 +33,7 @@ export class PhoneVerificationService {
 	constructor(
 		@InjectRepository(UserAuth)
 		private readonly userAuthRepository: Repository<UserAuth>,
-		@Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+		private readonly cacheService: CacheService,
 		private readonly smsService: SmsService,
 		private readonly configService: ConfigService
 	) {}
@@ -60,10 +58,10 @@ export class PhoneVerificationService {
 			expiresAt: Date.now() + this.VERIFICATION_TTL * 1000,
 		};
 
-		await this.cacheManager.set(
+		await this.cacheService.set(
 			`verification:${verificationId}`,
-			JSON.stringify(verificationData),
-			this.VERIFICATION_TTL * 1000
+			verificationData,
+			this.VERIFICATION_TTL
 		);
 
 		await this.incrementRateLimit(normalizedPhone);
@@ -87,13 +85,11 @@ export class PhoneVerificationService {
 
 	async verifyCode(verificationId: string, code: string): Promise<VerificationCode> {
 		const key = `verification:${verificationId}`;
-		const data = await this.cacheManager.get<string>(key);
+		const verificationData = await this.cacheService.get<VerificationCode>(key);
 
-		if (!data) {
+		if (!verificationData) {
 			throw new BadRequestException('Code de vérification invalide ou expiré');
 		}
-
-		const verificationData: VerificationCode = JSON.parse(data);
 
 		// Si déjà vérifié et aucun code fourni, retourner les données
 		if (verificationData.verified && code === '') {
@@ -101,7 +97,7 @@ export class PhoneVerificationService {
 		}
 
 		if (verificationData.attempts >= this.MAX_ATTEMPTS) {
-			await this.cacheManager.del(key);
+			await this.cacheService.del(key);
 			throw new HttpException('Trop de tentatives de vérification', HttpStatus.TOO_MANY_REQUESTS);
 		}
 
@@ -109,10 +105,10 @@ export class PhoneVerificationService {
 
 		if (!isValid) {
 			verificationData.attempts++;
-			await this.cacheManager.set(
+			await this.cacheService.set(
 				key,
-				JSON.stringify(verificationData),
-				Math.ceil(verificationData.expiresAt - Date.now())
+				verificationData,
+				Math.ceil((verificationData.expiresAt - Date.now()) / 1000)
 			);
 			throw new BadRequestException('Code de vérification incorrect');
 		}
@@ -121,7 +117,7 @@ export class PhoneVerificationService {
 	}
 
 	async consumeVerification(verificationId: string): Promise<void> {
-		await this.cacheManager.del(`verification:${verificationId}`);
+		await this.cacheService.del(`verification:${verificationId}`);
 	}
 
 	private generateCode(): string {
@@ -142,9 +138,9 @@ export class PhoneVerificationService {
 
 	private async checkRateLimit(phoneNumber: string): Promise<void> {
 		const key = `rate_limit:${phoneNumber}`;
-		const count = await this.cacheManager.get<string>(key);
+		const count = await this.cacheService.get<number>(key);
 
-		if (count && parseInt(count) >= this.MAX_REQUESTS_PER_HOUR) {
+		if (count && count >= this.MAX_REQUESTS_PER_HOUR) {
 			throw new HttpException(
 				'Trop de demandes de codes de vérification',
 				HttpStatus.TOO_MANY_REQUESTS
@@ -154,10 +150,10 @@ export class PhoneVerificationService {
 
 	private async incrementRateLimit(phoneNumber: string): Promise<void> {
 		const key = `rate_limit:${phoneNumber}`;
-		let current = (await this.cacheManager.get<number>(key)) || 0;
+		let current = (await this.cacheService.get<number>(key)) || 0;
 		current++;
 
-		await this.cacheManager.set(key, current, this.RATE_LIMIT_TTL * 1000);
+		await this.cacheService.set(key, current, this.RATE_LIMIT_TTL);
 	}
 
 	async requestRegistrationVerification(dto: VerificationRequestDto): Promise<VerificationRequestResponse> {
@@ -179,10 +175,10 @@ export class PhoneVerificationService {
 		// Marquer la vérification comme confirmée dans le cache
 		verificationData.verified = true;
 		const key = `verification:${dto.verificationId}`;
-		await this.cacheManager.set(
+		await this.cacheService.set(
 			key,
-			JSON.stringify(verificationData),
-			Math.ceil(verificationData.expiresAt - Date.now())
+			verificationData,
+			Math.ceil((verificationData.expiresAt - Date.now()) / 1000)
 		);
 
 		return { verified: true };
@@ -212,10 +208,10 @@ export class PhoneVerificationService {
 		// Marquer la vérification comme confirmée dans le cache
 		verificationData.verified = true;
 		const key = `verification:${dto.verificationId}`;
-		await this.cacheManager.set(
+		await this.cacheService.set(
 			key,
-			JSON.stringify(verificationData),
-			Math.ceil(verificationData.expiresAt - Date.now())
+			verificationData,
+			Math.ceil((verificationData.expiresAt - Date.now()) / 1000)
 		);
 
 		const user = await this.userAuthRepository.findOne({
