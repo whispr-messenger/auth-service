@@ -19,17 +19,36 @@ process.env.REDIS_PORT = '6379';
 process.env.SMS_PROVIDER = 'mock';
 process.env.BCRYPT_ROUNDS = '4';
 
-// Mock @keyv/redis (replaced cache-manager-redis-store)
-// The app constructs a new KeyvRedis(...) and uses it as a store.
-// Provide a mock constructor that returns an object with cache-like methods.
-jest.mock('@keyv/redis', () => {
-	const mockCtor = jest.fn().mockImplementation(() => ({
-		get: jest.fn(),
-		set: jest.fn(),
-		delete: jest.fn(),
-		clear: jest.fn(),
-	}));
-	// Ensure ES module default import works: export { default: mockCtor }
+// Mock @keyv/redis (still used by src/modules/app/cache.ts for CACHE_MANAGER store)
+// Using { virtual: true } because @keyv/redis is not installed as a dependency.
+jest.mock(
+	'@keyv/redis',
+	() => {
+		const mockCtor = jest.fn().mockImplementation(() => ({
+			get: jest.fn().mockResolvedValue(undefined),
+			set: jest.fn().mockResolvedValue(undefined),
+			delete: jest.fn().mockResolvedValue(undefined),
+			clear: jest.fn().mockResolvedValue(undefined),
+		}));
+		return { __esModule: true, default: mockCtor };
+	},
+	{ virtual: true }
+);
+
+// Mock ioredis to avoid real Redis connections during e2e tests.
+jest.mock('ioredis', () => {
+	const mockRedisInstance = {
+		get: jest.fn().mockResolvedValue(null),
+		set: jest.fn().mockResolvedValue('OK'),
+		setex: jest.fn().mockResolvedValue('OK'),
+		del: jest.fn().mockResolvedValue(1),
+		keys: jest.fn().mockResolvedValue([]),
+		ping: jest.fn().mockResolvedValue('PONG'),
+		quit: jest.fn().mockResolvedValue('OK'),
+		on: jest.fn(),
+		status: 'ready',
+	};
+	const mockCtor = jest.fn().mockImplementation(() => mockRedisInstance);
 	return { __esModule: true, default: mockCtor };
 });
 
@@ -54,5 +73,6 @@ jest.mock('typeorm', () => ({
 		initialize: jest.fn().mockResolvedValue(undefined),
 		destroy: jest.fn().mockResolvedValue(undefined),
 		isInitialized: true,
+		query: jest.fn().mockResolvedValue([{ '?column?': 1 }]),
 	})),
 }));
