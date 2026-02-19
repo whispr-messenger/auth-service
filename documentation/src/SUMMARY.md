@@ -41,3 +41,7 @@
 # Testing & Quality
 
 - [Test Report](./TEST_REPORT.md)
+
+# Bug Reports
+
+- [No Redis Sentinel Support and Silent Health Check](./7_bug_reports/2026-02-19-auth-service-no-sentinel-support-and-silent-health.md)
