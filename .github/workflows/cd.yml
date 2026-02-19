@@ -117,12 +117,12 @@ jobs:
           echo "Updating deployment image to: ${FULL_IMAGE}"
 
           # Update the deployment manifest in the infrastructure repository
-          yq -i ".spec.template.spec.containers[0].image = \"${FULL_IMAGE}\"" argocd/k8s/whispr/auth-service/deployment.yaml
+          yq -i ".spec.template.spec.containers[0].image = \"${FULL_IMAGE}\"" k8s/whispr/auth-service/deployment.yaml
 
       - name: Verify update
         run: |
           echo "Updated deployment manifest:"
-          yq '.spec.template.spec.containers[0].image' argocd/k8s/whispr/auth-service/deployment.yaml
+          yq '.spec.template.spec.containers[0].image' k8s/whispr/auth-service/deployment.yaml
 
       - name: Commit and push changes
         run: |
@@ -130,7 +130,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           
           # Check if there are changes to commit
-          if git diff --quiet argocd/k8s/whispr/auth-service/deployment.yaml; then
+          if git diff --quiet k8s/whispr/auth-service/deployment.yaml; then
             echo "No changes to commit"
             exit 0
           fi
@@ -145,7 +145,7 @@ jobs:
             COMMIT_MSG="🔧 chore(deploy/auth-service): update image to ${COMMIT_SHA:0:7}"
           fi
 
-          git add argocd/k8s/whispr/auth-service/deployment.yaml
+          git add k8s/whispr/auth-service/deployment.yaml
           git commit -m "${COMMIT_MSG}"
 
           git push https://x-access-token:${{ steps.generate_token.outputs.token }}@github.com/whispr-messenger/infrastructure.git main
