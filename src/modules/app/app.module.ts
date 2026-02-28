@@ -9,7 +9,7 @@ import { TokensModule } from '../tokens/tokens.module';
 import { TwoFactorAuthenticationModule } from '../two-factor-authentication/two-factor-authentication.module';
 import { PhoneVerificationModule } from '../phone-verification/phone-verification.module';
 import { typeOrmModuleOptionsFactory } from './typeorm';
-import { CacheModule } from '../../cache/cache.module';
+import { CacheModule } from '../cache/cache.module';
 import { APP_GUARD } from '@nestjs/core';
 
 // Environment variables

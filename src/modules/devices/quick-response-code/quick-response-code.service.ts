@@ -11,7 +11,7 @@ import { DevicesService } from '../devices.service';
 import { TokensService } from 'src/modules/tokens/services/tokens.service';
 import { UserAuth } from 'src/modules/two-factor-authentication/user-auth.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CacheService } from '../../../cache/cache.service';
+import { CacheService } from '../../cache/cache.service';
 
 @Injectable()
 export class QuickResponseCodeService {
