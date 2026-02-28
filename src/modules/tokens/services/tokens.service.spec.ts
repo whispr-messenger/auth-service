@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException } from '@nestjs/common';
 
 import { TokensService } from './tokens.service';
-import { CacheService } from '../../../cache';
+import { CacheService } from '../../cache';
 import { DeviceFingerprint } from '../../devices/device-fingerprint.interface';
 
 describe('TokensService', () => {

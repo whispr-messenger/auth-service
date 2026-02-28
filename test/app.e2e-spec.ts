@@ -12,7 +12,7 @@ import { SignedPreKey } from '../src/modules/authentication/entities/signed-prek
 import { IdentityKey } from '../src/modules/authentication/entities/identity-key.entity';
 import { BackupCode } from '../src/modules/authentication/entities/backup-code.entity';
 import { LoginHistory } from '../src/modules/authentication/entities/login-history.entity';
-import { CacheService } from '../src/cache';
+import { CacheService } from '../src/modules/cache';
 import { RedisConfig } from '../src/config/redis.config';
 import { AuthService } from '../src/modules/authentication/services/auth.service';
 import { TokensService } from '../src/modules/tokens/services/tokens.service';
