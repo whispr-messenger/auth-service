@@ -5,7 +5,7 @@ import * as crypto from 'node:crypto';
 import { DeviceFingerprint } from '../../devices/device-fingerprint.interface';
 import { TokenPair } from '../types/token-pair.interface';
 import { JwtPayload } from '../types/jwt-payload.interface';
-import { CacheService } from '../../../cache/cache.service';
+import { CacheService } from '../../cache/cache.service';
 
 @Injectable()
 export class TokensService {
