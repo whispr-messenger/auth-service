@@ -11,7 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { VerificationRequestDto, VerificationConfirmDto } from '../../../authentication/dto';
 import { parsePhoneNumberWithError } from 'libphonenumber-js';
 import * as bcrypt from 'bcrypt';
-import { CacheService } from '../../../../cache';
+import { CacheService } from '../../../cache';
 import { v4 as uuidv4 } from 'uuid';
 import { FindOneOptions, Repository } from 'typeorm';
 import { UserAuth } from '../../../two-factor-authentication/user-auth.entity';

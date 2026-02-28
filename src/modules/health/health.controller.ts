@@ -1,7 +1,7 @@
 import { Controller, Get, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DataSource } from 'typeorm';
-import { CacheService } from '../../cache/cache.service';
+import { CacheService } from '../cache/cache.service';
 import { RedisConfig } from '../../config/redis.config';
 
 @ApiTags('Health')
