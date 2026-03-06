@@ -5,7 +5,7 @@ import { Device } from '../devices/entities/device.entity';
 import { PreKey } from '../signal/entities/prekey.entity';
 import { SignedPreKey } from '../signal/entities/signed-prekey.entity';
 import { IdentityKey } from '../signal/entities/identity-key.entity';
-import { BackupCode } from '../authentication/entities/backup-code.entity';
+import { BackupCode } from '../two-factor-authentication/entities/backup-code.entity';
 import { LoginHistory } from '../authentication/entities/login-history.entity';
 import { DataSourceOptions } from 'typeorm';
 

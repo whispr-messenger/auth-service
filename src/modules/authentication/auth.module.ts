@@ -5,7 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerModuleOptions } from '@nestjs/throttler';
 import { UserAuth } from '../common/entities/user-auth.entity';
 import { Device } from '../devices/entities/device.entity';
-import { BackupCode } from './entities/backup-code.entity';
+import { BackupCode } from '../two-factor-authentication/entities/backup-code.entity';
 import { LoginHistory } from './entities/login-history.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './services/auth.service';
