@@ -9,7 +9,7 @@ import { DeviceFingerprint } from '../device-fingerprint.interface';
 import { TokenPair } from 'src/modules/tokens/types/token-pair.interface';
 import { DevicesService } from '../devices.service';
 import { TokensService } from 'src/modules/tokens/services/tokens.service';
-import { UserAuth } from 'src/modules/two-factor-authentication/user-auth.entity';
+import { UserAuth } from 'src/modules/common/entities/user-auth.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CacheService } from '../../cache/cache.service';
 

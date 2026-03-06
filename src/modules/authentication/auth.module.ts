@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule, JwtModuleAsyncOptions } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerModuleOptions } from '@nestjs/throttler';
-import { UserAuth } from '../two-factor-authentication/user-auth.entity';
+import { UserAuth } from '../common/entities/user-auth.entity';
 import { Device } from '../devices/device.entity';
 import { BackupCode } from './entities/backup-code.entity';
 import { IdentityKey } from './entities/identity-key.entity';

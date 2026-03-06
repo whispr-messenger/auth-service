@@ -7,7 +7,7 @@ import {
 	JoinColumn,
 	Index,
 } from 'typeorm';
-import { UserAuth } from '../../two-factor-authentication/user-auth.entity';
+import { UserAuth } from '../../common/entities/user-auth.entity';
 import { Device } from '../../devices/device.entity';
 
 @Entity('login_history')

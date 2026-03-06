@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PhoneVerificationService } from './services/phone-verification/phone-verification.service';
 import { SmsService } from './services/sms/sms.service';
 import { PhoneVerificationController } from './controllers/phone-verification.controller';
-import { UserAuth } from '../two-factor-authentication/user-auth.entity';
+import { UserAuth } from '../common/entities/user-auth.entity';
 
 @Module({
 	providers: [PhoneVerificationService, SmsService],

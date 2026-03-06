@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { TwoFactorAuthenticationController } from './two-factor-authentication.controller';
 import { TwoFactorAuthenticationService } from './two-factor-authentication.service';
 import { BackupCodesService } from './backup-codes/backup-codes.service';
-import { UserAuth } from './user-auth.entity';
+import { UserAuth } from '../common/entities/user-auth.entity';
 import { BackupCode } from '../authentication/entities/backup-code.entity';
 import { TokensModule } from '../tokens/tokens.module';
 import { JwtAuthGuard } from '../authentication/guards/jwt-auth.guard';

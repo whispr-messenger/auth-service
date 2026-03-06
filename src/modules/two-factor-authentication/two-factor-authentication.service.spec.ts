@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { TwoFactorAuthenticationService } from './two-factor-authentication.service';
 import { BackupCodesService } from './backup-codes/backup-codes.service';
-import { UserAuth } from './user-auth.entity';
+import { UserAuth } from '../common/entities/user-auth.entity';
 
 describe('TwoFactorAuthenticationService', () => {
 	let service: TwoFactorAuthenticationService;

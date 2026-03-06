@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Device } from '../../devices/device.entity';
-import { UserAuth } from '../../two-factor-authentication/user-auth.entity';
+import { UserAuth } from '../../common/entities/user-auth.entity';
 import { SmsService } from 'src/modules/phone-verification/services/sms/sms.service';
 
 interface NotificationData {

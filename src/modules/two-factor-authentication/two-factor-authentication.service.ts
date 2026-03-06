@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import * as speakeasy from 'speakeasy';
 import * as QRCode from 'qrcode';
 import { BackupCodesService } from './backup-codes/backup-codes.service';
-import { UserAuth } from './user-auth.entity';
+import { UserAuth } from '../common/entities/user-auth.entity';
 
 interface TwoFactorSetup {
 	secret: string;

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserAuth } from '../modules/two-factor-authentication/user-auth.entity';
+import { UserAuth } from '../modules/common/entities/user-auth.entity';
 import { AuthService } from '../modules/authentication/services/auth.service';
 import { TokensService } from '../modules/tokens/services/tokens.service';
 import { TwoFactorAuthenticationService } from '../modules/two-factor-authentication/two-factor-authentication.service';

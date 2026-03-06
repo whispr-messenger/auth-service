@@ -14,7 +14,7 @@ import * as bcrypt from 'bcrypt';
 import { CacheService } from '../../../cache';
 import { v4 as uuidv4 } from 'uuid';
 import { FindOneOptions, Repository } from 'typeorm';
-import { UserAuth } from '../../../two-factor-authentication/user-auth.entity';
+import { UserAuth } from '../../../common/entities/user-auth.entity';
 import { SmsService } from '../sms/sms.service';
 import { VerificationCode } from '../../types/verification-code.interface';
 import { verificationPurpose } from '../../types/verification-purpose.type';

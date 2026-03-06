@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserAuth } from '../../two-factor-authentication/user-auth.entity';
+import { UserAuth } from '../../common/entities/user-auth.entity';
 import { RegisterDto, LoginDto } from '../dto/auth.dto';
 import { DevicesService } from 'src/modules/devices/devices.service';
 import { DeviceFingerprint } from 'src/modules/devices/device-fingerprint.interface';

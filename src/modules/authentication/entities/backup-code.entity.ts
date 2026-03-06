@@ -7,7 +7,7 @@ import {
 	JoinColumn,
 	Index,
 } from 'typeorm';
-import { UserAuth } from '../../two-factor-authentication/user-auth.entity';
+import { UserAuth } from '../../common/entities/user-auth.entity';
 
 @Entity('backup_codes')
 @Index(['userId'])

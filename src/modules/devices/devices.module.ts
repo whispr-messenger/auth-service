@@ -6,7 +6,7 @@ import { QuickResponseCodeService } from './quick-response-code/quick-response-c
 import { QuickResponseCodeController } from './quick-response-code/quick-response-code.controller';
 import { TokensModule } from '../tokens/tokens.module';
 import { Device } from './device.entity';
-import { UserAuth } from '../two-factor-authentication/user-auth.entity';
+import { UserAuth } from '../common/entities/user-auth.entity';
 
 @Module({
 	providers: [DevicesService, QuickResponseCodeService],

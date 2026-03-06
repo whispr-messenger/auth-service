@@ -9,7 +9,7 @@ function buildSwaggerDocument(port: number) {
 		.setDescription('API documentation for the Authentication Service')
 		.setVersion('1.0')
 		.addServer('https://whispr.epitech.beer', 'Production')
-		.addServer(`http://localhost:${port}`, 'Development')
+		.addServer(`http://127.0.0.1:${port}`, 'Development')
 		.build();
 }
 

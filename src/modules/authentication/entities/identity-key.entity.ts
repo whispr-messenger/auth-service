@@ -8,7 +8,7 @@ import {
 	JoinColumn,
 	Unique,
 } from 'typeorm';
-import { UserAuth } from '../../two-factor-authentication/user-auth.entity';
+import { UserAuth } from '../../common/entities/user-auth.entity';
 
 @Entity('identity_keys')
 @Unique(['userId'])
