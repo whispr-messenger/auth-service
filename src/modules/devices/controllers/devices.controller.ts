@@ -1,13 +1,13 @@
 import { Controller, Delete, Get, HttpCode, HttpStatus, Request, Param, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../authentication/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../tokens/guards';
 import { DevicesService } from '../services/devices.service';
 import { DeviceResponseDto } from '../dto';
 
 @ApiTags('Auth - User Devices')
 @Controller('auth/device')
 export class DevicesController {
-	constructor(private readonly deviceService: DevicesService) { }
+	constructor(private readonly deviceService: DevicesService) {}
 
 	@Get()
 	@UseGuards(JwtAuthGuard)

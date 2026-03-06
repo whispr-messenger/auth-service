@@ -6,7 +6,7 @@ import { PreKey } from '../signal/entities/prekey.entity';
 import { SignedPreKey } from '../signal/entities/signed-prekey.entity';
 import { IdentityKey } from '../signal/entities/identity-key.entity';
 import { BackupCode } from '../two-factor-authentication/entities/backup-code.entity';
-import { LoginHistory } from '../authentication/entities/login-history.entity';
+import { LoginHistory } from '../phone-auth/entities/login-history.entity';
 import { DataSourceOptions } from 'typeorm';
 
 // Register new TypeORM entities here

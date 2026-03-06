@@ -12,7 +12,7 @@ import {
 	Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../authentication/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../tokens/guards';
 import { SignalKeyRotationService, SignalKeyValidationService, SignalKeyStorageService } from '../services';
 import { DevicesService } from '../../devices/services';
 import {

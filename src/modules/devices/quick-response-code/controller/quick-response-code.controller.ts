@@ -1,6 +1,6 @@
 import { Body, Controller, HttpCode, HttpStatus, Request, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../../authentication/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../tokens/guards';
 import { DeviceFingerprintService } from '../../services/device-fingerprint/device-fingerprint.service';
 import { QuickResponseCodeService } from '../services/quick-response-code.service';
 import { ScanLoginDto } from '../dto/scan-login.dto';
@@ -10,8 +10,8 @@ import { ScanLoginDto } from '../dto/scan-login.dto';
 export class QuickResponseCodeController {
 	constructor(
 		private readonly quickResponseCodeService: QuickResponseCodeService,
-		private readonly fingerprintService: DeviceFingerprintService,
-	) { }
+		private readonly fingerprintService: DeviceFingerprintService
+	) {}
 
 	@Post('/challenge/:deviceId')
 	@UseGuards(JwtAuthGuard)
