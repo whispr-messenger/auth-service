@@ -11,7 +11,7 @@ import {
 import { UserAuth } from '../../common/entities/user-auth.entity';
 
 @Entity('identity_keys')
-@Unique(['userId'])
+@Unique(['userId', 'deviceId'])
 export class IdentityKey {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
@@ -19,11 +19,11 @@ export class IdentityKey {
 	@Column({ name: 'user_id', type: 'uuid' })
 	userId: string;
 
+	@Column({ name: 'device_id', type: 'uuid' })
+	deviceId: string;
+
 	@Column({ name: 'public_key', type: 'text' })
 	publicKey: string;
-
-	@Column({ name: 'private_key_encrypted', type: 'text', nullable: true })
-	privateKeyEncrypted: string;
 
 	@CreateDateColumn({ name: 'created_at' })
 	createdAt: Date;

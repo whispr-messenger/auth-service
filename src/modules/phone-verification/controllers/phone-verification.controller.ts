@@ -1,8 +1,16 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { VerificationConfirmDto, VerificationRequestDto, VerificationRequestResponseDto } from '../dto';
+import {
+	VerificationConfirmDto,
+	VerificationConfirmResponseDto,
+	VerificationRequestDto,
+	VerificationRequestResponseDto,
+} from '../dto';
 import { PhoneVerificationService } from '../services';
-import { VERIFICATION_CONFIRM_EXAMPLES, VERIFICATION_REQUEST_EXAMPLES } from '../swagger/phone-verification.examples';
+import {
+	VERIFICATION_CONFIRM_EXAMPLES,
+	VERIFICATION_REQUEST_EXAMPLES,
+} from '../swagger/phone-verification.examples';
 
 @ApiTags('Auth - Phone Number Verification')
 @Controller('auth/verify')
@@ -16,7 +24,9 @@ export class PhoneVerificationController {
 	@ApiResponse({ status: 200, description: 'Verification code sent successfully' })
 	@ApiResponse({ status: 400, description: 'Bad request' })
 	@ApiResponse({ status: 429, description: 'Too many requests' })
-	async requestRegistrationVerification(@Body() dto: VerificationRequestDto) {
+	async requestRegistrationVerification(
+		@Body() dto: VerificationRequestDto
+	): Promise<VerificationRequestResponseDto> {
 		return this.phoneVerificationService.requestRegistrationVerification(dto);
 	}
 
@@ -26,7 +36,9 @@ export class PhoneVerificationController {
 	@ApiBody({ type: VerificationConfirmDto, examples: VERIFICATION_CONFIRM_EXAMPLES })
 	@ApiResponse({ status: 200, description: 'Verification code confirmed' })
 	@ApiResponse({ status: 400, description: 'Invalid or expired verification code' })
-	async confirmRegistrationVerification(@Body() dto: VerificationConfirmDto) {
+	async confirmRegistrationVerification(
+		@Body() dto: VerificationConfirmDto
+	): Promise<VerificationConfirmResponseDto> {
 		return this.phoneVerificationService.confirmRegistrationVerification(dto);
 	}
 

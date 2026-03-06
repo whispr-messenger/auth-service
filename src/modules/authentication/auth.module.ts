@@ -6,10 +6,7 @@ import { ThrottlerModule, ThrottlerModuleOptions } from '@nestjs/throttler';
 import { UserAuth } from '../common/entities/user-auth.entity';
 import { Device } from '../devices/entities/device.entity';
 import { BackupCode } from './entities/backup-code.entity';
-import { IdentityKey } from './entities/identity-key.entity';
 import { LoginHistory } from './entities/login-history.entity';
-import { PreKey } from './entities/prekey.entity';
-import { SignedPreKey } from './entities/signed-prekey.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './services/auth.service';
 import { BackupCodesService } from '../two-factor-authentication/backup-codes/backup-codes.service';
@@ -39,15 +36,7 @@ const throttlerModuleOptions: ThrottlerModuleOptions = [
 	controllers: [AuthController],
 	// The list of imported modules that export the providers which are required in this module.
 	imports: [
-		TypeOrmModule.forFeature([
-			UserAuth,
-			Device,
-			BackupCode,
-			IdentityKey,
-			LoginHistory,
-			PreKey,
-			SignedPreKey,
-		]),
+		TypeOrmModule.forFeature([UserAuth, Device, BackupCode, LoginHistory]),
 		JwtModule.registerAsync(jwtModuleAsyncOptions),
 		ThrottlerModule.forRoot(throttlerModuleOptions),
 		TokensModule,

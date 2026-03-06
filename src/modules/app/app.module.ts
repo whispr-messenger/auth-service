@@ -8,6 +8,7 @@ import { DevicesModule } from '../devices/devices.module';
 import { TokensModule } from '../tokens/tokens.module';
 import { TwoFactorAuthenticationModule } from '../two-factor-authentication/two-factor-authentication.module';
 import { PhoneVerificationModule } from '../phone-verification/phone-verification.module';
+import { SignalModule } from '../signal/signal.module';
 import { typeOrmModuleOptionsFactory } from './typeorm';
 import { CacheModule } from '../cache/cache.module';
 import { APP_GUARD } from '@nestjs/core';
@@ -65,6 +66,7 @@ const throttlerGuardProvider: Provider = {
 		TokensModule,
 		TwoFactorAuthenticationModule,
 		PhoneVerificationModule,
+		SignalModule,
 	],
 	providers: [throttlerGuardProvider],
 })

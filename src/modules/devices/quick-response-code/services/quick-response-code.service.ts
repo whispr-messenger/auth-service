@@ -1,9 +1,8 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { QRChallengeData } from '../types/quick-response-challeng-data.interface';
 import { JwtService } from '@nestjs/jwt';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
+import { CacheService } from '../../../cache/cache.service';
 import { Repository } from 'typeorm';
 import { Device } from '../../entities/device.entity';
 import { ScanLoginDto } from '../dto/scan-login.dto';
@@ -19,7 +18,7 @@ export class QuickResponseCodeService {
 	private readonly QR_CHALLENGE_TTL = 5 * 60;
 
 	constructor(
-		@Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+		private readonly cacheService: CacheService,
 		private readonly jwtService: JwtService,
 		private readonly deviceRegistrationService: DeviceRegistrationService,
 		private readonly tokenService: TokensService,
@@ -27,7 +26,7 @@ export class QuickResponseCodeService {
 		private readonly deviceRepository: Repository<Device>,
 		@InjectRepository(UserAuth)
 		private readonly userAuthRepository: Repository<UserAuth>
-	) { }
+	) {}
 
 	async getDevice(deviceId: string): Promise<Device> {
 		const device = await this.deviceRepository.findOne({
@@ -60,7 +59,7 @@ export class QuickResponseCodeService {
 			{ algorithm: 'ES256' }
 		);
 
-		await this.cacheManager.set(
+		await this.cacheService.set(
 			`qr_challenge:${challengeId}`,
 			JSON.stringify(challengeData),
 			this.QR_CHALLENGE_TTL * 1000
@@ -108,7 +107,7 @@ export class QuickResponseCodeService {
 				throw new ForbiddenException('Appareil non autorisé pour ce challenge');
 			}
 
-			const challengeData = await this.cacheManager.get<string>(`qr_challenge:${decoded.challengeId}`);
+			const challengeData = await this.cacheService.get<string>(`qr_challenge:${decoded.challengeId}`);
 			if (!challengeData) {
 				throw new BadRequestException('Challenge QR expiré ou invalide');
 			}
@@ -116,11 +115,11 @@ export class QuickResponseCodeService {
 			const data: QRChallengeData = JSON.parse(challengeData);
 
 			if (data.expiresAt < Date.now()) {
-				await this.cacheManager.del(`qr_challenge:${decoded.challengeId}`);
+				await this.cacheService.del(`qr_challenge:${decoded.challengeId}`);
 				throw new BadRequestException('Challenge QR expiré');
 			}
 
-			await this.cacheManager.del(`qr_challenge:${decoded.challengeId}`);
+			await this.cacheService.del(`qr_challenge:${decoded.challengeId}`);
 
 			return data;
 		} catch (error) {

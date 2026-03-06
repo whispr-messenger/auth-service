@@ -9,16 +9,20 @@ import {
 	Unique,
 } from 'typeorm';
 import { UserAuth } from '../../common/entities/user-auth.entity';
+import { Device } from '../../devices/entities/device.entity';
 
-@Entity('prekeys')
-@Index(['userId'])
-@Unique(['userId', 'keyId'])
-export class PreKey {
+@Entity('signed_prekeys')
+@Index(['userId', 'deviceId'])
+@Unique(['userId', 'deviceId', 'keyId'])
+export class SignedPreKey {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
 
 	@Column({ name: 'user_id', type: 'uuid' })
 	userId: string;
+
+	@Column({ name: 'device_id', type: 'uuid' })
+	deviceId: string;
 
 	@Column({ name: 'key_id', type: 'integer' })
 	keyId: number;
@@ -26,16 +30,20 @@ export class PreKey {
 	@Column({ name: 'public_key', type: 'text' })
 	publicKey: string;
 
-	@Column({ name: 'is_one_time', type: 'boolean', default: true })
-	isOneTime: boolean;
-
-	@Column({ name: 'is_used', type: 'boolean', default: false })
-	isUsed: boolean;
+	@Column({ name: 'signature', type: 'text' })
+	signature: string;
 
 	@CreateDateColumn({ name: 'created_at' })
 	createdAt: Date;
 
+	@Column({ name: 'expires_at', type: 'timestamp' })
+	expiresAt: Date;
+
 	@ManyToOne(() => UserAuth, { onDelete: 'CASCADE' })
 	@JoinColumn({ name: 'user_id' })
 	user: UserAuth;
+
+	@ManyToOne(() => Device, { onDelete: 'CASCADE' })
+	@JoinColumn({ name: 'device_id' })
+	device: Device;
 }
