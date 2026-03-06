@@ -2,7 +2,7 @@ import { Controller, Post, Body, UseGuards, Request, HttpCode, HttpStatus } from
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './services/auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { DeviceFingerprint } from '../devices/device-fingerprint.interface';
+import { DeviceFingerprint } from '../devices/types/device-fingerprint.interface';
 import { RegisterDto, LoginDto } from './dto/auth';
 
 @ApiTags('Authentication')

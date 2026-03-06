@@ -7,7 +7,7 @@ export * from './register.dto';
 export * from './login.dto';
 export * from './login-confirm.dto';
 export * from '../../../tokens/dto/refresh-token.dto';
-export * from '../../../devices/scan-login.dto';
+export * from '../../../devices/quick-response-code/dto/scan-login.dto';
 
 // Two-Factor Authentication DTOs
 export * from './two-factor-setup.dto';

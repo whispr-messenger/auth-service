@@ -1,7 +1,7 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { UserAuth } from '../common/entities/user-auth.entity';
-import { Device } from '../devices/device.entity';
+import { Device } from '../devices/entities/device.entity';
 import { PreKey } from '../authentication/entities/prekey.entity';
 import { SignedPreKey } from '../authentication/entities/signed-prekey.entity';
 import { IdentityKey } from '../authentication/entities/identity-key.entity';

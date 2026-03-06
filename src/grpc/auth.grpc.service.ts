@@ -6,8 +6,8 @@ import { AuthService } from '../modules/authentication/services/auth.service';
 import { TokensService } from '../modules/tokens/services/tokens.service';
 import { TwoFactorAuthenticationService } from '../modules/two-factor-authentication/two-factor-authentication.service';
 import { PhoneVerificationService } from '../modules/phone-verification/services/phone-verification/phone-verification.service';
-import { DevicesService } from 'src/modules/devices/devices.service';
-import { QuickResponseCodeService } from 'src/modules/devices/quick-response-code/quick-response-code.service';
+import { DevicesService } from 'src/modules/devices/services/devices.service';
+import { QuickResponseCodeService } from 'src/modules/devices/quick-response-code/services/quick-response-code.service';
 
 // gRPC interfaces
 interface GrpcCall<T = any> {

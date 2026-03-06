@@ -19,5 +19,12 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "useDefineForClassFields": false
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.backup/**",
+    "*.backup",
+    "import"
+  ]
 }
