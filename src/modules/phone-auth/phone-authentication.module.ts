@@ -11,6 +11,7 @@ import { DevicesModule } from '../devices/devices.module';
 import { PhoneVerificationModule } from '../phone-verification/phone-verification.module';
 import { CommonModule } from '../common/common.module';
 import { TwoFactorAuthenticationModule } from '../two-factor-authentication/two-factor-authentication.module';
+import { SignalModule } from '../signal/signal.module';
 
 const jwtModuleAsyncOptions: JwtModuleAsyncOptions = {
 	imports: [ConfigModule],
@@ -50,6 +51,7 @@ const throttlerModuleOptions: ThrottlerModuleOptions = [
 		PhoneVerificationModule,
 		TokensModule,
 		TwoFactorAuthenticationModule,
+		SignalModule,
 	],
 	exports: [PhoneAuthenticationService],
 })
