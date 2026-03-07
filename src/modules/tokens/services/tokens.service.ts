@@ -124,6 +124,11 @@ export class TokensService {
 		return !!revoked;
 	}
 
+	async isDeviceRevoked(deviceId: string): Promise<boolean> {
+		const revoked = await this.cacheService.get<string>(`revoked_device:${deviceId}`);
+		return !!revoked;
+	}
+
 	validateToken(token: string): JwtPayload {
 		try {
 			return this.jwtService.verify(token, { algorithms: ['ES256'] });
