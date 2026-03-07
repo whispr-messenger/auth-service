@@ -13,6 +13,7 @@ import { RegisterDto } from '../dto/register.dto';
 import { VerificationPurpose } from '../../phone-verification/types/verification-purpose.type';
 import { DeviceInfo } from '../interfaces/device-info.interface';
 import { USER_REGISTERED_PATTERN, UserRegisteredEvent } from '../../../shared/events';
+import { SignalKeyStorageService } from '../../signal/services/signal-key-storage.service';
 
 @Injectable()
 export class PhoneAuthenticationService {
@@ -22,6 +23,7 @@ export class PhoneAuthenticationService {
 		private readonly phoneVerificationService: PhoneVerificationService,
 		private readonly tokenService: TokensService,
 		private readonly userAuthService: UserAuthService,
+		private readonly signalKeyStorageService: SignalKeyStorageService,
 		@Inject('REDIS_CLIENT') private readonly redisClient: ClientProxy
 	) {}
 
@@ -63,6 +65,23 @@ export class PhoneAuthenticationService {
 				fcmToken: deviceInfo.fcmToken,
 				apnsToken: deviceInfo.apnsToken,
 			});
+
+			await this.signalKeyStorageService.storeIdentityKey(
+				userId,
+				device.id,
+				deviceInfo.signalKeyBundle.identityKey
+			);
+			await this.signalKeyStorageService.storeSignedPreKey(
+				userId,
+				device.id,
+				deviceInfo.signalKeyBundle.signedPreKey
+			);
+			await this.signalKeyStorageService.storePreKeys(
+				userId,
+				device.id,
+				deviceInfo.signalKeyBundle.preKeys
+			);
+
 			return device.id;
 		}
 		return 'web-session';
