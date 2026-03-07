@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DeviceStatsService } from '../device-stats.service';
+import { DeviceStatsService } from './device-stats.service';
 import { DeviceRepository } from '../../repositories/device.repository';
 import { Device } from '../../entities/device.entity';
 
@@ -79,7 +79,7 @@ describe('DeviceStatsService', () => {
 		});
 
 		describe('cas limites', () => {
-			it('doit gérer le cas où aucun appareil n\'existe', async () => {
+			it("doit gérer le cas où aucun appareil n'existe", async () => {
 				// Given
 				const userId = 'user-123';
 				deviceRepository.countVerifiedDevices.mockResolvedValue(0);
@@ -113,7 +113,7 @@ describe('DeviceStatsService', () => {
 				});
 			});
 
-			it('doit gérer le cas où aucun appareil n\'est actif', async () => {
+			it("doit gérer le cas où aucun appareil n'est actif", async () => {
 				// Given
 				const userId = 'user-123';
 				deviceRepository.countVerifiedDevices.mockResolvedValue(5);
@@ -172,8 +172,8 @@ describe('DeviceStatsService', () => {
 			});
 		});
 
-		describe('gestion d\'erreurs', () => {
-			it('doit propager l\'erreur si countVerifiedDevices échoue', async () => {
+		describe("gestion d'erreurs", () => {
+			it("doit propager l'erreur si countVerifiedDevices échoue", async () => {
 				// Given
 				const userId = 'user-123';
 				const error = new Error('Database error');
@@ -183,7 +183,7 @@ describe('DeviceStatsService', () => {
 				await expect(service.getDeviceStats(userId)).rejects.toThrow('Database error');
 			});
 
-			it('doit propager l\'erreur si countActiveDevices échoue', async () => {
+			it("doit propager l'erreur si countActiveDevices échoue", async () => {
 				// Given
 				const userId = 'user-123';
 				const error = new Error('Database error');
@@ -197,10 +197,7 @@ describe('DeviceStatsService', () => {
 	});
 
 	describe('getDetailedStats', () => {
-		const createMockDevice = (
-			deviceType: string,
-			daysAgo: number,
-		): Partial<Device> => ({
+		const createMockDevice = (deviceType: string, daysAgo: number): Partial<Device> => ({
 			id: `device-${Math.random()}`,
 			userId: 'user-123',
 			deviceType,
@@ -231,7 +228,7 @@ describe('DeviceStatsService', () => {
 				expect(deviceRepository.findVerifiedByUserId).toHaveBeenCalledWith(userId);
 			});
 
-			it('doit grouper correctement par type d\'appareil', async () => {
+			it("doit grouper correctement par type d'appareil", async () => {
 				// Given
 				const userId = 'user-123';
 				const devices = [
@@ -315,7 +312,7 @@ describe('DeviceStatsService', () => {
 				});
 			});
 
-			it('doit gérer un seul type d\'appareil', async () => {
+			it("doit gérer un seul type d'appareil", async () => {
 				// Given
 				const userId = 'user-123';
 				const devices = [
@@ -340,9 +337,7 @@ describe('DeviceStatsService', () => {
 			it('doit gérer plusieurs appareils du même type', async () => {
 				// Given
 				const userId = 'user-123';
-				const devices = Array.from({ length: 10 }, () =>
-					createMockDevice('android', 5),
-				) as Device[];
+				const devices = Array.from({ length: 10 }, () => createMockDevice('android', 5)) as Device[];
 
 				deviceRepository.findVerifiedByUserId.mockResolvedValue(devices);
 
@@ -423,17 +418,15 @@ describe('DeviceStatsService', () => {
 			});
 		});
 
-		describe('gestion d\'erreurs', () => {
-			it('doit propager l\'erreur si findVerifiedByUserId échoue', async () => {
+		describe("gestion d'erreurs", () => {
+			it("doit propager l'erreur si findVerifiedByUserId échoue", async () => {
 				// Given
 				const userId = 'user-123';
 				const error = new Error('Database error');
 				deviceRepository.findVerifiedByUserId.mockRejectedValue(error);
 
 				// When & Then
-				await expect(service.getDetailedStats(userId)).rejects.toThrow(
-					'Database error',
-				);
+				await expect(service.getDetailedStats(userId)).rejects.toThrow('Database error');
 			});
 		});
 	});

@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { DataSource, EntityManager, UpdateResult } from 'typeorm';
-import { DeviceRegistrationService } from '../device-registration.service';
+import { DeviceRegistrationService } from './device-registration.service';
 import { DeviceRepository } from '../../repositories/device.repository';
 import { Device } from '../../entities/device.entity';
-import { DeviceRegistrationData } from '../types/device-registration-data.interface';
+import { DeviceRegistrationData } from '../../types/device-registration-data.interface';
 
 describe('DeviceRegistrationService', () => {
 	let service: DeviceRegistrationService;
@@ -14,30 +14,31 @@ describe('DeviceRegistrationService', () => {
 	let transactionRepository: jest.Mocked<DeviceRepository>;
 
 	// Fixtures
-	const createDeviceFixture = (overrides: Partial<Device> = {}): Device => ({
-		id: 'device-uuid-123',
-		userId: 'user-123',
-		deviceName: 'iPhone 14',
-		deviceType: 'mobile',
-		deviceFingerprint: 'fingerprint-123',
-		model: 'iPhone 14 Pro',
-		osVersion: 'iOS 17.0',
-		appVersion: '1.0.0',
-		publicKey: 'public-key-abc',
-		ipAddress: '192.168.1.100',
-		fcmToken: 'fcm-token-xyz',
-		apnsToken: null,
-		lastActive: new Date('2026-01-09T10:00:00Z'),
-		isVerified: true,
-		isActive: true,
-		createdAt: new Date('2026-01-01T00:00:00Z'),
-		updatedAt: new Date('2026-01-09T10:00:00Z'),
-		user: null,
-		...overrides,
-	}) as Device;
+	const createDeviceFixture = (overrides: Partial<Device> = {}): Device =>
+		({
+			id: 'device-uuid-123',
+			userId: 'user-123',
+			deviceName: 'iPhone 14',
+			deviceType: 'mobile',
+			deviceFingerprint: 'fingerprint-123',
+			model: 'iPhone 14 Pro',
+			osVersion: 'iOS 17.0',
+			appVersion: '1.0.0',
+			publicKey: 'public-key-abc',
+			ipAddress: '192.168.1.100',
+			fcmToken: 'fcm-token-xyz',
+			apnsToken: null,
+			lastActive: new Date('2026-01-09T10:00:00Z'),
+			isVerified: true,
+			isActive: true,
+			createdAt: new Date('2026-01-01T00:00:00Z'),
+			updatedAt: new Date('2026-01-09T10:00:00Z'),
+			user: null,
+			...overrides,
+		}) as Device;
 
 	const createRegistrationDataFixture = (
-		overrides: Partial<DeviceRegistrationData> = {},
+		overrides: Partial<DeviceRegistrationData> = {}
 	): DeviceRegistrationData => ({
 		userId: 'user-123',
 		deviceName: 'iPhone 14',
@@ -114,7 +115,7 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
 				// Mock transaction
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
@@ -137,7 +138,7 @@ describe('DeviceRegistrationService', () => {
 				expect(transactionRepository.findByUserAndFingerprint).toHaveBeenCalledWith(
 					registrationData.userId,
 					registrationData.deviceName,
-					registrationData.deviceType,
+					registrationData.deviceType
 				);
 				expect(transactionRepository.create).toHaveBeenCalled();
 				expect(transactionRepository.save).toHaveBeenCalledWith(expectedDevice);
@@ -157,11 +158,11 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
-				const result = await service.registerDevice(registrationData);
+				await service.registerDevice(registrationData);
 
 				// Vérifier que create a été appelé avec les bonnes valeurs
 				expect(transactionRepository.create).toHaveBeenCalledWith({
@@ -184,14 +185,14 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
 				await service.registerDevice(registrationData);
 
 				expect(Logger.prototype.log).toHaveBeenCalledWith(
-					`Registering new device for user: ${registrationData.userId}`,
+					`Registering new device for user: ${registrationData.userId}`
 				);
 			});
 
@@ -207,7 +208,7 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
@@ -216,7 +217,7 @@ describe('DeviceRegistrationService', () => {
 				expect(transactionRepository.create).toHaveBeenCalledWith(
 					expect.objectContaining({
 						lastActive: expect.any(Date),
-					}),
+					})
 				);
 
 				// Vérifier que lastActive est proche de maintenant (< 1 seconde)
@@ -247,7 +248,7 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(existingDevice);
 				transactionRepository.save.mockImplementation(async (device) => device as Device);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
@@ -280,7 +281,7 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(existingDevice);
 				transactionRepository.save.mockImplementation(async (device) => device as Device);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
@@ -291,7 +292,7 @@ describe('DeviceRegistrationService', () => {
 				const expectedTime = now.getTime();
 				expect(Math.abs(lastActiveTime - expectedTime)).toBeLessThan(1000);
 				expect(result.lastActive.getTime()).toBeGreaterThan(
-					new Date('2025-01-01T00:00:00Z').getTime(),
+					new Date('2025-01-01T00:00:00Z').getTime()
 				);
 
 				jest.useRealTimers();
@@ -311,7 +312,7 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(existingDevice);
 				transactionRepository.save.mockImplementation(async (device) => device as Device);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
@@ -329,14 +330,14 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(existingDevice);
 				transactionRepository.save.mockImplementation(async (device) => device as Device);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
 				await service.registerDevice(registrationData);
 
 				expect(Logger.prototype.log).toHaveBeenCalledWith(
-					'Updating existing device: device-to-update',
+					'Updating existing device: device-to-update'
 				);
 			});
 
@@ -347,7 +348,7 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(existingDevice);
 				transactionRepository.save.mockImplementation(async (device) => device as Device);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
@@ -367,7 +368,7 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
@@ -384,7 +385,7 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(existingDevice);
 				transactionRepository.save.mockImplementation(async (device) => device as Device);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
@@ -400,13 +401,11 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
 				transactionRepository.save.mockRejectedValue(error);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
-				await expect(service.registerDevice(registrationData)).rejects.toThrow(
-					'Database error',
-				);
+				await expect(service.registerDevice(registrationData)).rejects.toThrow('Database error');
 
 				// La transaction devrait avoir été appelée
 				expect(dataSource.transaction).toHaveBeenCalledTimes(1);
@@ -420,7 +419,7 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
@@ -448,10 +447,7 @@ describe('DeviceRegistrationService', () => {
 
 			await service.verifyDevice(deviceId);
 
-			expect(deviceRepository.update).toHaveBeenCalledWith(
-				{ id: deviceId },
-				{ isVerified: true },
-			);
+			expect(deviceRepository.update).toHaveBeenCalledWith({ id: deviceId }, { isVerified: true });
 		});
 
 		it('should log successful verification', async () => {
@@ -482,7 +478,7 @@ describe('DeviceRegistrationService', () => {
 			await service.verifyDevice(deviceId);
 
 			expect(Logger.prototype.warn).toHaveBeenCalledWith(
-				`No device found for verification: ${deviceId}`,
+				`No device found for verification: ${deviceId}`
 			);
 		});
 
@@ -530,9 +526,7 @@ describe('DeviceRegistrationService', () => {
 
 			deviceRepository.update.mockRejectedValue(error);
 
-			await expect(service.verifyDevice(deviceId)).rejects.toThrow(
-				'Database connection error',
-			);
+			await expect(service.verifyDevice(deviceId)).rejects.toThrow('Database connection error');
 		});
 	});
 
@@ -550,7 +544,7 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
@@ -571,7 +565,7 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
@@ -588,12 +582,12 @@ describe('DeviceRegistrationService', () => {
 
 				transactionRepository.findByUserAndFingerprint.mockRejectedValue(error);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
 				await expect(service.registerDevice(registrationData)).rejects.toThrow(
-					'Database query error',
+					'Database query error'
 				);
 			});
 
@@ -606,13 +600,11 @@ describe('DeviceRegistrationService', () => {
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockRejectedValue(error);
 
-				dataSource.transaction.mockImplementation(async (callback) => {
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
-				await expect(service.registerDevice(registrationData)).rejects.toThrow(
-					'Database save error',
-				);
+				await expect(service.registerDevice(registrationData)).rejects.toThrow('Database save error');
 			});
 		});
 	});

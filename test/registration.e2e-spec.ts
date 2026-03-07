@@ -2,17 +2,16 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { AppModule } from '../src/modules/app/app.module';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { UserAuth } from '../src/modules/two-factor-authentication/user-auth.entity';
-import { Device } from '../src/modules/devices/device.entity';
-import { PreKey } from '../src/modules/authentication/entities/prekey.entity';
-import { SignedPreKey } from '../src/modules/authentication/entities/signed-prekey.entity';
-import { IdentityKey } from '../src/modules/authentication/entities/identity-key.entity';
-import { BackupCode } from '../src/modules/authentication/entities/backup-code.entity';
-import { LoginHistory } from '../src/modules/authentication/entities/login-history.entity';
+import { UserAuth } from '../src/modules/common/entities/user-auth.entity';
+import { Device } from '../src/modules/devices/entities/device.entity';
+import { PreKey } from '../src/modules/signal/entities/prekey.entity';
+import { SignedPreKey } from '../src/modules/signal/entities/signed-prekey.entity';
+import { IdentityKey } from '../src/modules/signal/entities/identity-key.entity';
+import { BackupCode } from '../src/modules/two-factor-authentication/entities/backup-code.entity';
+import { LoginHistory } from '../src/modules/phone-auth/entities/login-history.entity';
 import { CacheService } from '../src/modules/cache';
 import { RedisConfig } from '../src/config/redis.config';
-import { JwtAuthGuard } from '../src/modules/authentication/guards/jwt-auth.guard';
-import { RateLimitGuard } from '../src/modules/authentication/guards/rate-limit.guard';
+import { JwtAuthGuard } from '../src/modules/tokens/guards/jwt-auth.guard';
 import { TokensService } from '../src/modules/tokens/services/tokens.service';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -137,8 +136,6 @@ describe('Registration Flow (e2e)', () => {
 			.overrideProvider(TokensService)
 			.useValue(mockTokensService)
 			.overrideGuard(JwtAuthGuard)
-			.useValue({ canActivate: () => true })
-			.overrideGuard(RateLimitGuard)
 			.useValue({ canActivate: () => true })
 			.compile();
 

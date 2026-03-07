@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { QuickResponseCodeController } from './quick-response-code.controller';
-import { QuickResponseCodeService } from '../quick-response-code.service';
+import { QuickResponseCodeService } from '../services/quick-response-code.service';
+import { DeviceFingerprintService } from '../../services/device-fingerprint/device-fingerprint.service';
 import { JwtAuthGuard } from '../../../tokens/guards';
 import { ScanLoginDto } from '../dto/scan-login.dto';
 import { TokenPair } from '../../../tokens/types/token-pair.interface';
@@ -9,10 +10,12 @@ import { TokenPair } from '../../../tokens/types/token-pair.interface';
 describe('QuickResponseCodeController', () => {
 	let controller: QuickResponseCodeController;
 	let service: jest.Mocked<QuickResponseCodeService>;
+	let fingerprintService: jest.Mocked<DeviceFingerprintService>;
 
 	const mockDeviceId = '550e8400-e29b-41d4-a716-446655440000';
 	const mockUserId = 'test-user-id';
-	const mockChallenge = 'eyJhbGciOiJFUzI1NiJ9.eyJjaGFsbGVuZ2VJZCI6InRlc3QtY2hhbGxlbmdlIiwiZGV2aWNlSWQiOiJ0ZXN0LWRldmljZSJ9';
+	const mockChallenge =
+		'eyJhbGciOiJFUzI1NiJ9.eyJjaGFsbGVuZ2VJZCI6InRlc3QtY2hhbGxlbmdlIiwiZGV2aWNlSWQiOiJ0ZXN0LWRldmljZSJ9';
 
 	const mockTokenPair: TokenPair = {
 		accessToken: 'access-token-xyz',
@@ -40,6 +43,12 @@ describe('QuickResponseCodeController', () => {
 						scanLogin: jest.fn(),
 					},
 				},
+				{
+					provide: DeviceFingerprintService,
+					useValue: {
+						extractFingerprint: jest.fn(),
+					},
+				},
 			],
 		})
 			.overrideGuard(JwtAuthGuard)
@@ -50,6 +59,14 @@ describe('QuickResponseCodeController', () => {
 
 		controller = module.get<QuickResponseCodeController>(QuickResponseCodeController);
 		service = module.get(QuickResponseCodeService);
+		fingerprintService = module.get(DeviceFingerprintService);
+
+		fingerprintService.extractFingerprint.mockReturnValue({
+			userAgent: mockRequest.headers['user-agent'],
+			ipAddress: mockRequest.ip,
+			deviceType: undefined,
+			timestamp: Date.now(),
+		});
 	});
 
 	afterEach(() => {
@@ -103,26 +120,20 @@ describe('QuickResponseCodeController', () => {
 
 		describe('Resource not found', () => {
 			it('should throw NotFoundException when device does not exist', async () => {
-				service.generateQRChallenge.mockRejectedValue(
-					new NotFoundException('Appareil non trouvé')
-				);
+				service.generateQRChallenge.mockRejectedValue(new NotFoundException('Appareil non trouvé'));
 
-				await expect(
-					controller.generateQRChallenge('non-existent-device-id')
-				).rejects.toThrow(NotFoundException);
+				await expect(controller.generateQRChallenge('non-existent-device-id')).rejects.toThrow(
+					NotFoundException
+				);
 
 				expect(service.generateQRChallenge).toHaveBeenCalledWith('non-existent-device-id');
 			});
 
 			it('should throw NotFoundException with correct message', async () => {
 				const errorMessage = 'Appareil non trouvé';
-				service.generateQRChallenge.mockRejectedValue(
-					new NotFoundException(errorMessage)
-				);
+				service.generateQRChallenge.mockRejectedValue(new NotFoundException(errorMessage));
 
-				await expect(
-					controller.generateQRChallenge(mockDeviceId)
-				).rejects.toThrow(errorMessage);
+				await expect(controller.generateQRChallenge(mockDeviceId)).rejects.toThrow(errorMessage);
 			});
 		});
 
@@ -138,13 +149,11 @@ describe('QuickResponseCodeController', () => {
 
 			it('should handle invalid deviceId format gracefully (service responsibility)', async () => {
 				const invalidDeviceId = 'invalid-uuid-format';
-				service.generateQRChallenge.mockRejectedValue(
-					new NotFoundException('Appareil non trouvé')
-				);
+				service.generateQRChallenge.mockRejectedValue(new NotFoundException('Appareil non trouvé'));
 
-				await expect(
-					controller.generateQRChallenge(invalidDeviceId)
-				).rejects.toThrow(NotFoundException);
+				await expect(controller.generateQRChallenge(invalidDeviceId)).rejects.toThrow(
+					NotFoundException
+				);
 			});
 		});
 
@@ -153,9 +162,7 @@ describe('QuickResponseCodeController', () => {
 				const error = new Error('Unexpected service error');
 				service.generateQRChallenge.mockRejectedValue(error);
 
-				await expect(
-					controller.generateQRChallenge(mockDeviceId)
-				).rejects.toThrow(error);
+				await expect(controller.generateQRChallenge(mockDeviceId)).rejects.toThrow(error);
 			});
 		});
 	});
@@ -260,10 +267,7 @@ describe('QuickResponseCodeController', () => {
 				const result = await controller.scanLogin(dtoWithOptionals, mockRequest);
 
 				expect(result).toEqual(mockTokenPair);
-				expect(service.scanLogin).toHaveBeenCalledWith(
-					dtoWithOptionals,
-					expect.any(Object)
-				);
+				expect(service.scanLogin).toHaveBeenCalledWith(dtoWithOptionals, expect.any(Object));
 			});
 		});
 
@@ -278,9 +282,7 @@ describe('QuickResponseCodeController', () => {
 					new BadRequestException('Challenge QR expiré ou invalide')
 				);
 
-				await expect(
-					controller.scanLogin(scanDto, mockRequest)
-				).rejects.toThrow(BadRequestException);
+				await expect(controller.scanLogin(scanDto, mockRequest)).rejects.toThrow(BadRequestException);
 			});
 
 			it('should throw BadRequestException when challenge is malformed', async () => {
@@ -289,13 +291,11 @@ describe('QuickResponseCodeController', () => {
 					authenticatedDeviceId: mockDeviceId,
 				};
 
-				service.scanLogin.mockRejectedValue(
-					new BadRequestException('Challenge QR invalide')
-				);
+				service.scanLogin.mockRejectedValue(new BadRequestException('Challenge QR invalide'));
 
-				await expect(
-					controller.scanLogin(scanDto, mockRequest)
-				).rejects.toThrow('Challenge QR invalide');
+				await expect(controller.scanLogin(scanDto, mockRequest)).rejects.toThrow(
+					'Challenge QR invalide'
+				);
 			});
 
 			it('should throw ForbiddenException when device is not authorized', async () => {
@@ -308,9 +308,7 @@ describe('QuickResponseCodeController', () => {
 					new ForbiddenException('Appareil non autorisé pour ce challenge')
 				);
 
-				await expect(
-					controller.scanLogin(scanDto, mockRequest)
-				).rejects.toThrow(ForbiddenException);
+				await expect(controller.scanLogin(scanDto, mockRequest)).rejects.toThrow(ForbiddenException);
 			});
 
 			it('should include correct error message for unauthorized device', async () => {
@@ -320,13 +318,9 @@ describe('QuickResponseCodeController', () => {
 				};
 
 				const errorMessage = 'Appareil non autorisé pour ce challenge';
-				service.scanLogin.mockRejectedValue(
-					new ForbiddenException(errorMessage)
-				);
+				service.scanLogin.mockRejectedValue(new ForbiddenException(errorMessage));
 
-				await expect(
-					controller.scanLogin(scanDto, mockRequest)
-				).rejects.toThrow(errorMessage);
+				await expect(controller.scanLogin(scanDto, mockRequest)).rejects.toThrow(errorMessage);
 			});
 		});
 
@@ -337,16 +331,18 @@ describe('QuickResponseCodeController', () => {
 					authenticatedDeviceId: mockDeviceId,
 				};
 
+				const expectedFingerprint = {
+					userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15',
+					ipAddress: '192.168.1.100',
+					timestamp: Date.now(),
+				};
+				fingerprintService.extractFingerprint.mockReturnValue(expectedFingerprint);
 				service.scanLogin.mockResolvedValue(mockTokenPair);
 
 				await controller.scanLogin(scanDto, mockRequest);
 
-				expect(service.scanLogin).toHaveBeenCalledWith(
-					scanDto,
-					expect.objectContaining({
-						userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15',
-					})
-				);
+				expect(fingerprintService.extractFingerprint).toHaveBeenCalledWith(mockRequest, undefined);
+				expect(service.scanLogin).toHaveBeenCalledWith(scanDto, expectedFingerprint);
 			});
 
 			it('should extract IP address from request', async () => {
@@ -355,16 +351,17 @@ describe('QuickResponseCodeController', () => {
 					authenticatedDeviceId: mockDeviceId,
 				};
 
+				const expectedFingerprint = {
+					userAgent: mockRequest.headers['user-agent'],
+					ipAddress: '192.168.1.100',
+					timestamp: Date.now(),
+				};
+				fingerprintService.extractFingerprint.mockReturnValue(expectedFingerprint);
 				service.scanLogin.mockResolvedValue(mockTokenPair);
 
 				await controller.scanLogin(scanDto, mockRequest);
 
-				expect(service.scanLogin).toHaveBeenCalledWith(
-					scanDto,
-					expect.objectContaining({
-						ipAddress: '192.168.1.100',
-					})
-				);
+				expect(service.scanLogin).toHaveBeenCalledWith(scanDto, expectedFingerprint);
 			});
 
 			it('should include deviceType from DTO in fingerprint', async () => {
@@ -374,16 +371,19 @@ describe('QuickResponseCodeController', () => {
 					deviceType: 'desktop',
 				};
 
+				const expectedFingerprint = {
+					userAgent: mockRequest.headers['user-agent'],
+					ipAddress: '192.168.1.100',
+					deviceType: 'desktop',
+					timestamp: Date.now(),
+				};
+				fingerprintService.extractFingerprint.mockReturnValue(expectedFingerprint);
 				service.scanLogin.mockResolvedValue(mockTokenPair);
 
 				await controller.scanLogin(scanDto, mockRequest);
 
-				expect(service.scanLogin).toHaveBeenCalledWith(
-					scanDto,
-					expect.objectContaining({
-						deviceType: 'desktop',
-					})
-				);
+				expect(fingerprintService.extractFingerprint).toHaveBeenCalledWith(mockRequest, 'desktop');
+				expect(service.scanLogin).toHaveBeenCalledWith(scanDto, expectedFingerprint);
 			});
 
 			it('should generate timestamp dynamically', async () => {
@@ -393,18 +393,17 @@ describe('QuickResponseCodeController', () => {
 				};
 
 				const beforeTimestamp = Date.now();
+				const expectedFingerprint = {
+					userAgent: mockRequest.headers['user-agent'],
+					ipAddress: mockRequest.ip,
+					timestamp: beforeTimestamp,
+				};
+				fingerprintService.extractFingerprint.mockReturnValue(expectedFingerprint);
 				service.scanLogin.mockResolvedValue(mockTokenPair);
 
 				await controller.scanLogin(scanDto, mockRequest);
 
 				const afterTimestamp = Date.now();
-
-				expect(service.scanLogin).toHaveBeenCalledWith(
-					scanDto,
-					expect.objectContaining({
-						timestamp: expect.any(Number),
-					})
-				);
 
 				const callArgs = service.scanLogin.mock.calls[0][1];
 				expect(callArgs.timestamp).toBeGreaterThanOrEqual(beforeTimestamp);
@@ -422,6 +421,12 @@ describe('QuickResponseCodeController', () => {
 					headers: {},
 				};
 
+				const expectedFingerprint = {
+					userAgent: undefined,
+					ipAddress: '192.168.1.100',
+					timestamp: Date.now(),
+				};
+				fingerprintService.extractFingerprint.mockReturnValue(expectedFingerprint);
 				service.scanLogin.mockResolvedValue(mockTokenPair);
 
 				await controller.scanLogin(scanDto, requestWithoutUserAgent);
@@ -441,6 +446,13 @@ describe('QuickResponseCodeController', () => {
 					deviceType: 'mobile',
 				};
 
+				const expectedFingerprint = {
+					userAgent: mockRequest.headers['user-agent'],
+					ipAddress: '192.168.1.100',
+					deviceType: 'mobile',
+					timestamp: Date.now(),
+				};
+				fingerprintService.extractFingerprint.mockReturnValue(expectedFingerprint);
 				service.scanLogin.mockResolvedValue(mockTokenPair);
 
 				await controller.scanLogin(scanDto, mockRequest);
@@ -484,9 +496,7 @@ describe('QuickResponseCodeController', () => {
 				const error = new Error('Database connection failed');
 				service.scanLogin.mockRejectedValue(error);
 
-				await expect(
-					controller.scanLogin(scanDto, mockRequest)
-				).rejects.toThrow(error);
+				await expect(controller.scanLogin(scanDto, mockRequest)).rejects.toThrow(error);
 			});
 
 			it('should pass all DTO fields to service', async () => {
@@ -501,10 +511,7 @@ describe('QuickResponseCodeController', () => {
 
 				await controller.scanLogin(scanDto, mockRequest);
 
-				expect(service.scanLogin).toHaveBeenCalledWith(
-					scanDto,
-					expect.any(Object)
-				);
+				expect(service.scanLogin).toHaveBeenCalledWith(scanDto, expect.any(Object));
 
 				const [dtoArg] = service.scanLogin.mock.calls[0];
 				expect(dtoArg.challenge).toBe(mockChallenge);

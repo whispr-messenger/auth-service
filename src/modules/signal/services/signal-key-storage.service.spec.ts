@@ -15,6 +15,7 @@ describe('SignalKeyStorageService', () => {
 	let preKeyRepository: jest.Mocked<PreKeyRepository>;
 
 	const mockUserId = 'test-user-id';
+	const mockDeviceId = 'test-device-id';
 
 	beforeEach(async () => {
 		const module: TestingModule = await Test.createTestingModule({
@@ -24,16 +25,18 @@ describe('SignalKeyStorageService', () => {
 					provide: IdentityKeyRepository,
 					useValue: {
 						upsertIdentityKey: jest.fn(),
-						findByUserId: jest.fn(),
+						findByUserIdAndDeviceId: jest.fn(),
 						deleteByUserId: jest.fn(),
+						deleteByUserIdAndDeviceId: jest.fn(),
 					},
 				},
 				{
 					provide: SignedPreKeyRepository,
 					useValue: {
 						createSignedPreKey: jest.fn(),
-						findActiveByUserId: jest.fn(),
+						findActiveByUserIdAndDeviceId: jest.fn(),
 						deleteByUserId: jest.fn(),
+						deleteByUserIdAndDeviceId: jest.fn(),
 					},
 				},
 				{
@@ -41,9 +44,10 @@ describe('SignalKeyStorageService', () => {
 					useValue: {
 						createPreKeys: jest.fn(),
 						getRandomUnusedPreKey: jest.fn(),
-						countUnusedByUserId: jest.fn(),
+						countUnusedByUserIdAndDeviceId: jest.fn(),
 						markAsUsed: jest.fn(),
 						deleteByUserId: jest.fn(),
+						deleteByUserIdAndDeviceId: jest.fn(),
 					},
 				},
 			],
@@ -65,8 +69,8 @@ describe('SignalKeyStorageService', () => {
 			const mockIdentityKey: Partial<IdentityKey> = {
 				id: 'key-id',
 				userId: mockUserId,
+				deviceId: mockDeviceId,
 				publicKey: identityKey,
-				privateKeyEncrypted: undefined,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				user: undefined,
@@ -74,9 +78,13 @@ describe('SignalKeyStorageService', () => {
 
 			identityKeyRepository.upsertIdentityKey.mockResolvedValue(mockIdentityKey as IdentityKey);
 
-			const result = await service.storeIdentityKey(mockUserId, identityKey);
+			const result = await service.storeIdentityKey(mockUserId, mockDeviceId, identityKey);
 
-			expect(identityKeyRepository.upsertIdentityKey).toHaveBeenCalledWith(mockUserId, identityKey);
+			expect(identityKeyRepository.upsertIdentityKey).toHaveBeenCalledWith(
+				mockUserId,
+				mockDeviceId,
+				identityKey
+			);
 			expect(result).toEqual(mockIdentityKey);
 		});
 
@@ -84,7 +92,9 @@ describe('SignalKeyStorageService', () => {
 			const identityKey = 'base64-encoded-public-key';
 			identityKeyRepository.upsertIdentityKey.mockRejectedValue(new Error('Database error'));
 
-			await expect(service.storeIdentityKey(mockUserId, identityKey)).rejects.toThrow('Database error');
+			await expect(service.storeIdentityKey(mockUserId, mockDeviceId, identityKey)).rejects.toThrow(
+				'Database error'
+			);
 		});
 	});
 
@@ -109,10 +119,11 @@ describe('SignalKeyStorageService', () => {
 
 			signedPreKeyRepository.createSignedPreKey.mockResolvedValue(mockSignedPreKey as SignedPreKey);
 
-			const result = await service.storeSignedPreKey(mockUserId, signedPreKeyDto);
+			const result = await service.storeSignedPreKey(mockUserId, mockDeviceId, signedPreKeyDto);
 
 			expect(signedPreKeyRepository.createSignedPreKey).toHaveBeenCalledWith(
 				mockUserId,
+				mockDeviceId,
 				signedPreKeyDto.keyId,
 				signedPreKeyDto.publicKey,
 				signedPreKeyDto.signature,
@@ -143,10 +154,11 @@ describe('SignalKeyStorageService', () => {
 
 			preKeyRepository.createPreKeys.mockResolvedValue(mockPreKeys as PreKey[]);
 
-			const result = await service.storePreKeys(mockUserId, preKeysDto);
+			const result = await service.storePreKeys(mockUserId, mockDeviceId, preKeysDto);
 
 			expect(preKeyRepository.createPreKeys).toHaveBeenCalledWith(
 				mockUserId,
+				mockDeviceId,
 				preKeysDto.map((pk) => ({ keyId: pk.keyId, publicKey: pk.publicKey }))
 			);
 			expect(result).toEqual(mockPreKeys);
@@ -159,25 +171,28 @@ describe('SignalKeyStorageService', () => {
 			const mockIdentityKey: Partial<IdentityKey> = {
 				id: 'key-id',
 				userId: mockUserId,
+				deviceId: mockDeviceId,
 				publicKey: 'base64-key',
-				privateKeyEncrypted: undefined,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				user: undefined,
 			};
 
-			identityKeyRepository.findByUserId.mockResolvedValue(mockIdentityKey as IdentityKey);
+			identityKeyRepository.findByUserIdAndDeviceId.mockResolvedValue(mockIdentityKey as IdentityKey);
 
-			const result = await service.getIdentityKey(mockUserId);
+			const result = await service.getIdentityKey(mockUserId, mockDeviceId);
 
-			expect(identityKeyRepository.findByUserId).toHaveBeenCalledWith(mockUserId);
+			expect(identityKeyRepository.findByUserIdAndDeviceId).toHaveBeenCalledWith(
+				mockUserId,
+				mockDeviceId
+			);
 			expect(result).toEqual(mockIdentityKey);
 		});
 
 		it('should return null if no identity key exists', async () => {
-			identityKeyRepository.findByUserId.mockResolvedValue(null);
+			identityKeyRepository.findByUserIdAndDeviceId.mockResolvedValue(null);
 
-			const result = await service.getIdentityKey(mockUserId);
+			const result = await service.getIdentityKey(mockUserId, mockDeviceId);
 
 			expect(result).toBeNull();
 		});
@@ -196,18 +211,23 @@ describe('SignalKeyStorageService', () => {
 				user: undefined,
 			};
 
-			signedPreKeyRepository.findActiveByUserId.mockResolvedValue(mockSignedPreKey as SignedPreKey);
+			signedPreKeyRepository.findActiveByUserIdAndDeviceId.mockResolvedValue(
+				mockSignedPreKey as SignedPreKey
+			);
 
-			const result = await service.getActiveSignedPreKey(mockUserId);
+			const result = await service.getActiveSignedPreKey(mockUserId, mockDeviceId);
 
-			expect(signedPreKeyRepository.findActiveByUserId).toHaveBeenCalledWith(mockUserId);
+			expect(signedPreKeyRepository.findActiveByUserIdAndDeviceId).toHaveBeenCalledWith(
+				mockUserId,
+				mockDeviceId
+			);
 			expect(result).toEqual(mockSignedPreKey);
 		});
 
 		it('should return null if no active signed prekey exists', async () => {
-			signedPreKeyRepository.findActiveByUserId.mockResolvedValue(null);
+			signedPreKeyRepository.findActiveByUserIdAndDeviceId.mockResolvedValue(null);
 
-			const result = await service.getActiveSignedPreKey(mockUserId);
+			const result = await service.getActiveSignedPreKey(mockUserId, mockDeviceId);
 
 			expect(result).toBeNull();
 		});
@@ -228,16 +248,16 @@ describe('SignalKeyStorageService', () => {
 
 			preKeyRepository.getRandomUnusedPreKey.mockResolvedValue(mockPreKey as PreKey);
 
-			const result = await service.getUnusedPreKey(mockUserId);
+			const result = await service.getUnusedPreKey(mockUserId, mockDeviceId);
 
-			expect(preKeyRepository.getRandomUnusedPreKey).toHaveBeenCalledWith(mockUserId);
+			expect(preKeyRepository.getRandomUnusedPreKey).toHaveBeenCalledWith(mockUserId, mockDeviceId);
 			expect(result).toEqual(mockPreKey);
 		});
 
 		it('should return null if no unused prekeys are available', async () => {
 			preKeyRepository.getRandomUnusedPreKey.mockResolvedValue(null);
 
-			const result = await service.getUnusedPreKey(mockUserId);
+			const result = await service.getUnusedPreKey(mockUserId, mockDeviceId);
 
 			expect(result).toBeNull();
 		});
@@ -245,11 +265,14 @@ describe('SignalKeyStorageService', () => {
 
 	describe('getUnusedPreKeyCount', () => {
 		it('should return the count of unused prekeys', async () => {
-			preKeyRepository.countUnusedByUserId.mockResolvedValue(50);
+			preKeyRepository.countUnusedByUserIdAndDeviceId.mockResolvedValue(50);
 
-			const result = await service.getUnusedPreKeyCount(mockUserId);
+			const result = await service.getUnusedPreKeyCount(mockUserId, mockDeviceId);
 
-			expect(preKeyRepository.countUnusedByUserId).toHaveBeenCalledWith(mockUserId);
+			expect(preKeyRepository.countUnusedByUserIdAndDeviceId).toHaveBeenCalledWith(
+				mockUserId,
+				mockDeviceId
+			);
 			expect(result).toBe(50);
 		});
 	});

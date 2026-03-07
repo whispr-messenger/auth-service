@@ -57,6 +57,11 @@ export class PhoneAuthenticationService {
 				deviceType: deviceInfo.deviceType,
 				publicKey: deviceInfo.signalKeyBundle.identityKey,
 				ipAddress: fingerprint.ipAddress,
+				model: deviceInfo.model,
+				osVersion: deviceInfo.osVersion,
+				appVersion: deviceInfo.appVersion,
+				fcmToken: deviceInfo.fcmToken,
+				apnsToken: deviceInfo.apnsToken,
 			});
 			return device.id;
 		}

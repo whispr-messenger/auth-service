@@ -15,7 +15,7 @@ describe('SignalKeyValidationService', () => {
 				{
 					provide: SignedPreKeyRepository,
 					useValue: {
-						findByUserIdAndKeyId: jest.fn(),
+						findByUserIdDeviceIdAndKeyId: jest.fn(),
 					},
 				},
 			],
@@ -166,17 +166,17 @@ describe('SignalKeyValidationService', () => {
 
 	describe('isSignedPreKeyIdUnique', () => {
 		it('should return true if keyId is unique', async () => {
-			signedPreKeyRepo.findByUserIdAndKeyId.mockResolvedValue(null);
+			signedPreKeyRepo.findByUserIdDeviceIdAndKeyId.mockResolvedValue(null);
 
-			const result = await service.isSignedPreKeyIdUnique('user-id', 1);
+			const result = await service.isSignedPreKeyIdUnique('user-id', 'device-id', 1);
 
 			expect(result).toBe(true);
 		});
 
 		it('should return false if keyId already exists', async () => {
-			signedPreKeyRepo.findByUserIdAndKeyId.mockResolvedValue({} as any);
+			signedPreKeyRepo.findByUserIdDeviceIdAndKeyId.mockResolvedValue({} as any);
 
-			const result = await service.isSignedPreKeyIdUnique('user-id', 1);
+			const result = await service.isSignedPreKeyIdUnique('user-id', 'device-id', 1);
 
 			expect(result).toBe(false);
 		});
@@ -184,15 +184,17 @@ describe('SignalKeyValidationService', () => {
 
 	describe('validateSignedPreKeyIdUniqueness', () => {
 		it('should not throw if keyId is unique', async () => {
-			signedPreKeyRepo.findByUserIdAndKeyId.mockResolvedValue(null);
+			signedPreKeyRepo.findByUserIdDeviceIdAndKeyId.mockResolvedValue(null);
 
-			await expect(service.validateSignedPreKeyIdUniqueness('user-id', 1)).resolves.not.toThrow();
+			await expect(
+				service.validateSignedPreKeyIdUniqueness('user-id', 'device-id', 1)
+			).resolves.not.toThrow();
 		});
 
 		it('should throw if keyId already exists', async () => {
-			signedPreKeyRepo.findByUserIdAndKeyId.mockResolvedValue({} as any);
+			signedPreKeyRepo.findByUserIdDeviceIdAndKeyId.mockResolvedValue({} as any);
 
-			await expect(service.validateSignedPreKeyIdUniqueness('user-id', 1)).rejects.toThrow(
+			await expect(service.validateSignedPreKeyIdUniqueness('user-id', 'device-id', 1)).rejects.toThrow(
 				BadRequestException
 			);
 		});

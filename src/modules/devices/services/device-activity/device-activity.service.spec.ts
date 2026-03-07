@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { DeviceActivityService } from '../device-activity.service';
+import { DeviceActivityService } from './device-activity.service';
 import { DeviceRepository } from '../../repositories/device.repository';
 
 describe('DeviceActivityService', () => {
@@ -51,14 +51,12 @@ describe('DeviceActivityService', () => {
 				{ id: deviceId },
 				expect.objectContaining({
 					lastActive: expect.any(Date),
-				}),
+				})
 			);
-			expect(service['logger'].debug).toHaveBeenCalledWith(
-				`Activity updated for device: ${deviceId}`,
-			);
+			expect(service['logger'].debug).toHaveBeenCalledWith(`Activity updated for device: ${deviceId}`);
 		});
 
-		it('doit lever NotFoundException si l\'appareil n\'existe pas', async () => {
+		it("doit lever NotFoundException si l'appareil n'existe pas", async () => {
 			// Arrange
 			deviceRepository.update.mockResolvedValue({ affected: 0, raw: [], generatedMaps: [] });
 
@@ -67,7 +65,7 @@ describe('DeviceActivityService', () => {
 			await expect(service.updateLastActive(deviceId)).rejects.toThrow('Device not found');
 
 			expect(service['logger'].warn).toHaveBeenCalledWith(
-				`Device not found for activity update: ${deviceId}`,
+				`Device not found for activity update: ${deviceId}`
 			);
 		});
 
@@ -106,27 +104,21 @@ describe('DeviceActivityService', () => {
 				expect.objectContaining({
 					fcmToken,
 					lastActive: expect.any(Date),
-				}),
+				})
 			);
-			expect(service['logger'].log).toHaveBeenCalledWith(
-				`FCM token updated for device: ${deviceId}`,
-			);
+			expect(service['logger'].log).toHaveBeenCalledWith(`FCM token updated for device: ${deviceId}`);
 		});
 
-		it('doit lever NotFoundException si l\'appareil n\'existe pas', async () => {
+		it("doit lever NotFoundException si l'appareil n'existe pas", async () => {
 			// Arrange
 			deviceRepository.update.mockResolvedValue({ affected: 0, raw: [], generatedMaps: [] });
 
 			// Act & Assert
-			await expect(service.updateFCMToken(deviceId, fcmToken)).rejects.toThrow(
-				NotFoundException,
-			);
-			await expect(service.updateFCMToken(deviceId, fcmToken)).rejects.toThrow(
-				'Device not found',
-			);
+			await expect(service.updateFCMToken(deviceId, fcmToken)).rejects.toThrow(NotFoundException);
+			await expect(service.updateFCMToken(deviceId, fcmToken)).rejects.toThrow('Device not found');
 
 			expect(service['logger'].warn).toHaveBeenCalledWith(
-				`Device not found for FCM token update: ${deviceId}`,
+				`Device not found for FCM token update: ${deviceId}`
 			);
 		});
 
@@ -144,11 +136,9 @@ describe('DeviceActivityService', () => {
 				expect.objectContaining({
 					fcmToken: emptyToken,
 					lastActive: expect.any(Date),
-				}),
+				})
 			);
-			expect(service['logger'].log).toHaveBeenCalledWith(
-				`FCM token updated for device: ${deviceId}`,
-			);
+			expect(service['logger'].log).toHaveBeenCalledWith(`FCM token updated for device: ${deviceId}`);
 		});
 
 		it('doit mettre à jour fcmToken et lastActive avec des dates récentes', async () => {
@@ -190,7 +180,7 @@ describe('DeviceActivityService', () => {
 
 		it('doit retourner les appareils actifs avec le seuil par défaut (30 jours)', async () => {
 			// Arrange
-			deviceRepository.findActiveDevices.mockResolvedValue(mockDevices);
+			deviceRepository.findActiveDevices.mockResolvedValue(mockDevices as any);
 
 			// Act
 			const result = await service.getActiveDevices(userId);
@@ -204,7 +194,7 @@ describe('DeviceActivityService', () => {
 		it('doit retourner les appareils actifs avec un seuil personnalisé', async () => {
 			// Arrange
 			const customThreshold = 7;
-			deviceRepository.findActiveDevices.mockResolvedValue(mockDevices);
+			deviceRepository.findActiveDevices.mockResolvedValue(mockDevices as any);
 
 			// Act
 			const result = await service.getActiveDevices(userId, customThreshold);
@@ -242,7 +232,7 @@ describe('DeviceActivityService', () => {
 		it('doit gérer un seuil très élevé', async () => {
 			// Arrange
 			const highThreshold = 365;
-			deviceRepository.findActiveDevices.mockResolvedValue(mockDevices);
+			deviceRepository.findActiveDevices.mockResolvedValue(mockDevices as any);
 
 			// Act
 			const result = await service.getActiveDevices(userId, highThreshold);
@@ -255,7 +245,7 @@ describe('DeviceActivityService', () => {
 		it('doit passer la valeur de seuil exacte au repository', async () => {
 			// Arrange
 			const specificThreshold = 15;
-			deviceRepository.findActiveDevices.mockResolvedValue(mockDevices);
+			deviceRepository.findActiveDevices.mockResolvedValue(mockDevices as any);
 
 			// Act
 			await service.getActiveDevices(userId, specificThreshold);
@@ -274,9 +264,7 @@ describe('DeviceActivityService', () => {
 			deviceRepository.update.mockResolvedValue({ affected: 0, raw: [], generatedMaps: [] });
 
 			// Act & Assert
-			await expect(service.updateLastActive(emptyDeviceId)).rejects.toThrow(
-				NotFoundException,
-			);
+			await expect(service.updateLastActive(emptyDeviceId)).rejects.toThrow(NotFoundException);
 		});
 
 		it('updateFCMToken doit gérer un deviceId invalide', async () => {
@@ -287,7 +275,7 @@ describe('DeviceActivityService', () => {
 
 			// Act & Assert
 			await expect(service.updateFCMToken(invalidDeviceId, fcmToken)).rejects.toThrow(
-				NotFoundException,
+				NotFoundException
 			);
 		});
 
@@ -300,16 +288,13 @@ describe('DeviceActivityService', () => {
 			const result = await service.getActiveDevices('user-123', negativeThreshold);
 
 			// Assert
-			expect(deviceRepository.findActiveDevices).toHaveBeenCalledWith(
-				'user-123',
-				negativeThreshold,
-			);
+			expect(deviceRepository.findActiveDevices).toHaveBeenCalledWith('user-123', negativeThreshold);
 			expect(result).toEqual([]);
 		});
 	});
 
 	describe('Logger Behavior', () => {
-		it('doit logger en debug lors d\'une mise à jour réussie de lastActive', async () => {
+		it("doit logger en debug lors d'une mise à jour réussie de lastActive", async () => {
 			// Arrange
 			const deviceId = 'device-123';
 			deviceRepository.update.mockResolvedValue({ affected: 1, raw: [], generatedMaps: [] });
@@ -320,11 +305,11 @@ describe('DeviceActivityService', () => {
 			// Assert
 			expect(service['logger'].debug).toHaveBeenCalledTimes(1);
 			expect(service['logger'].debug).toHaveBeenCalledWith(
-				expect.stringContaining('Activity updated for device'),
+				expect.stringContaining('Activity updated for device')
 			);
 		});
 
-		it('doit logger un warning lors d\'un échec de mise à jour de lastActive', async () => {
+		it("doit logger un warning lors d'un échec de mise à jour de lastActive", async () => {
 			// Arrange
 			const deviceId = 'device-123';
 			deviceRepository.update.mockResolvedValue({ affected: 0, raw: [], generatedMaps: [] });
@@ -332,18 +317,18 @@ describe('DeviceActivityService', () => {
 			// Act
 			try {
 				await service.updateLastActive(deviceId);
-			} catch (error) {
+			} catch {
 				// Expected exception
 			}
 
 			// Assert
 			expect(service['logger'].warn).toHaveBeenCalledTimes(1);
 			expect(service['logger'].warn).toHaveBeenCalledWith(
-				expect.stringContaining('Device not found for activity update'),
+				expect.stringContaining('Device not found for activity update')
 			);
 		});
 
-		it('doit logger en log lors d\'une mise à jour réussie du FCM token', async () => {
+		it("doit logger en log lors d'une mise à jour réussie du FCM token", async () => {
 			// Arrange
 			const deviceId = 'device-123';
 			const fcmToken = 'token-123';
@@ -355,11 +340,11 @@ describe('DeviceActivityService', () => {
 			// Assert
 			expect(service['logger'].log).toHaveBeenCalledTimes(1);
 			expect(service['logger'].log).toHaveBeenCalledWith(
-				expect.stringContaining('FCM token updated for device'),
+				expect.stringContaining('FCM token updated for device')
 			);
 		});
 
-		it('doit logger un warning lors d\'un échec de mise à jour du FCM token', async () => {
+		it("doit logger un warning lors d'un échec de mise à jour du FCM token", async () => {
 			// Arrange
 			const deviceId = 'device-123';
 			const fcmToken = 'token-123';
@@ -368,14 +353,14 @@ describe('DeviceActivityService', () => {
 			// Act
 			try {
 				await service.updateFCMToken(deviceId, fcmToken);
-			} catch (error) {
+			} catch {
 				// Expected exception
 			}
 
 			// Assert
 			expect(service['logger'].warn).toHaveBeenCalledTimes(1);
 			expect(service['logger'].warn).toHaveBeenCalledWith(
-				expect.stringContaining('Device not found for FCM token update'),
+				expect.stringContaining('Device not found for FCM token update')
 			);
 		});
 	});

@@ -10,7 +10,7 @@ export class DeviceRegistrationService {
 
 	constructor(
 		private readonly deviceRepository: DeviceRepository,
-		private readonly dataSource: DataSource,
+		private readonly dataSource: DataSource
 	) {}
 
 	async registerDevice(data: DeviceRegistrationData): Promise<Device> {
@@ -20,7 +20,7 @@ export class DeviceRegistrationService {
 			const existingDevice = await transactionRepository.findByUserAndFingerprint(
 				data.userId,
 				data.deviceName,
-				data.deviceType,
+				data.deviceType
 			);
 
 			if (existingDevice) {
@@ -36,11 +36,15 @@ export class DeviceRegistrationService {
 	private async updateExistingDevice(
 		existingDevice: Device,
 		data: DeviceRegistrationData,
-		repository: DeviceRepository,
+		repository: DeviceRepository
 	): Promise<Device> {
 		existingDevice.publicKey = data.publicKey;
 		existingDevice.ipAddress = data.ipAddress || '';
-		existingDevice.fcmToken = data.fcmToken || '';
+		existingDevice.model = data.model || existingDevice.model;
+		existingDevice.osVersion = data.osVersion || existingDevice.osVersion;
+		existingDevice.appVersion = data.appVersion || existingDevice.appVersion;
+		existingDevice.fcmToken = data.fcmToken || existingDevice.fcmToken;
+		existingDevice.apnsToken = data.apnsToken || existingDevice.apnsToken;
 		existingDevice.lastActive = new Date();
 		existingDevice.isVerified = true;
 
@@ -49,7 +53,7 @@ export class DeviceRegistrationService {
 
 	private async createNewDevice(
 		data: DeviceRegistrationData,
-		repository: DeviceRepository,
+		repository: DeviceRepository
 	): Promise<Device> {
 		const device = repository.create({
 			userId: data.userId,
@@ -57,7 +61,11 @@ export class DeviceRegistrationService {
 			deviceType: data.deviceType,
 			publicKey: data.publicKey,
 			ipAddress: data.ipAddress,
+			model: data.model,
+			osVersion: data.osVersion,
+			appVersion: data.appVersion,
 			fcmToken: data.fcmToken,
+			apnsToken: data.apnsToken,
 			isVerified: true,
 			lastActive: new Date(),
 		});
@@ -66,10 +74,7 @@ export class DeviceRegistrationService {
 	}
 
 	async verifyDevice(deviceId: string): Promise<void> {
-		const result = await this.deviceRepository.update(
-			{ id: deviceId },
-			{ isVerified: true },
-		);
+		const result = await this.deviceRepository.update({ id: deviceId }, { isVerified: true });
 
 		if (result.affected === 0) {
 			this.logger.warn(`No device found for verification: ${deviceId}`);

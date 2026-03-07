@@ -2,24 +2,23 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../src/modules/app/app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { JwtAuthGuard } from '../src/modules/authentication/guards/jwt-auth.guard';
-import { RateLimitGuard } from '../src/modules/authentication/guards/rate-limit.guard';
+import { JwtAuthGuard } from '../src/modules/tokens/guards/jwt-auth.guard';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { UserAuth } from '../src/modules/two-factor-authentication/user-auth.entity';
-import { Device } from '../src/modules/devices/device.entity';
-import { PreKey } from '../src/modules/authentication/entities/prekey.entity';
-import { SignedPreKey } from '../src/modules/authentication/entities/signed-prekey.entity';
-import { IdentityKey } from '../src/modules/authentication/entities/identity-key.entity';
-import { BackupCode } from '../src/modules/authentication/entities/backup-code.entity';
-import { LoginHistory } from '../src/modules/authentication/entities/login-history.entity';
+import { UserAuth } from '../src/modules/common/entities/user-auth.entity';
+import { Device } from '../src/modules/devices/entities/device.entity';
+import { PreKey } from '../src/modules/signal/entities/prekey.entity';
+import { SignedPreKey } from '../src/modules/signal/entities/signed-prekey.entity';
+import { IdentityKey } from '../src/modules/signal/entities/identity-key.entity';
+import { BackupCode } from '../src/modules/two-factor-authentication/entities/backup-code.entity';
+import { LoginHistory } from '../src/modules/phone-auth/entities/login-history.entity';
 import { CacheService } from '../src/modules/cache';
 import { RedisConfig } from '../src/config/redis.config';
-import { AuthService } from '../src/modules/authentication/services/auth.service';
+import { PhoneAuthenticationService } from '../src/modules/phone-auth/services/phone-authentication.service';
 import { TokensService } from '../src/modules/tokens/services/tokens.service';
 import { JwtService } from '@nestjs/jwt';
-import { PhoneVerificationService } from 'src/modules/phone-verification/services/phone-verification/phone-verification.service';
-import { TwoFactorAuthenticationService } from 'src/modules/two-factor-authentication/two-factor-authentication.service';
-import { DevicesService } from 'src/modules/devices/devices.service';
+import { PhoneVerificationService } from '../src/modules/phone-verification/services/phone-verification/phone-verification.service';
+import { TwoFactorAuthenticationService } from '../src/modules/two-factor-authentication/services/two-factor-authentication.service';
+import { DevicesService } from '../src/modules/devices/services/devices.service';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const request = require('supertest');
@@ -106,7 +105,7 @@ describe('AuthController (e2e)', () => {
 				.useValue(mockRedisConfig)
 				.overrideProvider(CacheService)
 				.useValue(mockCacheService)
-				.overrideProvider(AuthService)
+				.overrideProvider(PhoneAuthenticationService)
 				.useValue(mockAuthService)
 				.overrideProvider(PhoneVerificationService)
 				.useValue(mockVerificationService)
@@ -119,8 +118,6 @@ describe('AuthController (e2e)', () => {
 				.overrideProvider(JwtService)
 				.useValue(mockJwtService)
 				.overrideGuard(JwtAuthGuard)
-				.useValue({ canActivate: () => true })
-				.overrideGuard(RateLimitGuard)
 				.useValue({ canActivate: () => true })
 				.compile();
 

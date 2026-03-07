@@ -22,7 +22,7 @@ describe('DevicesController', () => {
 		lastActive: new Date('2026-01-09T10:00:00Z'),
 		createdAt: new Date('2026-01-01T00:00:00Z'),
 		isVerified: true,
-		fcmToken: 'test-fcm-token',
+		isActive: true,
 	};
 
 	const mockRequest = {
@@ -75,7 +75,7 @@ describe('DevicesController', () => {
 			});
 
 			it('should return a single device with all properties', async () => {
-				devicesService.getUserDevices.mockResolvedValue([mockDevice]);
+				devicesService.getUserDevices.mockResolvedValue([mockDevice] as any);
 
 				const result = await controller.getDevices(mockRequest);
 
@@ -110,7 +110,7 @@ describe('DevicesController', () => {
 					},
 				];
 
-				devicesService.getUserDevices.mockResolvedValue(mockDevices);
+				devicesService.getUserDevices.mockResolvedValue(mockDevices as any);
 
 				const result = await controller.getDevices(mockRequest);
 
@@ -137,7 +137,7 @@ describe('DevicesController', () => {
 
 		describe('Data validation', () => {
 			it('should return properly formed DeviceResponseDto objects', async () => {
-				devicesService.getUserDevices.mockResolvedValue([mockDevice]);
+				devicesService.getUserDevices.mockResolvedValue([mockDevice] as any);
 
 				const result = await controller.getDevices(mockRequest);
 
@@ -158,11 +158,10 @@ describe('DevicesController', () => {
 					lastActive: new Date(),
 					createdAt: new Date(),
 					isVerified: false,
+					isActive: false,
 				};
 
-				devicesService.getUserDevices.mockResolvedValue([
-					deviceWithoutOptionalFields,
-				]);
+				devicesService.getUserDevices.mockResolvedValue([deviceWithoutOptionalFields] as any);
 
 				const result = await controller.getDevices(mockRequest);
 
@@ -193,10 +192,7 @@ describe('DevicesController', () => {
 				const result = await controller.revokeDevice(mockRequest, mockDeviceId);
 
 				expect(result).toBeUndefined();
-				expect(devicesService.revokeDevice).toHaveBeenCalledWith(
-					mockUserId,
-					mockDeviceId,
-				);
+				expect(devicesService.revokeDevice).toHaveBeenCalledWith(mockUserId, mockDeviceId);
 				expect(devicesService.revokeDevice).toHaveBeenCalledTimes(1);
 			});
 
@@ -205,10 +201,7 @@ describe('DevicesController', () => {
 
 				await controller.revokeDevice(mockRequest, mockDeviceId);
 
-				expect(devicesService.revokeDevice).toHaveBeenCalledWith(
-					mockUserId,
-					mockDeviceId,
-				);
+				expect(devicesService.revokeDevice).toHaveBeenCalledWith(mockUserId, mockDeviceId);
 			});
 
 			it('should use the userId from the JWT token', async () => {
@@ -223,10 +216,7 @@ describe('DevicesController', () => {
 
 				await controller.revokeDevice(customRequest, mockDeviceId);
 
-				expect(devicesService.revokeDevice).toHaveBeenCalledWith(
-					customUserId,
-					mockDeviceId,
-				);
+				expect(devicesService.revokeDevice).toHaveBeenCalledWith(customUserId, mockDeviceId);
 			});
 		});
 
@@ -237,10 +227,7 @@ describe('DevicesController', () => {
 
 				await controller.revokeDevice(mockRequest, validUuid);
 
-				expect(devicesService.revokeDevice).toHaveBeenCalledWith(
-					mockUserId,
-					validUuid,
-				);
+				expect(devicesService.revokeDevice).toHaveBeenCalledWith(mockUserId, validUuid);
 			});
 
 			it('should handle different deviceId formats', async () => {
@@ -251,51 +238,40 @@ describe('DevicesController', () => {
 
 					await controller.revokeDevice(mockRequest, deviceId);
 
-					expect(devicesService.revokeDevice).toHaveBeenCalledWith(
-						mockUserId,
-						deviceId,
-					);
+					expect(devicesService.revokeDevice).toHaveBeenCalledWith(mockUserId, deviceId);
 				}
 			});
 		});
 
 		describe('Error cases', () => {
 			it('should throw NotFoundException when device does not exist', async () => {
-				devicesService.revokeDevice.mockRejectedValue(
-					new NotFoundException('Device not found'),
-				);
+				devicesService.revokeDevice.mockRejectedValue(new NotFoundException('Device not found'));
 
-				await expect(
-					controller.revokeDevice(mockRequest, 'non-existent-device'),
-				).rejects.toThrow(NotFoundException);
+				await expect(controller.revokeDevice(mockRequest, 'non-existent-device')).rejects.toThrow(
+					NotFoundException
+				);
 			});
 
 			it('should throw NotFoundException when device does not belong to user', async () => {
-				devicesService.revokeDevice.mockRejectedValue(
-					new NotFoundException('Device not found'),
-				);
+				devicesService.revokeDevice.mockRejectedValue(new NotFoundException('Device not found'));
 
-				await expect(
-					controller.revokeDevice(mockRequest, 'other-user-device'),
-				).rejects.toThrow(NotFoundException);
+				await expect(controller.revokeDevice(mockRequest, 'other-user-device')).rejects.toThrow(
+					NotFoundException
+				);
 			});
 
 			it('should propagate service exceptions', async () => {
 				const error = new Error('Database error');
 				devicesService.revokeDevice.mockRejectedValue(error);
 
-				await expect(
-					controller.revokeDevice(mockRequest, mockDeviceId),
-				).rejects.toThrow(error);
+				await expect(controller.revokeDevice(mockRequest, mockDeviceId)).rejects.toThrow(error);
 			});
 
 			it('should handle service throwing other types of errors', async () => {
 				const customError = new Error('Unexpected error');
 				devicesService.revokeDevice.mockRejectedValue(customError);
 
-				await expect(
-					controller.revokeDevice(mockRequest, mockDeviceId),
-				).rejects.toThrow(customError);
+				await expect(controller.revokeDevice(mockRequest, mockDeviceId)).rejects.toThrow(customError);
 			});
 		});
 	});
@@ -307,7 +283,7 @@ describe('DevicesController', () => {
 		});
 
 		it('should delegate business logic to the service', async () => {
-			devicesService.getUserDevices.mockResolvedValue([mockDevice]);
+			devicesService.getUserDevices.mockResolvedValue([mockDevice] as any);
 
 			await controller.getDevices(mockRequest);
 
@@ -317,7 +293,7 @@ describe('DevicesController', () => {
 
 		it('should not modify data returned by the service', async () => {
 			const serviceResponse = [mockDevice];
-			devicesService.getUserDevices.mockResolvedValue(serviceResponse);
+			devicesService.getUserDevices.mockResolvedValue(serviceResponse as any);
 
 			const result = await controller.getDevices(mockRequest);
 
@@ -327,10 +303,7 @@ describe('DevicesController', () => {
 
 	describe('Integration with Guards and Decorators', () => {
 		it('should be protected by JwtAuthGuard', () => {
-			const guards = Reflect.getMetadata(
-				'__guards__',
-				controller.getDevices,
-			);
+			const guards = Reflect.getMetadata('__guards__', controller.getDevices);
 			// Note: This test verifies the guard is applied via decorator
 			// Actual authentication is tested at the E2E level
 			expect(guards).toBeDefined();
@@ -348,9 +321,7 @@ describe('DevicesController', () => {
 
 			await controller.getDevices(requestWithToken);
 
-			expect(devicesService.getUserDevices).toHaveBeenCalledWith(
-				'token-user-id',
-			);
+			expect(devicesService.getUserDevices).toHaveBeenCalledWith('token-user-id');
 		});
 	});
 

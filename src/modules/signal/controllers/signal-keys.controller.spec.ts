@@ -33,44 +33,6 @@ describe('SignalKeysController', () => {
 		expect(controller).toBeDefined();
 	});
 
-	describe('getKeyBundle', () => {
-		it('should return a key bundle for a user', async () => {
-			const mockBundle: KeyBundleResponseDto = {
-				userId: mockUserId,
-				identityKey: 'identity-key-base64',
-				signedPreKey: {
-					keyId: 1,
-					publicKey: 'signed-prekey-base64',
-					signature: 'signature-base64',
-				},
-				preKey: {
-					keyId: 42,
-					publicKey: 'prekey-base64',
-				},
-			};
-
-			prKeyBundleService.getBundleForUser.mockResolvedValue(mockBundle);
-
-			const result = await controller.getKeyBundle(mockUserId);
-
-			expect(result).toEqual(mockBundle);
-			expect(prKeyBundleService.getBundleForUser).toHaveBeenCalledWith(mockUserId);
-		});
-
-		it('should throw NotFoundException if user has no keys', async () => {
-			prKeyBundleService.getBundleForUser.mockRejectedValue(new NotFoundException('No keys found'));
-
-			await expect(controller.getKeyBundle(mockUserId)).rejects.toThrow(NotFoundException);
-		});
-
-		it('should rethrow other errors', async () => {
-			const error = new Error('Database error');
-			prKeyBundleService.getBundleForUser.mockRejectedValue(error);
-
-			await expect(controller.getKeyBundle(mockUserId)).rejects.toThrow(error);
-		});
-	});
-
 	describe('getKeyBundleForDevice', () => {
 		it('should return a key bundle for a specific device', async () => {
 			const mockBundle: KeyBundleResponseDto = {
@@ -81,6 +43,10 @@ describe('SignalKeysController', () => {
 					keyId: 1,
 					publicKey: 'signed-prekey-base64',
 					signature: 'signature-base64',
+				},
+				preKey: {
+					keyId: 42,
+					publicKey: 'prekey-base64',
 				},
 			};
 
@@ -101,6 +67,13 @@ describe('SignalKeysController', () => {
 				NotFoundException
 			);
 		});
+
+		it('should rethrow other errors', async () => {
+			const error = new Error('Database error');
+			prKeyBundleService.getBundleForUser.mockRejectedValue(error);
+
+			await expect(controller.getKeyBundleForDevice(mockUserId, mockDeviceId)).rejects.toThrow(error);
+		});
 	});
 
 	describe('getPreKeyStatus', () => {
@@ -116,10 +89,10 @@ describe('SignalKeysController', () => {
 
 			prKeyBundleService.getPreKeyStatus.mockResolvedValue(mockStatus);
 
-			const result = await controller.getPreKeyStatus(mockUserId);
+			const result = await controller.getPreKeyStatus(mockUserId, mockDeviceId);
 
 			expect(result).toEqual(mockStatus);
-			expect(prKeyBundleService.getPreKeyStatus).toHaveBeenCalledWith(mockUserId);
+			expect(prKeyBundleService.getPreKeyStatus).toHaveBeenCalledWith(mockUserId, mockDeviceId);
 		});
 
 		it('should return status indicating low prekeys', async () => {
@@ -134,7 +107,7 @@ describe('SignalKeysController', () => {
 
 			prKeyBundleService.getPreKeyStatus.mockResolvedValue(mockStatus);
 
-			const result = await controller.getPreKeyStatus(mockUserId);
+			const result = await controller.getPreKeyStatus(mockUserId, mockDeviceId);
 
 			expect(result.isLow).toBe(true);
 			expect(result.recommendedUpload).toBe(90);

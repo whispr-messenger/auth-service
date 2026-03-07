@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { CacheService } from '../../../cache/cache.service';
 import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { QuickResponseCodeService } from './quick-response-code.service';
 import { Device } from '../../entities/device.entity';
 import { UserAuth } from '../../../common/entities/user-auth.entity';
-import { DeviceRegistrationService } from '../../services/device-registration.service';
+import { DeviceRegistrationService } from '../../services/device-registration/device-registration.service';
 import { TokensService } from '../../../tokens/services/tokens.service';
 import { ScanLoginDto } from '../dto/scan-login.dto';
 import { DeviceFingerprint } from '../../types/device-fingerprint.interface';
@@ -16,7 +16,7 @@ import { QRChallengeData } from '../types/quick-response-challeng-data.interface
 
 describe('QuickResponseCodeService', () => {
 	let service: QuickResponseCodeService;
-	let cacheManager: jest.Mocked<Cache>;
+	let cacheService: jest.Mocked<CacheService>;
 	let jwtService: jest.Mocked<JwtService>;
 	let deviceRegistrationService: jest.Mocked<DeviceRegistrationService>;
 	let tokensService: jest.Mocked<TokensService>;
@@ -34,7 +34,7 @@ describe('QuickResponseCodeService', () => {
 		model: 'iPhone 13 Pro',
 		osVersion: 'iOS 17.0',
 		appVersion: '1.0.0',
-		fcmToken: null,
+		fcmToken: '',
 		apnsToken: 'apns-token-123',
 		lastActive: new Date('2026-01-09T10:00:00Z'),
 		ipAddress: '192.168.1.1',
@@ -42,13 +42,13 @@ describe('QuickResponseCodeService', () => {
 		isActive: true,
 		createdAt: new Date('2026-01-01T00:00:00Z'),
 		updatedAt: new Date('2026-01-09T10:00:00Z'),
-		user: null,
+		user: null as any,
 	} as Device;
 
 	const mockUserAuth: UserAuth = {
 		id: 'user-456',
 		phoneNumber: '+33612345678',
-		twoFactorSecret: null,
+		twoFactorSecret: null as any,
 		twoFactorEnabled: false,
 		lastAuthenticatedAt: new Date('2026-01-08T10:00:00Z'),
 		createdAt: new Date('2026-01-01T00:00:00Z'),
@@ -102,7 +102,7 @@ describe('QuickResponseCodeService', () => {
 			providers: [
 				QuickResponseCodeService,
 				{
-					provide: CACHE_MANAGER,
+					provide: CacheService,
 					useValue: mockCacheManager,
 				},
 				{
@@ -129,7 +129,7 @@ describe('QuickResponseCodeService', () => {
 		}).compile();
 
 		service = module.get<QuickResponseCodeService>(QuickResponseCodeService);
-		cacheManager = module.get(CACHE_MANAGER);
+		cacheService = module.get(CacheService);
 		jwtService = module.get(JwtService);
 		deviceRegistrationService = module.get(DeviceRegistrationService);
 		tokensService = module.get(TokensService);
@@ -155,7 +155,7 @@ describe('QuickResponseCodeService', () => {
 			});
 		});
 
-		describe('Cas d\'Erreur', () => {
+		describe("Cas d'Erreur", () => {
 			it('should throw NotFoundException when device does not exist', async () => {
 				deviceRepository.findOne.mockResolvedValue(null);
 
@@ -202,7 +202,7 @@ describe('QuickResponseCodeService', () => {
 					}),
 					{ algorithm: 'ES256' }
 				);
-				expect(cacheManager.set).toHaveBeenCalledWith(
+				expect(cacheService.set).toHaveBeenCalledWith(
 					expect.stringContaining('qr_challenge:'),
 					expect.any(String),
 					300000
@@ -212,7 +212,7 @@ describe('QuickResponseCodeService', () => {
 			});
 		});
 
-		describe('Cas d\'Erreur', () => {
+		describe("Cas d'Erreur", () => {
 			it('should throw NotFoundException when authenticated device does not exist', async () => {
 				deviceRepository.findOne.mockResolvedValue(null);
 
@@ -252,7 +252,7 @@ describe('QuickResponseCodeService', () => {
 
 				await service.generateQRChallenge('device-123');
 
-				const signCall = jwtService.sign.mock.calls[0][0];
+				const signCall = jwtService.sign.mock.calls[0][0] as Record<string, any>;
 				const expectedExp = Math.floor((now + 5 * 60 * 1000) / 1000);
 				expect(signCall.exp).toBe(expectedExp);
 
@@ -271,14 +271,14 @@ describe('QuickResponseCodeService', () => {
 
 				await service.generateQRChallenge('device-123');
 
-				expect(cacheManager.set).toHaveBeenCalledWith(
+				expect(cacheService.set).toHaveBeenCalledWith(
 					expect.stringContaining('qr_challenge:'),
 					expect.any(String),
 					300000 // 5 minutes en millisecondes
 				);
 
-				const cacheKey = cacheManager.set.mock.calls[0][0] as string;
-				const cacheValue = JSON.parse(cacheManager.set.mock.calls[0][1] as string);
+				const cacheKey = cacheService.set.mock.calls[0][0] as string;
+				const cacheValue = JSON.parse(cacheService.set.mock.calls[0][1] as string);
 
 				expect(cacheKey).toMatch(/^qr_challenge:/);
 				expect(cacheValue).toHaveProperty('userId', 'user-456');
@@ -326,7 +326,7 @@ describe('QuickResponseCodeService', () => {
 					deviceId: 'device-123',
 					userId: 'user-456',
 				});
-				cacheManager.get.mockResolvedValue(JSON.stringify(mockChallengeData));
+				cacheService.get.mockResolvedValue(JSON.stringify(mockChallengeData));
 				deviceRegistrationService.registerDevice.mockResolvedValue(newDevice);
 				userAuthRepository.findOne.mockResolvedValue(mockUserAuth);
 				userAuthRepository.save.mockResolvedValue(mockUserAuth);
@@ -363,7 +363,7 @@ describe('QuickResponseCodeService', () => {
 					deviceId: 'device-123',
 					userId: 'user-456',
 				});
-				cacheManager.get.mockResolvedValue(JSON.stringify(mockChallengeData));
+				cacheService.get.mockResolvedValue(JSON.stringify(mockChallengeData));
 				userAuthRepository.findOne.mockResolvedValue(mockUserAuth);
 				userAuthRepository.save.mockResolvedValue(mockUserAuth);
 				tokensService.generateTokenPair.mockResolvedValue(mockTokenPair);
@@ -380,7 +380,7 @@ describe('QuickResponseCodeService', () => {
 			});
 		});
 
-		describe('Cas d\'Erreur - Challenge Invalide', () => {
+		describe("Cas d'Erreur - Challenge Invalide", () => {
 			it('should throw BadRequestException when challenge is invalid', async () => {
 				const dto: ScanLoginDto = {
 					challenge: 'invalid-jwt',
@@ -417,12 +417,12 @@ describe('QuickResponseCodeService', () => {
 					deviceId: 'device-123',
 					userId: 'user-456',
 				});
-				cacheManager.get.mockResolvedValue(JSON.stringify(expiredChallengeData));
+				cacheService.get.mockResolvedValue(JSON.stringify(expiredChallengeData));
 
 				await expect(service.scanLogin(dto, mockFingerprint)).rejects.toThrow(
 					new BadRequestException('Challenge QR expiré')
 				);
-				expect(cacheManager.del).toHaveBeenCalledWith('qr_challenge:challenge-789');
+				expect(cacheService.del).toHaveBeenCalledWith('qr_challenge:challenge-789');
 			});
 
 			it('should throw ForbiddenException when authenticatedDeviceId does not match challenge', async () => {
@@ -455,7 +455,7 @@ describe('QuickResponseCodeService', () => {
 					deviceId: 'device-123',
 					userId: 'user-456',
 				});
-				cacheManager.get.mockResolvedValue(JSON.stringify(mockChallengeData));
+				cacheService.get.mockResolvedValue(JSON.stringify(mockChallengeData));
 				userAuthRepository.findOne.mockResolvedValue(mockUserAuth);
 				userAuthRepository.save.mockResolvedValue(mockUserAuth);
 				tokensService.generateTokenPair.mockResolvedValue(mockTokenPair);
@@ -480,7 +480,7 @@ describe('QuickResponseCodeService', () => {
 					deviceId: 'device-123',
 					userId: 'user-456',
 				});
-				cacheManager.get.mockResolvedValue(JSON.stringify(mockChallengeData));
+				cacheService.get.mockResolvedValue(JSON.stringify(mockChallengeData));
 				userAuthRepository.findOne.mockResolvedValue(null);
 				tokensService.generateTokenPair.mockResolvedValue(mockTokenPair);
 
@@ -518,7 +518,7 @@ describe('QuickResponseCodeService', () => {
 					deviceId: 'device-123',
 					userId: 'user-456',
 				});
-				cacheManager.get.mockResolvedValue(JSON.stringify(mockChallengeData));
+				cacheService.get.mockResolvedValue(JSON.stringify(mockChallengeData));
 
 				const result = await service.validateQRChallenge(mockChallenge, 'device-123');
 
@@ -526,20 +526,20 @@ describe('QuickResponseCodeService', () => {
 				expect(jwtService.verify).toHaveBeenCalledWith(mockChallenge, {
 					algorithms: ['ES256'],
 				});
-				expect(cacheManager.get).toHaveBeenCalledWith('qr_challenge:challenge-789');
-				expect(cacheManager.del).toHaveBeenCalledWith('qr_challenge:challenge-789');
+				expect(cacheService.get).toHaveBeenCalledWith('qr_challenge:challenge-789');
+				expect(cacheService.del).toHaveBeenCalledWith('qr_challenge:challenge-789');
 			});
 		});
 
-		describe('Cas d\'Erreur - JWT Invalide', () => {
+		describe("Cas d'Erreur - JWT Invalide", () => {
 			it('should throw BadRequestException for invalid JWT signature', async () => {
 				jwtService.verify.mockImplementation(() => {
 					throw new Error('Invalid signature');
 				});
 
-				await expect(
-					service.validateQRChallenge('invalid-jwt', 'device-123')
-				).rejects.toThrow(new BadRequestException('Challenge QR invalide'));
+				await expect(service.validateQRChallenge('invalid-jwt', 'device-123')).rejects.toThrow(
+					new BadRequestException('Challenge QR invalide')
+				);
 			});
 
 			it('should throw BadRequestException for malformed JWT', async () => {
@@ -547,13 +547,13 @@ describe('QuickResponseCodeService', () => {
 					throw new Error('Malformed token');
 				});
 
-				await expect(
-					service.validateQRChallenge('not-a-jwt', 'device-123')
-				).rejects.toThrow(new BadRequestException('Challenge QR invalide'));
+				await expect(service.validateQRChallenge('not-a-jwt', 'device-123')).rejects.toThrow(
+					new BadRequestException('Challenge QR invalide')
+				);
 			});
 		});
 
-		describe('Cas d\'Erreur - Device Mismatch', () => {
+		describe("Cas d'Erreur - Device Mismatch", () => {
 			it('should throw ForbiddenException when authenticatedDeviceId does not match', async () => {
 				jwtService.verify.mockReturnValue({
 					challengeId: 'challenge-789',
@@ -567,18 +567,18 @@ describe('QuickResponseCodeService', () => {
 			});
 		});
 
-		describe('Cas d\'Erreur - Challenge Expiré ou Absent', () => {
+		describe("Cas d'Erreur - Challenge Expiré ou Absent", () => {
 			it('should throw BadRequestException when challenge not found in cache', async () => {
 				jwtService.verify.mockReturnValue({
 					challengeId: 'challenge-789',
 					deviceId: 'device-123',
 					userId: 'user-456',
 				});
-				cacheManager.get.mockResolvedValue(null);
+				cacheService.get.mockResolvedValue(null);
 
-				await expect(
-					service.validateQRChallenge(mockChallenge, 'device-123')
-				).rejects.toThrow(new BadRequestException('Challenge QR expiré ou invalide'));
+				await expect(service.validateQRChallenge(mockChallenge, 'device-123')).rejects.toThrow(
+					new BadRequestException('Challenge QR expiré ou invalide')
+				);
 			});
 
 			it('should throw BadRequestException when challenge data is expired', async () => {
@@ -597,12 +597,12 @@ describe('QuickResponseCodeService', () => {
 					deviceId: 'device-123',
 					userId: 'user-456',
 				});
-				cacheManager.get.mockResolvedValue(JSON.stringify(expiredChallengeData));
+				cacheService.get.mockResolvedValue(JSON.stringify(expiredChallengeData));
 
-				await expect(
-					service.validateQRChallenge(mockChallenge, 'device-123')
-				).rejects.toThrow(new BadRequestException('Challenge QR expiré'));
-				expect(cacheManager.del).toHaveBeenCalledWith('qr_challenge:challenge-789');
+				await expect(service.validateQRChallenge(mockChallenge, 'device-123')).rejects.toThrow(
+					new BadRequestException('Challenge QR expiré')
+				);
+				expect(cacheService.del).toHaveBeenCalledWith('qr_challenge:challenge-789');
 			});
 		});
 
@@ -613,11 +613,11 @@ describe('QuickResponseCodeService', () => {
 					deviceId: 'device-123',
 					userId: 'user-456',
 				});
-				cacheManager.get.mockResolvedValue(JSON.stringify(mockChallengeData));
+				cacheService.get.mockResolvedValue(JSON.stringify(mockChallengeData));
 
 				await service.validateQRChallenge(mockChallenge, 'device-123');
 
-				expect(cacheManager.del).toHaveBeenCalledWith('qr_challenge:challenge-789');
+				expect(cacheService.del).toHaveBeenCalledWith('qr_challenge:challenge-789');
 			});
 
 			it('should not allow challenge reuse', async () => {
@@ -627,22 +627,22 @@ describe('QuickResponseCodeService', () => {
 					userId: 'user-456',
 				});
 				// Première utilisation: succès
-				cacheManager.get.mockResolvedValueOnce(JSON.stringify(mockChallengeData));
+				cacheService.get.mockResolvedValueOnce(JSON.stringify(mockChallengeData));
 				// Deuxième utilisation: challenge n'existe plus
-				cacheManager.get.mockResolvedValueOnce(null);
+				cacheService.get.mockResolvedValueOnce(null);
 
 				// Premier appel réussit
 				await service.validateQRChallenge(mockChallenge, 'device-123');
 
 				// Deuxième appel échoue
-				await expect(
-					service.validateQRChallenge(mockChallenge, 'device-123')
-				).rejects.toThrow(new BadRequestException('Challenge QR expiré ou invalide'));
+				await expect(service.validateQRChallenge(mockChallenge, 'device-123')).rejects.toThrow(
+					new BadRequestException('Challenge QR expiré ou invalide')
+				);
 			});
 		});
 	});
 
-	describe('Tests d\'Intégration entre Méthodes', () => {
+	describe("Tests d'Intégration entre Méthodes", () => {
 		describe('Flow Complet', () => {
 			it('should complete full QR login flow successfully', async () => {
 				const now = 1704787200000;
@@ -670,7 +670,7 @@ describe('QuickResponseCodeService', () => {
 					deviceId: 'device-123',
 					userId: 'user-456',
 				});
-				cacheManager.get.mockResolvedValue(JSON.stringify(flowChallengeData));
+				cacheService.get.mockResolvedValue(JSON.stringify(flowChallengeData));
 
 				const validatedData = await service.validateQRChallenge(mockJwt, 'device-123');
 				expect(validatedData).toEqual(flowChallengeData);
@@ -687,7 +687,7 @@ describe('QuickResponseCodeService', () => {
 					deviceId: 'device-123',
 					userId: 'user-456',
 				});
-				cacheManager.get.mockResolvedValue(JSON.stringify(flowChallengeData));
+				cacheService.get.mockResolvedValue(JSON.stringify(flowChallengeData));
 				userAuthRepository.findOne.mockResolvedValue(mockUserAuth);
 				userAuthRepository.save.mockResolvedValue(mockUserAuth);
 				tokensService.generateTokenPair.mockResolvedValue(mockTokenPair);
@@ -723,12 +723,12 @@ describe('QuickResponseCodeService', () => {
 					deviceId: 'device-123',
 					userId: 'user-456',
 				});
-				cacheManager.get.mockResolvedValue(JSON.stringify(expiredChallengeData));
+				cacheService.get.mockResolvedValue(JSON.stringify(expiredChallengeData));
 
 				await expect(service.scanLogin(dto, mockFingerprint)).rejects.toThrow(
 					new BadRequestException('Challenge QR expiré')
 				);
-				expect(cacheManager.del).toHaveBeenCalledWith('qr_challenge:challenge-789');
+				expect(cacheService.del).toHaveBeenCalledWith('qr_challenge:challenge-789');
 
 				jest.restoreAllMocks();
 			});

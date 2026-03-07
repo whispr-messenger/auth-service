@@ -12,6 +12,7 @@ describe('SignalKeyRotationService', () => {
 	let signedPreKeyRepo: jest.Mocked<SignedPreKeyRepository>;
 
 	const mockUserId = 'test-user-id';
+	const mockDeviceId = 'test-device-id';
 
 	beforeEach(async () => {
 		const module: TestingModule = await Test.createTestingModule({
@@ -55,9 +56,13 @@ describe('SignalKeyRotationService', () => {
 
 			keyStorage.storeSignedPreKey.mockResolvedValue(undefined as any);
 
-			await service.rotateSignedPreKey(mockUserId, newSignedPreKey);
+			await service.rotateSignedPreKey(mockUserId, mockDeviceId, newSignedPreKey);
 
-			expect(keyStorage.storeSignedPreKey).toHaveBeenCalledWith(mockUserId, newSignedPreKey);
+			expect(keyStorage.storeSignedPreKey).toHaveBeenCalledWith(
+				mockUserId,
+				mockDeviceId,
+				newSignedPreKey
+			);
 		});
 
 		it('should throw error if storage fails', async () => {
@@ -69,9 +74,9 @@ describe('SignalKeyRotationService', () => {
 
 			keyStorage.storeSignedPreKey.mockRejectedValue(new Error('Storage error'));
 
-			await expect(service.rotateSignedPreKey(mockUserId, newSignedPreKey)).rejects.toThrow(
-				'Storage error'
-			);
+			await expect(
+				service.rotateSignedPreKey(mockUserId, mockDeviceId, newSignedPreKey)
+			).rejects.toThrow('Storage error');
 		});
 	});
 
@@ -85,9 +90,9 @@ describe('SignalKeyRotationService', () => {
 			keyStorage.getUnusedPreKeyCount.mockResolvedValue(50);
 			keyStorage.storePreKeys.mockResolvedValue(undefined as any);
 
-			await service.replenishPreKeys(mockUserId, newPreKeys);
+			await service.replenishPreKeys(mockUserId, mockDeviceId, newPreKeys);
 
-			expect(keyStorage.storePreKeys).toHaveBeenCalledWith(mockUserId, newPreKeys);
+			expect(keyStorage.storePreKeys).toHaveBeenCalledWith(mockUserId, mockDeviceId, newPreKeys);
 		});
 
 		it('should throw error if total exceeds maximum', async () => {
@@ -98,7 +103,7 @@ describe('SignalKeyRotationService', () => {
 
 			keyStorage.getUnusedPreKeyCount.mockResolvedValue(150);
 
-			await expect(service.replenishPreKeys(mockUserId, newPreKeys)).rejects.toThrow(
+			await expect(service.replenishPreKeys(mockUserId, mockDeviceId, newPreKeys)).rejects.toThrow(
 				BadRequestException
 			);
 		});
@@ -112,7 +117,7 @@ describe('SignalKeyRotationService', () => {
 			keyStorage.getUnusedPreKeyCount.mockResolvedValue(100);
 			keyStorage.storePreKeys.mockResolvedValue(undefined as any);
 
-			await service.replenishPreKeys(mockUserId, newPreKeys);
+			await service.replenishPreKeys(mockUserId, mockDeviceId, newPreKeys);
 
 			expect(keyStorage.storePreKeys).toHaveBeenCalled();
 		});
@@ -122,7 +127,7 @@ describe('SignalKeyRotationService', () => {
 		it('should return true if prekeys are low', async () => {
 			keyStorage.getUnusedPreKeyCount.mockResolvedValue(10);
 
-			const result = await service.checkLowPreKeys(mockUserId);
+			const result = await service.checkLowPreKeys(mockUserId, mockDeviceId);
 
 			expect(result).toBe(true);
 		});
@@ -130,7 +135,7 @@ describe('SignalKeyRotationService', () => {
 		it('should return false if prekeys are sufficient', async () => {
 			keyStorage.getUnusedPreKeyCount.mockResolvedValue(50);
 
-			const result = await service.checkLowPreKeys(mockUserId);
+			const result = await service.checkLowPreKeys(mockUserId, mockDeviceId);
 
 			expect(result).toBe(false);
 		});
@@ -138,7 +143,7 @@ describe('SignalKeyRotationService', () => {
 		it('should return true if exactly at threshold', async () => {
 			keyStorage.getUnusedPreKeyCount.mockResolvedValue(19);
 
-			const result = await service.checkLowPreKeys(mockUserId);
+			const result = await service.checkLowPreKeys(mockUserId, mockDeviceId);
 
 			expect(result).toBe(true);
 		});
@@ -148,7 +153,7 @@ describe('SignalKeyRotationService', () => {
 		it('should return true if no active signed prekey', async () => {
 			keyStorage.getActiveSignedPreKey.mockResolvedValue(null);
 
-			const result = await service.needsSignedPreKeyRotation(mockUserId);
+			const result = await service.needsSignedPreKeyRotation(mockUserId, mockDeviceId);
 
 			expect(result).toBe(true);
 		});
@@ -160,7 +165,7 @@ describe('SignalKeyRotationService', () => {
 
 			keyStorage.getActiveSignedPreKey.mockResolvedValue(expiringKey as SignedPreKey);
 
-			const result = await service.needsSignedPreKeyRotation(mockUserId);
+			const result = await service.needsSignedPreKeyRotation(mockUserId, mockDeviceId);
 
 			expect(result).toBe(true);
 		});
@@ -172,7 +177,7 @@ describe('SignalKeyRotationService', () => {
 
 			keyStorage.getActiveSignedPreKey.mockResolvedValue(freshKey as SignedPreKey);
 
-			const result = await service.needsSignedPreKeyRotation(mockUserId);
+			const result = await service.needsSignedPreKeyRotation(mockUserId, mockDeviceId);
 
 			expect(result).toBe(false);
 		});
@@ -187,7 +192,7 @@ describe('SignalKeyRotationService', () => {
 			keyStorage.getUnusedPreKeyCount.mockResolvedValue(50);
 			keyStorage.getActiveSignedPreKey.mockResolvedValue(mockSignedPreKey as SignedPreKey);
 
-			const result = await service.getRotationRecommendations(mockUserId);
+			const result = await service.getRotationRecommendations(mockUserId, mockDeviceId);
 
 			expect(result).toEqual({
 				needsPreKeyReplenishment: false,
@@ -206,7 +211,7 @@ describe('SignalKeyRotationService', () => {
 			keyStorage.getUnusedPreKeyCount.mockResolvedValue(10);
 			keyStorage.getActiveSignedPreKey.mockResolvedValue(mockSignedPreKey as SignedPreKey);
 
-			const result = await service.getRotationRecommendations(mockUserId);
+			const result = await service.getRotationRecommendations(mockUserId, mockDeviceId);
 
 			expect(result.needsPreKeyReplenishment).toBe(true);
 			expect(result.recommendedPreKeyUpload).toBe(90);

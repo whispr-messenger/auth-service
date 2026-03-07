@@ -67,11 +67,11 @@ describe('SignalPreKeyBundleService', () => {
 			keyStorage.getUnusedPreKey.mockResolvedValue(mockPreKey as PreKey);
 			keyStorage.markPreKeyAsUsed.mockResolvedValue(undefined);
 
-			const result = await service.getBundleForUser(mockUserId);
+			const result = await service.getBundleForUser(mockUserId, mockDeviceId);
 
 			expect(result).toEqual({
 				userId: mockUserId,
-				deviceId: undefined,
+				deviceId: mockDeviceId,
 				identityKey: 'identity-key-base64',
 				signedPreKey: {
 					keyId: 1,
@@ -106,11 +106,11 @@ describe('SignalPreKeyBundleService', () => {
 			keyStorage.getActiveSignedPreKey.mockResolvedValue(mockSignedPreKey as SignedPreKey);
 			keyStorage.getUnusedPreKey.mockResolvedValue(null);
 
-			const result = await service.getBundleForUser(mockUserId);
+			const result = await service.getBundleForUser(mockUserId, mockDeviceId);
 
 			expect(result).toEqual({
 				userId: mockUserId,
-				deviceId: undefined,
+				deviceId: mockDeviceId,
 				identityKey: 'identity-key-base64',
 				signedPreKey: {
 					keyId: 1,
@@ -123,7 +123,7 @@ describe('SignalPreKeyBundleService', () => {
 			expect(keyStorage.markPreKeyAsUsed).not.toHaveBeenCalled();
 		});
 
-		it('should include deviceId when provided', async () => {
+		it('should include deviceId', async () => {
 			const mockIdentityKey: Partial<IdentityKey> = {
 				id: 'ik-id',
 				userId: mockUserId,
@@ -150,7 +150,9 @@ describe('SignalPreKeyBundleService', () => {
 		it('should throw NotFoundException if no identity key exists', async () => {
 			keyStorage.getIdentityKey.mockResolvedValue(null);
 
-			await expect(service.getBundleForUser(mockUserId)).rejects.toThrow(NotFoundException);
+			await expect(service.getBundleForUser(mockUserId, mockDeviceId)).rejects.toThrow(
+				NotFoundException
+			);
 
 			expect(keyStorage.getActiveSignedPreKey).not.toHaveBeenCalled();
 		});
@@ -165,7 +167,9 @@ describe('SignalPreKeyBundleService', () => {
 			keyStorage.getIdentityKey.mockResolvedValue(mockIdentityKey as IdentityKey);
 			keyStorage.getActiveSignedPreKey.mockResolvedValue(null);
 
-			await expect(service.getBundleForUser(mockUserId)).rejects.toThrow(NotFoundException);
+			await expect(service.getBundleForUser(mockUserId, mockDeviceId)).rejects.toThrow(
+				NotFoundException
+			);
 
 			expect(keyStorage.getUnusedPreKey).not.toHaveBeenCalled();
 		});
@@ -192,7 +196,7 @@ describe('SignalPreKeyBundleService', () => {
 			keyStorage.getUnusedPreKeyCount.mockResolvedValue(50);
 			keyStorage.getActiveSignedPreKey.mockResolvedValue(mockSignedPreKey as SignedPreKey);
 
-			const result = await service.getPreKeyStatus(mockUserId);
+			const result = await service.getPreKeyStatus(mockUserId, mockDeviceId);
 
 			expect(result).toEqual({
 				userId: mockUserId,
@@ -213,7 +217,7 @@ describe('SignalPreKeyBundleService', () => {
 			keyStorage.getUnusedPreKeyCount.mockResolvedValue(10);
 			keyStorage.getActiveSignedPreKey.mockResolvedValue(mockSignedPreKey as SignedPreKey);
 
-			const result = await service.getPreKeyStatus(mockUserId);
+			const result = await service.getPreKeyStatus(mockUserId, mockDeviceId);
 
 			expect(result.isLow).toBe(true);
 			expect(result.recommendedUpload).toBe(90); // 100 - 10
@@ -223,7 +227,7 @@ describe('SignalPreKeyBundleService', () => {
 			keyStorage.getUnusedPreKeyCount.mockResolvedValue(50);
 			keyStorage.getActiveSignedPreKey.mockResolvedValue(null);
 
-			const result = await service.getPreKeyStatus(mockUserId);
+			const result = await service.getPreKeyStatus(mockUserId, mockDeviceId);
 
 			expect(result.hasActiveSignedPreKey).toBe(false);
 		});
@@ -233,7 +237,7 @@ describe('SignalPreKeyBundleService', () => {
 		it('should return true if prekey count is below threshold', async () => {
 			keyStorage.getUnusedPreKeyCount.mockResolvedValue(15);
 
-			const result = await service.needsPreKeyReplenishment(mockUserId);
+			const result = await service.needsPreKeyReplenishment(mockUserId, mockDeviceId);
 
 			expect(result).toBe(true);
 		});
@@ -241,15 +245,18 @@ describe('SignalPreKeyBundleService', () => {
 		it('should return false if prekey count is above threshold', async () => {
 			keyStorage.getUnusedPreKeyCount.mockResolvedValue(50);
 
-			const result = await service.needsPreKeyReplenishment(mockUserId);
+			const result = await service.needsPreKeyReplenishment(mockUserId, mockDeviceId);
 
 			expect(result).toBe(false);
 		});
 	});
 
-	describe('getBundlesForUsers', () => {
-		it('should return bundles for multiple users', async () => {
-			const userIds = ['user1', 'user2'];
+	describe('getBundlesForDevices', () => {
+		it('should return bundles for multiple devices', async () => {
+			const userDevices = [
+				{ userId: 'user1', deviceId: 'device1' },
+				{ userId: 'user2', deviceId: 'device2' },
+			];
 
 			const mockIdentityKey: Partial<IdentityKey> = {
 				publicKey: 'identity-key',
@@ -265,15 +272,18 @@ describe('SignalPreKeyBundleService', () => {
 			keyStorage.getActiveSignedPreKey.mockResolvedValue(mockSignedPreKey as SignedPreKey);
 			keyStorage.getUnusedPreKey.mockResolvedValue(null);
 
-			const result = await service.getBundlesForUsers(userIds);
+			const result = await service.getBundlesForDevices(userDevices);
 
 			expect(result.size).toBe(2);
-			expect(result.has('user1')).toBe(true);
-			expect(result.has('user2')).toBe(true);
+			expect(result.has('user1:device1')).toBe(true);
+			expect(result.has('user2:device2')).toBe(true);
 		});
 
-		it('should handle failures for individual users', async () => {
-			const userIds = ['user1', 'user2'];
+		it('should handle failures for individual devices', async () => {
+			const userDevices = [
+				{ userId: 'user1', deviceId: 'device1' },
+				{ userId: 'user2', deviceId: 'device2' },
+			];
 
 			keyStorage.getIdentityKey.mockResolvedValueOnce(null); // Fails for user1
 			keyStorage.getIdentityKey.mockResolvedValueOnce({
@@ -287,11 +297,11 @@ describe('SignalPreKeyBundleService', () => {
 			} as SignedPreKey);
 			keyStorage.getUnusedPreKey.mockResolvedValue(null);
 
-			const result = await service.getBundlesForUsers(userIds);
+			const result = await service.getBundlesForDevices(userDevices);
 
 			expect(result.size).toBe(1); // Only user2 succeeds
-			expect(result.has('user2')).toBe(true);
-			expect(result.has('user1')).toBe(false);
+			expect(result.has('user2:device2')).toBe(true);
+			expect(result.has('user1:device1')).toBe(false);
 		});
 	});
 });

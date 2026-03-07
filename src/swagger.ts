@@ -14,9 +14,7 @@ function buildSwaggerDocument(port: number) {
 }
 
 function createSwaggerCustomOptions(): SwaggerCustomOptions {
-	return {
-		useGlobalPrefix: true,
-	};
+	return {};
 }
 
 export function createSwaggerDocumentation(
@@ -43,7 +41,7 @@ export function createSwaggerDocumentation(
 
 	const swaggerCustomOptions = createSwaggerCustomOptions();
 
-	SwaggerModule.setup('swagger', app, documentFactory, swaggerCustomOptions);
+	SwaggerModule.setup(swaggerRoute, app, documentFactory, swaggerCustomOptions);
 
 	logger.log(`Swagger documentation available at: http://0.0.0.0:${port}/${swaggerRoute}`);
 }
