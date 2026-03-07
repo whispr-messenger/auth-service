@@ -3,6 +3,8 @@ import { NotFoundException } from '@nestjs/common';
 import { DevicesService } from './devices.service';
 import { Device } from '../entities/device.entity';
 import { DeviceRepository } from '../repositories/device.repository';
+import { DeviceRegistrationService } from './device-registration/device-registration.service';
+import { DeviceActivityService } from './device-activity/device-activity.service';
 
 describe('DevicesService', () => {
 	let service: DevicesService;
@@ -48,6 +50,14 @@ describe('DevicesService', () => {
 				{
 					provide: DeviceRepository,
 					useValue: mockDeviceRepository,
+				},
+				{
+					provide: DeviceRegistrationService,
+					useValue: {},
+				},
+				{
+					provide: DeviceActivityService,
+					useValue: {},
 				},
 			],
 		}).compile();
@@ -112,8 +122,8 @@ describe('DevicesService', () => {
 
 			expect(result).toEqual(mixedDevices);
 			expect(result).toHaveLength(2);
-			expect(result.some(d => d.isVerified)).toBe(true);
-			expect(result.some(d => !d.isVerified)).toBe(true);
+			expect(result.some((d) => d.isVerified)).toBe(true);
+			expect(result.some((d) => !d.isVerified)).toBe(true);
 		});
 	});
 
@@ -129,7 +139,7 @@ describe('DevicesService', () => {
 
 			expect(result).toEqual(verifiedDevices);
 			expect(deviceRepository.findVerifiedByUserId).toHaveBeenCalledWith('user-123');
-			expect(result.every(d => d.isVerified)).toBe(true);
+			expect(result.every((d) => d.isVerified)).toBe(true);
 		});
 
 		it('should return empty array when no verified devices exist', async () => {
@@ -153,7 +163,7 @@ describe('DevicesService', () => {
 
 			expect(result).toEqual(allVerified);
 			expect(result).toHaveLength(3);
-			expect(result.every(d => d.isVerified)).toBe(true);
+			expect(result.every((d) => d.isVerified)).toBe(true);
 		});
 
 		it('should return empty array when user has no devices', async () => {
@@ -180,13 +190,9 @@ describe('DevicesService', () => {
 		it('should throw NotFoundException when device does not exist', async () => {
 			deviceRepository.findOne.mockResolvedValue(null);
 
-			await expect(service.getDevice('non-existent-device'))
-				.rejects
-				.toThrow(NotFoundException);
+			await expect(service.getDevice('non-existent-device')).rejects.toThrow(NotFoundException);
 
-			await expect(service.getDevice('non-existent-device'))
-				.rejects
-				.toThrow('Device not found');
+			await expect(service.getDevice('non-existent-device')).rejects.toThrow('Device not found');
 		});
 
 		it('should return device with all properties', async () => {
@@ -243,13 +249,13 @@ describe('DevicesService', () => {
 		it('should throw NotFoundException when device does not exist', async () => {
 			deviceRepository.findByUserIdAndDeviceId.mockResolvedValue(null);
 
-			await expect(service.revokeDevice('user-123', 'non-existent-device'))
-				.rejects
-				.toThrow(NotFoundException);
+			await expect(service.revokeDevice('user-123', 'non-existent-device')).rejects.toThrow(
+				NotFoundException
+			);
 
-			await expect(service.revokeDevice('user-123', 'non-existent-device'))
-				.rejects
-				.toThrow('Device not found');
+			await expect(service.revokeDevice('user-123', 'non-existent-device')).rejects.toThrow(
+				'Device not found'
+			);
 
 			expect(deviceRepository.remove).not.toHaveBeenCalled();
 		});
@@ -257,9 +263,7 @@ describe('DevicesService', () => {
 		it('should throw NotFoundException when device belongs to another user', async () => {
 			deviceRepository.findByUserIdAndDeviceId.mockResolvedValue(null);
 
-			await expect(service.revokeDevice('user-456', 'device-123'))
-				.rejects
-				.toThrow(NotFoundException);
+			await expect(service.revokeDevice('user-456', 'device-123')).rejects.toThrow(NotFoundException);
 
 			expect(deviceRepository.remove).not.toHaveBeenCalled();
 		});

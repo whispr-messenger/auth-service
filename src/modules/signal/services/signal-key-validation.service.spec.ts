@@ -31,7 +31,7 @@ describe('SignalKeyValidationService', () => {
 
 	describe('validatePublicKeyFormat', () => {
 		it('should accept valid base64 keys', () => {
-			const validKey = 'BRjK5ghi789abcdefGHIJKLMNOP==';
+			const validKey = 'BRjK5ghi789abcdefGHIJKLMNOPQRS==';
 
 			expect(() => service.validatePublicKeyFormat(validKey)).not.toThrow();
 		});
@@ -62,8 +62,8 @@ describe('SignalKeyValidationService', () => {
 		it('should accept valid signed prekey', () => {
 			const validKey: SignedPreKeyDto = {
 				keyId: 1,
-				publicKey: 'BQXm8abc123validbase64encoded=',
-				signature: 'SGVsbG8xyz789validbase64sig==',
+				publicKey: 'BQXm8abc123validbase64encodedXX=',
+				signature: 'SGVsbG8xyz789validbase64sigXXXX==',
 			};
 
 			expect(() => service.validateSignedPreKey(validKey)).not.toThrow();
@@ -76,8 +76,8 @@ describe('SignalKeyValidationService', () => {
 		it('should reject negative keyId', () => {
 			const invalidKey: SignedPreKeyDto = {
 				keyId: -1,
-				publicKey: 'BQXm8abc123validbase64encoded=',
-				signature: 'SGVsbG8xyz789validbase64sig==',
+				publicKey: 'BQXm8abc123validbase64encodedXX=',
+				signature: 'SGVsbG8xyz789validbase64sigXXXX==',
 			};
 
 			expect(() => service.validateSignedPreKey(invalidKey)).toThrow(BadRequestException);
@@ -86,7 +86,7 @@ describe('SignalKeyValidationService', () => {
 		it('should reject missing signature', () => {
 			const invalidKey: any = {
 				keyId: 1,
-				publicKey: 'BQXm8abc123validbase64encoded=',
+				publicKey: 'BQXm8abc123validbase64encodedXX=',
 			};
 
 			expect(() => service.validateSignedPreKey(invalidKey)).toThrow(BadRequestException);
@@ -95,7 +95,7 @@ describe('SignalKeyValidationService', () => {
 		it('should reject invalid signature format', () => {
 			const invalidKey: SignedPreKeyDto = {
 				keyId: 1,
-				publicKey: 'BQXm8abc123validbase64encoded=',
+				publicKey: 'BQXm8abc123validbase64encodedXX=',
 				signature: 'invalid@signature!',
 			};
 
@@ -107,7 +107,7 @@ describe('SignalKeyValidationService', () => {
 		it('should accept valid prekey', () => {
 			const validKey: PreKeyDto = {
 				keyId: 42,
-				publicKey: 'BZrt9def456validbase64encoded=',
+				publicKey: 'BZrt9def456validbase64encodedXX=',
 			};
 
 			expect(() => service.validatePreKey(validKey)).not.toThrow();
@@ -120,7 +120,7 @@ describe('SignalKeyValidationService', () => {
 		it('should reject negative keyId', () => {
 			const invalidKey: PreKeyDto = {
 				keyId: -5,
-				publicKey: 'BZrt9def456validbase64encoded=',
+				publicKey: 'BZrt9def456validbase64encodedXX=',
 			};
 
 			expect(() => service.validatePreKey(invalidKey)).toThrow(BadRequestException);
@@ -130,8 +130,8 @@ describe('SignalKeyValidationService', () => {
 	describe('validatePreKeys', () => {
 		it('should accept valid array of prekeys', () => {
 			const validKeys: PreKeyDto[] = [
-				{ keyId: 1, publicKey: 'BZrt9def456validbase64encoded=' },
-				{ keyId: 2, publicKey: 'BXmn4ghi789validbase64encoded=' },
+				{ keyId: 1, publicKey: 'BZrt9def456validbase64encodedXX=' },
+				{ keyId: 2, publicKey: 'BXmn4ghi789validbase64encodedXX=' },
 			];
 
 			expect(() => service.validatePreKeys(validKeys)).not.toThrow();
@@ -148,7 +148,7 @@ describe('SignalKeyValidationService', () => {
 		it('should reject array with too many keys', () => {
 			const tooManyKeys = Array.from({ length: 201 }, (_, i) => ({
 				keyId: i,
-				publicKey: 'BZrt9def456validbase64encoded=',
+				publicKey: 'BZrt9def456validbase64encodedXX=',
 			}));
 
 			expect(() => service.validatePreKeys(tooManyKeys)).toThrow(BadRequestException);
@@ -156,8 +156,8 @@ describe('SignalKeyValidationService', () => {
 
 		it('should reject array with duplicate keyIds', () => {
 			const duplicateKeys: PreKeyDto[] = [
-				{ keyId: 1, publicKey: 'BZrt9def456validbase64encoded=' },
-				{ keyId: 1, publicKey: 'BXmn4ghi789validbase64encoded=' },
+				{ keyId: 1, publicKey: 'BZrt9def456validbase64encodedXX=' },
+				{ keyId: 1, publicKey: 'BXmn4ghi789validbase64encodedXX=' },
 			];
 
 			expect(() => service.validatePreKeys(duplicateKeys)).toThrow(BadRequestException);
@@ -202,7 +202,7 @@ describe('SignalKeyValidationService', () => {
 
 	describe('validateIdentityKey', () => {
 		it('should accept valid identity key', () => {
-			const validKey = 'BRjK5ghi789validbase64encoded=';
+			const validKey = 'BRjK5ghi789validbase64encodedXX=';
 
 			expect(() => service.validateIdentityKey(validKey)).not.toThrow();
 		});
@@ -218,13 +218,13 @@ describe('SignalKeyValidationService', () => {
 
 	describe('validateKeyBundle', () => {
 		it('should accept complete valid key bundle', () => {
-			const identityKey = 'BRjK5ghi789validbase64encoded=';
+			const identityKey = 'BRjK5ghi789validbase64encodedXX=';
 			const signedPreKey: SignedPreKeyDto = {
 				keyId: 1,
-				publicKey: 'BQXm8abc123validbase64encoded=',
-				signature: 'SGVsbG8xyz789validbase64sig==',
+				publicKey: 'BQXm8abc123validbase64encodedXX=',
+				signature: 'SGVsbG8xyz789validbase64sigXXXX==',
 			};
-			const preKeys: PreKeyDto[] = [{ keyId: 1, publicKey: 'BZrt9def456validbase64encoded=' }];
+			const preKeys: PreKeyDto[] = [{ keyId: 1, publicKey: 'BZrt9def456validbase64encodedXX=' }];
 
 			expect(() => service.validateKeyBundle(identityKey, signedPreKey, preKeys)).not.toThrow();
 		});

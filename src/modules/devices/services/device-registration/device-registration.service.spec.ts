@@ -318,9 +318,9 @@ describe('DeviceRegistrationService', () => {
 
 				const result = await service.registerDevice(registrationData);
 
-				// Vérifier que les champs optionnels sont définis à ''
+				// Vérifier que les champs optionnels ipAddress est réinitialisé à '' si absent, et fcmToken conserve l'ancienne valeur
 				expect(result.ipAddress).toBe('');
-				expect(result.fcmToken).toBe('');
+				expect(result.fcmToken).toBe('old-token');
 			});
 
 			it('should log device update', async () => {
