@@ -9,14 +9,12 @@ function buildSwaggerDocument(port: number) {
 		.setDescription('API documentation for the Authentication Service')
 		.setVersion('1.0')
 		.addServer('https://whispr.epitech.beer', 'Production')
-		.addServer(`http://localhost:${port}`, 'Development')
+		.addServer(`http://127.0.0.1:${port}`, 'Development')
 		.build();
 }
 
 function createSwaggerCustomOptions(): SwaggerCustomOptions {
-	return {
-		useGlobalPrefix: true,
-	};
+	return {};
 }
 
 export function createSwaggerDocumentation(
@@ -43,7 +41,7 @@ export function createSwaggerDocumentation(
 
 	const swaggerCustomOptions = createSwaggerCustomOptions();
 
-	SwaggerModule.setup('swagger', app, documentFactory, swaggerCustomOptions);
+	SwaggerModule.setup(swaggerRoute, app, documentFactory, swaggerCustomOptions);
 
 	logger.log(`Swagger documentation available at: http://0.0.0.0:${port}/${swaggerRoute}`);
 }

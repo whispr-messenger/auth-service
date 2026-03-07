@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserAuth } from '../modules/two-factor-authentication/user-auth.entity';
-import { AuthService } from '../modules/authentication/services/auth.service';
+import { UserAuth } from '../modules/common/entities/user-auth.entity';
+import { PhoneAuthenticationService } from '../modules/phone-auth/services/phone-authentication.service';
 import { TokensService } from '../modules/tokens/services/tokens.service';
-import { TwoFactorAuthenticationService } from '../modules/two-factor-authentication/two-factor-authentication.service';
+import { TwoFactorAuthenticationService } from '../modules/two-factor-authentication/services/two-factor-authentication.service';
 import { PhoneVerificationService } from '../modules/phone-verification/services/phone-verification/phone-verification.service';
-import { DevicesService } from 'src/modules/devices/devices.service';
-import { QuickResponseCodeService } from 'src/modules/devices/quick-response-code/quick-response-code.service';
+import { DevicesService } from 'src/modules/devices/services/devices.service';
+import { QuickResponseCodeService } from 'src/modules/devices/quick-response-code/services/quick-response-code.service';
 
 // gRPC interfaces
 interface GrpcCall<T = any> {
@@ -74,7 +74,7 @@ export class AuthGrpcService {
 	constructor(
 		@InjectRepository(UserAuth)
 		private readonly userAuthRepository: Repository<UserAuth>,
-		private readonly authService: AuthService,
+		private readonly authService: PhoneAuthenticationService,
 		private readonly tokenService: TokensService,
 		private readonly deviceService: DevicesService,
 		private readonly twoFactorService: TwoFactorAuthenticationService,
