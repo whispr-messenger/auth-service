@@ -3,4 +3,3 @@ export interface DeviceStats {
 	active: number;
 	activePercentage: number;
 }
-

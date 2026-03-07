@@ -12,11 +12,7 @@ export interface VerificationChannelStrategy {
 	 * @param code - The verification code to send
 	 * @param purpose - The purpose of the verification
 	 */
-	sendVerification(
-		recipient: string,
-		code: string,
-		purpose: VerificationPurpose
-	): Promise<void>;
+	sendVerification(recipient: string, code: string, purpose: VerificationPurpose): Promise<void>;
 
 	/**
 	 * Gets the name of this verification channel.

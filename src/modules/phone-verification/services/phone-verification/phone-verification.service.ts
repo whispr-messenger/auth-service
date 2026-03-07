@@ -1,4 +1,12 @@
-import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable, Logger, Inject } from '@nestjs/common';
+import {
+	BadRequestException,
+	ConflictException,
+	HttpException,
+	HttpStatus,
+	Injectable,
+	Logger,
+	Inject,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -6,7 +14,7 @@ import {
 	VerificationConfirmDto,
 	VerificationRequestResponseDto,
 	VerificationConfirmResponseDto,
-	VerificationLoginResponseDto
+	VerificationLoginResponseDto,
 } from '../../dto';
 import { UserAuthService } from '../../../common/services/user-auth.service';
 import { VerificationCodeGeneratorService } from '../verification-code-generator/verification-code-generator.service';
@@ -35,7 +43,8 @@ export class PhoneVerificationService {
 		private readonly codeGenerator: VerificationCodeGeneratorService,
 		private readonly phoneService: PhoneNumberService,
 		private readonly rateLimitService: RateLimitService,
-		@Inject('VerificationChannelStrategy') private readonly verificationChannel: VerificationChannelStrategy,
+		@Inject('VerificationChannelStrategy')
+		private readonly verificationChannel: VerificationChannelStrategy,
 		private readonly configService: ConfigService,
 		private readonly userAuthService: UserAuthService
 	) {
@@ -48,12 +57,18 @@ export class PhoneVerificationService {
 	 * @param purpose - The purpose of the verification (registration or login)
 	 * @returns The verification ID and optionally the code (in demo mode)
 	 */
-	private async requestVerification(phoneNumber: string, purpose: VerificationPurpose): Promise<VerificationRequestResponseDto> {
+	private async requestVerification(
+		phoneNumber: string,
+		purpose: VerificationPurpose
+	): Promise<VerificationRequestResponseDto> {
 		const normalizedPhone = this.phoneService.normalize(phoneNumber);
 
 		await this.checkRateLimit(normalizedPhone);
 
-		const { verificationId, code, verificationData } = await this.createVerificationData(normalizedPhone, purpose);
+		const { verificationId, code, verificationData } = await this.createVerificationData(
+			normalizedPhone,
+			purpose
+		);
 
 		await this.verificationRepo.save(verificationId, verificationData, this.VERIFICATION_TTL * 1000);
 
@@ -73,7 +88,12 @@ export class PhoneVerificationService {
 		const key = `rate_limit:${phoneNumber}`;
 		const errorMessage = 'Too many verification code requests';
 
-		await this.rateLimitService.checkLimit(key, this.MAX_REQUESTS_PER_HOUR, this.RATE_LIMIT_TTL, errorMessage);
+		await this.rateLimitService.checkLimit(
+			key,
+			this.MAX_REQUESTS_PER_HOUR,
+			this.RATE_LIMIT_TTL,
+			errorMessage
+		);
 	}
 
 	/**
@@ -91,7 +111,10 @@ export class PhoneVerificationService {
 	 * @param purpose - The purpose of the verification
 	 * @returns Object containing verification ID, plain code, and verification data
 	 */
-	private async createVerificationData(phoneNumber: string, purpose: VerificationPurpose): Promise<VerificationCreationResult> {
+	private async createVerificationData(
+		phoneNumber: string,
+		purpose: VerificationPurpose
+	): Promise<VerificationCreationResult> {
 		const verificationId = uuidv4();
 		const code = this.codeGenerator.generateCode();
 		const hashedCode = await this.codeGenerator.hashCode(code);
@@ -115,7 +138,11 @@ export class PhoneVerificationService {
 	 * @param code - The verification code
 	 * @param purpose - The purpose of the verification
 	 */
-	private async sendVerificationCode(phoneNumber: string, code: string, purpose: VerificationPurpose): Promise<void> {
+	private async sendVerificationCode(
+		phoneNumber: string,
+		code: string,
+		purpose: VerificationPurpose
+	): Promise<void> {
 		try {
 			await this.verificationChannel.sendVerification(phoneNumber, code, purpose);
 		} catch (error) {
@@ -132,10 +159,7 @@ export class PhoneVerificationService {
 	 * @param code - The verification code
 	 * @returns Response with ID and optionally the code
 	 */
-	private buildVerificationResponse(
-		verificationId: string,
-		code: string
-	): VerificationRequestResponseDto {
+	private buildVerificationResponse(verificationId: string, code: string): VerificationRequestResponseDto {
 		if (this.isDemoMode) {
 			this.logger.debug('Demo mode is activated: sending verification code in response payload.');
 			return { verificationId, code };
@@ -189,7 +213,10 @@ export class PhoneVerificationService {
 	 * @param verificationId - The verification ID
 	 * @param verificationData - The verification data to mark as verified
 	 */
-	private async markVerificationAsConfirmed(verificationId: string, verificationData: VerificationCode): Promise<void> {
+	private async markVerificationAsConfirmed(
+		verificationId: string,
+		verificationData: VerificationCode
+	): Promise<void> {
 		verificationData.verified = true;
 		await this.verificationRepo.update(
 			verificationId,
@@ -232,7 +259,9 @@ export class PhoneVerificationService {
 	 * @returns The verification ID and optionally the code (in demo mode)
 	 * @throws ConflictException if user already exists
 	 */
-	public async requestRegistrationVerification(dto: VerificationRequestDto): Promise<VerificationRequestResponseDto> {
+	public async requestRegistrationVerification(
+		dto: VerificationRequestDto
+	): Promise<VerificationRequestResponseDto> {
 		const existingUser = await this.userAuthService.findByPhoneNumber(dto.phoneNumber);
 
 		if (existingUser) {
@@ -247,7 +276,9 @@ export class PhoneVerificationService {
 	 * @param dto - The verification confirmation data
 	 * @returns Object indicating verification success
 	 */
-	public async confirmRegistrationVerification(dto: VerificationConfirmDto): Promise<VerificationConfirmResponseDto> {
+	public async confirmRegistrationVerification(
+		dto: VerificationConfirmDto
+	): Promise<VerificationConfirmResponseDto> {
 		const verificationData = await this.verifyCode(dto.verificationId, dto.code);
 		await this.markVerificationAsConfirmed(dto.verificationId, verificationData);
 		return { verified: true };
@@ -259,7 +290,9 @@ export class PhoneVerificationService {
 	 * @returns The verification ID and optionally the code (in demo mode)
 	 * @throws BadRequestException if user doesn't exist
 	 */
-	public async requestLoginVerification(dto: VerificationRequestDto): Promise<VerificationRequestResponseDto> {
+	public async requestLoginVerification(
+		dto: VerificationRequestDto
+	): Promise<VerificationRequestResponseDto> {
 		const user = await this.userAuthService.findByPhoneNumber(dto.phoneNumber);
 
 		if (!user) {
@@ -274,7 +307,9 @@ export class PhoneVerificationService {
 	 * @param dto - The verification confirmation data
 	 * @returns Object indicating verification success and whether 2FA is required
 	 */
-	public async confirmLoginVerification(dto: VerificationConfirmDto): Promise<VerificationLoginResponseDto> {
+	public async confirmLoginVerification(
+		dto: VerificationConfirmDto
+	): Promise<VerificationLoginResponseDto> {
 		const verificationData = await this.verifyCode(dto.verificationId, dto.code);
 		await this.markVerificationAsConfirmed(dto.verificationId, verificationData);
 

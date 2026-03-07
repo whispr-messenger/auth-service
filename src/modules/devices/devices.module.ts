@@ -6,7 +6,13 @@ import { QuickResponseCodeController } from './quick-response-code/controller/qu
 // Devices
 import { Device } from './entities/device.entity';
 import { DeviceRepository } from './repositories/device.repository';
-import { DeviceRegistrationService, DeviceActivityService, DeviceStatsService, DeviceFingerprintService, DevicesService } from './services';
+import {
+	DeviceRegistrationService,
+	DeviceActivityService,
+	DeviceStatsService,
+	DeviceFingerprintService,
+	DevicesService,
+} from './services';
 import { DevicesController } from './controllers/devices.controller';
 // Others
 import { TokensModule } from '../tokens/tokens.module';
@@ -33,4 +39,4 @@ import { UserAuth } from '../common/entities/user-auth.entity';
 		QuickResponseCodeService,
 	],
 })
-export class DevicesModule { }
+export class DevicesModule {}

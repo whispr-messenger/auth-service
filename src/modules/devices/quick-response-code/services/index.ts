@@ -1,1 +1,1 @@
-export { QuickResponseCodeService } from "./quick-response-code.service";
+export { QuickResponseCodeService } from './quick-response-code.service';

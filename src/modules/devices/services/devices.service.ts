@@ -22,7 +22,7 @@ export class DevicesService {
 		private readonly deviceRepository: DeviceRepository,
 		private readonly deviceRegistrationService: DeviceRegistrationService,
 		private readonly deviceActivityService: DeviceActivityService
-	) { }
+	) {}
 
 	async getUserDevices(userId: string): Promise<Device[]> {
 		return this.deviceRepository.find({

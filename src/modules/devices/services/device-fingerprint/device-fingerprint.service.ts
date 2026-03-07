@@ -29,7 +29,7 @@ export class DeviceFingerprintService {
 	 */
 	private detectDeviceType(userAgent?: string): string {
 		if (!userAgent) return 'unknown';
-		
+
 		const ua = userAgent.toLowerCase();
 		if (ua.includes('mobile')) return 'mobile';
 		if (ua.includes('tablet')) return 'tablet';

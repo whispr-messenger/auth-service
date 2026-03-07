@@ -11,7 +11,7 @@ export class DeviceStatsService {
 
 	async getDeviceStats(
 		userId: string,
-		daysThreshold: number = this.DEFAULT_ACTIVE_DAYS_THRESHOLD,
+		daysThreshold: number = this.DEFAULT_ACTIVE_DAYS_THRESHOLD
 	): Promise<DeviceStats> {
 		const [total, active] = await Promise.all([
 			this.deviceRepository.countVerifiedDevices(userId),
@@ -20,9 +20,7 @@ export class DeviceStatsService {
 
 		const activePercentage = total > 0 ? Math.round((active / total) * 100) : 0;
 
-		this.logger.debug(
-			`Statistics for user ${userId}: ${active}/${total} active (${activePercentage}%)`,
-		);
+		this.logger.debug(`Statistics for user ${userId}: ${active}/${total} active (${activePercentage}%)`);
 
 		return {
 			total,
@@ -52,7 +50,7 @@ export class DeviceStatsService {
 				acc[device.deviceType] = (acc[device.deviceType] || 0) + 1;
 				return acc;
 			},
-			{} as Record<string, number>,
+			{} as Record<string, number>
 		);
 	}
 }

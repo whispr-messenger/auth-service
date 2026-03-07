@@ -5,13 +5,10 @@ import { DeviceRepository } from '../../repositories/device.repository';
 export class DeviceActivityService {
 	private readonly logger = new Logger(DeviceActivityService.name);
 
-	constructor(private readonly deviceRepository: DeviceRepository) { }
+	constructor(private readonly deviceRepository: DeviceRepository) {}
 
 	async updateLastActive(deviceId: string): Promise<void> {
-		const result = await this.deviceRepository.update(
-			{ id: deviceId },
-			{ lastActive: new Date() },
-		);
+		const result = await this.deviceRepository.update({ id: deviceId }, { lastActive: new Date() });
 
 		if (result.affected === 0) {
 			this.logger.warn(`Device not found for activity update: ${deviceId}`);
@@ -27,7 +24,7 @@ export class DeviceActivityService {
 			{
 				fcmToken,
 				lastActive: new Date(),
-			},
+			}
 		);
 
 		if (result.affected === 0) {
