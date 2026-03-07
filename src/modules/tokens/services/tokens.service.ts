@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'node:crypto';
-import { DeviceFingerprint } from '../../devices/device-fingerprint.interface';
+import { DeviceFingerprint } from '../../devices/types/device-fingerprint.interface';
 import { TokenPair } from '../types/token-pair.interface';
 import { JwtPayload } from '../types/jwt-payload.interface';
 import { CacheService } from '../../cache/cache.service';
