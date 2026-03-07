@@ -19,6 +19,10 @@ import { JwtService } from '@nestjs/jwt';
 import { PhoneVerificationService } from '../src/modules/phone-verification/services/phone-verification/phone-verification.service';
 import { TwoFactorAuthenticationService } from '../src/modules/two-factor-authentication/services/two-factor-authentication.service';
 import { DevicesService } from '../src/modules/devices/services/devices.service';
+import { DeviceRepository } from '../src/modules/devices/repositories/device.repository';
+import { PreKeyRepository } from '../src/modules/signal/repositories/prekey.repository';
+import { SignedPreKeyRepository } from '../src/modules/signal/repositories/signed-prekey.repository';
+import { IdentityKeyRepository } from '../src/modules/signal/repositories/identity-key.repository';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const request = require('supertest');
@@ -115,6 +119,14 @@ describe('AuthController (e2e)', () => {
 				.useValue(mockTwoFactorService)
 				.overrideProvider(DevicesService)
 				.useValue(mockDeviceService)
+				.overrideProvider(DeviceRepository)
+				.useValue(mockRepository)
+				.overrideProvider(PreKeyRepository)
+				.useValue(mockRepository)
+				.overrideProvider(SignedPreKeyRepository)
+				.useValue(mockRepository)
+				.overrideProvider(IdentityKeyRepository)
+				.useValue(mockRepository)
 				.overrideProvider(JwtService)
 				.useValue(mockJwtService)
 				.overrideGuard(JwtAuthGuard)
