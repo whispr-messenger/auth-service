@@ -1,6 +1,6 @@
 import { Body, Controller, HttpCode, HttpStatus, Request, Post } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { DeviceFingerprint } from '../../devices/device-fingerprint.interface';
+import { DeviceFingerprint } from '../../devices/types/device-fingerprint.interface';
 import { TokensService } from '../services/tokens.service';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 

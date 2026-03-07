@@ -1,7 +1,9 @@
+import { VerificationPurpose } from './verification-purpose.type';
+
 export interface VerificationCode {
 	phoneNumber: string;
 	hashedCode: string;
-	purpose: 'registration' | 'login' | 'recovery';
+	purpose: VerificationPurpose;
 	attempts: number;
 	expiresAt: number;
 	verified?: boolean;
