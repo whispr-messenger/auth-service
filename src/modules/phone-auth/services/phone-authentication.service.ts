@@ -1,4 +1,11 @@
-import { Injectable, BadRequestException, ConflictException, Inject } from '@nestjs/common';
+import {
+	Injectable,
+	BadRequestException,
+	ConflictException,
+	Inject,
+	NotFoundException,
+} from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { ClientProxy } from '@nestjs/microservices';
 import { UserAuthService } from '../../common/services/user-auth.service';
 import { UserAuth } from '../../common/entities/user-auth.entity';
@@ -84,7 +91,7 @@ export class PhoneAuthenticationService {
 
 			return device.id;
 		}
-		return 'web-session';
+		return randomUUID();
 	}
 
 	private async createAuthSession(
@@ -151,8 +158,12 @@ export class PhoneAuthenticationService {
 	public async logout(userId: string, deviceId: string): Promise<void> {
 		await this.tokenService.revokeAllTokensForDevice(deviceId);
 
-		if (deviceId !== 'web-session') {
+		try {
 			await this.deviceActivityService.updateLastActive(deviceId);
+		} catch (error) {
+			if (!(error instanceof NotFoundException)) {
+				throw error;
+			}
 		}
 	}
 }
