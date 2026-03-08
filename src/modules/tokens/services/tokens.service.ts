@@ -71,7 +71,7 @@ export class TokensService {
 			});
 
 			if (decoded.type !== 'refresh') {
-				throw new UnauthorizedException('Token de rafraîchissement invalide');
+				throw new UnauthorizedException('ERROR_INVALID_REFRESH_TOKEN');
 			}
 
 			const storedData = await this.cacheService.get<{
@@ -80,14 +80,14 @@ export class TokensService {
 				fingerprint: string;
 			}>(`refresh_token:${decoded.tokenId}`);
 			if (!storedData) {
-				throw new UnauthorizedException('Token de rafraîchissement expiré ou révoqué');
+				throw new UnauthorizedException('ERROR_REFRESH_TOKEN_EXPIRED_OR_REVOKED');
 			}
 
 			const currentFingerprint = this.generateDeviceFingerprint(fingerprint);
 
 			if (storedData.fingerprint !== currentFingerprint) {
 				await this.revokeRefreshToken(decoded.tokenId);
-				throw new UnauthorizedException("Empreinte d'appareil invalide");
+				throw new UnauthorizedException('ERROR_DEVICE_FINGERPRINT_MISMATCH');
 			}
 
 			await this.revokeRefreshToken(decoded.tokenId);
@@ -97,7 +97,7 @@ export class TokensService {
 			if (error instanceof UnauthorizedException) {
 				throw error;
 			}
-			throw new UnauthorizedException('Token de rafraîchissement invalide');
+			throw new UnauthorizedException('ERROR_INVALID_REFRESH_TOKEN');
 		}
 	}
 
@@ -113,7 +113,7 @@ export class TokensService {
 				);
 			}
 		} catch {
-			// Token invalide ou expiré, pas besoin de le révoquer
+			// invalid or expired token — nothing to revoke
 		}
 	}
 
@@ -139,7 +139,7 @@ export class TokensService {
 		try {
 			return this.jwtService.verify(token, { algorithms: ['ES256'] });
 		} catch {
-			throw new UnauthorizedException('Token invalide');
+			throw new UnauthorizedException('ERROR_INVALID_TOKEN');
 		}
 	}
 

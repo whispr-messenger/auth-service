@@ -121,7 +121,7 @@ describe('JwtAuthGuard', () => {
 
 		it('denies access when token validation fails', async () => {
 			tokensService.validateToken.mockImplementation(() => {
-				throw new UnauthorizedException('Token invalide');
+				throw new UnauthorizedException('ERROR_INVALID_TOKEN');
 			});
 
 			await expect(guard.canActivate(ctx())).rejects.toThrow(UnauthorizedException);
