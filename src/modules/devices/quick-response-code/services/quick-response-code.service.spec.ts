@@ -65,6 +65,8 @@ describe('QuickResponseCodeService', () => {
 	const mockTokenPair: TokenPair = {
 		accessToken: 'mock-access-token',
 		refreshToken: 'mock-refresh-token',
+		userId: 'user-uuid',
+		deviceId: 'device-uuid',
 	};
 
 	const mockCacheManager = {

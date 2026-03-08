@@ -20,6 +20,8 @@ describe('QuickResponseCodeController', () => {
 	const mockTokenPair: TokenPair = {
 		accessToken: 'access-token-xyz',
 		refreshToken: 'refresh-token-abc',
+		userId: 'user-uuid',
+		deviceId: 'device-uuid',
 	};
 
 	const mockRequest = {
