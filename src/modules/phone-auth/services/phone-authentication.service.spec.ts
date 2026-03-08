@@ -81,8 +81,18 @@ describe('PhoneAuthenticationService', () => {
 			mockUserAuthService.saveUser.mockResolvedValue({ id: 'user-1' });
 			mockPhoneVerificationService.consumeVerification.mockResolvedValue(undefined);
 			mockTokensService.generateTokenPair
-				.mockResolvedValueOnce({ accessToken: 'token-a', refreshToken: 'refresh-a' })
-				.mockResolvedValueOnce({ accessToken: 'token-b', refreshToken: 'refresh-b' });
+				.mockResolvedValueOnce({
+					accessToken: 'token-a',
+					refreshToken: 'refresh-a',
+					userId: 'user-1',
+					deviceId: 'device-a',
+				})
+				.mockResolvedValueOnce({
+					accessToken: 'token-b',
+					refreshToken: 'refresh-b',
+					userId: 'user-1',
+					deviceId: 'device-b',
+				});
 
 			const dto = { verificationId: 'ver-1' };
 

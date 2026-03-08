@@ -61,7 +61,7 @@ export class TokensService {
 			this.REFRESH_TOKEN_TTL
 		);
 
-		return { accessToken, refreshToken };
+		return { accessToken, refreshToken, userId, deviceId };
 	}
 
 	async refreshAccessToken(refreshToken: string, fingerprint: DeviceFingerprint): Promise<TokenPair> {
