@@ -59,6 +59,23 @@ describe('TokensService', () => {
 		expect(service).toBeDefined();
 	});
 
+	describe('generateDeviceFingerprint', () => {
+		it('should produce the same fingerprint for the same device regardless of timestamp', () => {
+			const fp1: DeviceFingerprint = {
+				userAgent: 'Mozilla/5.0',
+				ipAddress: '127.0.0.1',
+				deviceType: 'mobile',
+				timestamp: Date.now(),
+			};
+			const fp2: DeviceFingerprint = { ...fp1, timestamp: fp1.timestamp + 60_000 };
+
+			const hash1 = (service as any).generateDeviceFingerprint(fp1);
+			const hash2 = (service as any).generateDeviceFingerprint(fp2);
+
+			expect(hash1).toBe(hash2);
+		});
+	});
+
 	describe('generateTokenPair', () => {
 		it('should generate token pair successfully', async () => {
 			const userId = 'user-id';
