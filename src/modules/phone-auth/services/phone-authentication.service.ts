@@ -109,6 +109,9 @@ export class PhoneAuthenticationService {
 	private async validatePhoneNumberAvailability(verificationId: string): Promise<string> {
 		const phoneNumber = await this.verifyPhoneNumberForPurpose(verificationId, 'registration');
 
+		// Second check: re-verify availability at the moment of actual account creation.
+		// This is intentional TOCTOU protection — another concurrent request may have registered
+		// the same number between the initial OTP request (~15 min ago) and this point.
 		const existingUser = await this.userAuthService.findByPhoneNumber(phoneNumber);
 		if (existingUser) {
 			throw new ConflictException('An account already exists with this phone number');
