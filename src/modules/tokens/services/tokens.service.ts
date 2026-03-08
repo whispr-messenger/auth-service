@@ -141,7 +141,7 @@ export class TokensService {
 	}
 
 	private generateDeviceFingerprint(fingerprint: DeviceFingerprint): string {
-		const data = `${fingerprint.userAgent || ''}:${fingerprint.ipAddress || ''}:${fingerprint.deviceType || ''}:${fingerprint.timestamp}`;
+		const data = `${fingerprint.userAgent || ''}:${fingerprint.ipAddress || ''}:${fingerprint.deviceType || ''}`;
 		return crypto.createHash('sha256').update(data).digest('hex').substring(0, 12);
 	}
 }
