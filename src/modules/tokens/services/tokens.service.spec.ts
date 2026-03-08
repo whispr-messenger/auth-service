@@ -93,6 +93,8 @@ describe('TokensService', () => {
 			expect(result).toEqual({
 				accessToken,
 				refreshToken,
+				userId,
+				deviceId,
 			});
 		});
 
@@ -165,6 +167,8 @@ describe('TokensService', () => {
 			expect(result).toEqual({
 				accessToken: newAccessToken,
 				refreshToken: newRefreshToken,
+				userId,
+				deviceId,
 			});
 		});
 
