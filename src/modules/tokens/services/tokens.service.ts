@@ -93,7 +93,10 @@ export class TokensService {
 			await this.revokeRefreshToken(decoded.tokenId);
 
 			return this.generateTokenPair(storedData.userId, storedData.deviceId, fingerprint);
-		} catch {
+		} catch (error) {
+			if (error instanceof UnauthorizedException) {
+				throw error;
+			}
 			throw new UnauthorizedException('Token de rafraîchissement invalide');
 		}
 	}
