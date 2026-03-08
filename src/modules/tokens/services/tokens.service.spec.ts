@@ -234,14 +234,15 @@ describe('TokensService', () => {
 			const accessToken = 'valid-access-token';
 			const jti = 'access-token-uuid';
 
-			jwtService.decode.mockReturnValue({
+			jwtService.verify.mockReturnValue({
 				jti,
 				exp: Math.floor(Date.now() / 1000) + 3600,
-			});
+			} as any);
 			cacheService.set.mockResolvedValue(undefined);
 
 			await service.revokeToken(accessToken);
 
+			expect(jwtService.verify).toHaveBeenCalledWith(accessToken, { algorithms: ['ES256'] });
 			expect(cacheService.set).toHaveBeenCalledWith(
 				`revoked:${jti}`,
 				expect.any(Object),
@@ -253,10 +254,10 @@ describe('TokensService', () => {
 			const legacyToken = 'valid-legacy-token';
 			const tokenId = 'legacy-token-id';
 
-			jwtService.decode.mockReturnValue({
+			jwtService.verify.mockReturnValue({
 				tokenId,
 				exp: Math.floor(Date.now() / 1000) + 3600,
-			});
+			} as any);
 			cacheService.set.mockResolvedValue(undefined);
 
 			await service.revokeToken(legacyToken);
@@ -272,11 +273,11 @@ describe('TokensService', () => {
 			const token = 'some-token';
 			const jti = 'jti-claim';
 
-			jwtService.decode.mockReturnValue({
+			jwtService.verify.mockReturnValue({
 				jti,
 				tokenId: 'should-not-be-used',
 				exp: Math.floor(Date.now() / 1000) + 3600,
-			});
+			} as any);
 			cacheService.set.mockResolvedValue(undefined);
 
 			await service.revokeToken(token);
@@ -289,20 +290,31 @@ describe('TokensService', () => {
 		});
 
 		it('should not write to cache when token has no jti or tokenId', async () => {
-			jwtService.decode.mockReturnValue({
+			jwtService.verify.mockReturnValue({
 				sub: 'user-id',
 				exp: Math.floor(Date.now() / 1000) + 3600,
-			});
+			} as any);
 
 			await service.revokeToken('some-token');
 
 			expect(cacheService.set).not.toHaveBeenCalled();
 		});
 
-		it('should handle invalid token gracefully', async () => {
-			jwtService.decode.mockReturnValue(null);
+		it('should not write to cache when token signature is invalid', async () => {
+			jwtService.verify.mockImplementation(() => {
+				throw new Error('invalid signature');
+			});
 
-			await expect(service.revokeToken('invalid-token')).resolves.not.toThrow();
+			await expect(service.revokeToken('forged-token')).resolves.not.toThrow();
+			expect(cacheService.set).not.toHaveBeenCalled();
+		});
+
+		it('should handle expired token gracefully without writing to cache', async () => {
+			jwtService.verify.mockImplementation(() => {
+				throw new Error('jwt expired');
+			});
+
+			await expect(service.revokeToken('expired-token')).resolves.not.toThrow();
 			expect(cacheService.set).not.toHaveBeenCalled();
 		});
 	});
