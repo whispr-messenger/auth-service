@@ -198,6 +198,35 @@ describe('TokensService', () => {
 				UnauthorizedException
 			);
 		});
+
+		it('should preserve the specific error message when token type is not refresh', async () => {
+			jwtService.verify.mockReturnValue({ type: 'access', tokenId: 'some-id' });
+
+			await expect(service.refreshAccessToken('some-token', mockFingerprint)).rejects.toThrow(
+				'Token de rafraîchissement invalide'
+			);
+		});
+
+		it('should preserve the specific error message when token is expired or revoked', async () => {
+			jwtService.verify.mockReturnValue({ type: 'refresh', tokenId: 'some-id' });
+			cacheService.get.mockResolvedValue(null);
+
+			await expect(service.refreshAccessToken('some-token', mockFingerprint)).rejects.toThrow(
+				'Token de rafraîchissement expiré ou révoqué'
+			);
+		});
+
+		it('should preserve the specific error message when fingerprint is invalid', async () => {
+			const tokenId = 'token-id';
+			jwtService.verify.mockReturnValue({ type: 'refresh', tokenId });
+			cacheService.get.mockResolvedValue({ userId: 'u', deviceId: 'd', fingerprint: 'aaaaaa' });
+			cacheService.del.mockResolvedValue(undefined);
+			jest.spyOn(service as any, 'generateDeviceFingerprint').mockReturnValue('bbbbbb');
+
+			await expect(service.refreshAccessToken('some-token', mockFingerprint)).rejects.toThrow(
+				"Empreinte d'appareil invalide"
+			);
+		});
 	});
 
 	describe('revokeToken', () => {
