@@ -262,6 +262,9 @@ export class PhoneVerificationService {
 	public async requestRegistrationVerification(
 		dto: VerificationRequestDto
 	): Promise<VerificationRequestResponseDto> {
+		// First check: fast-fail before issuing an OTP to a phone that already has an account.
+		// A second check is intentionally performed at register() time (TOCTOU protection): the
+		// number could be registered by another request during the ~15-minute verification window.
 		const existingUser = await this.userAuthService.findByPhoneNumber(dto.phoneNumber);
 
 		if (existingUser) {
