@@ -10,7 +10,7 @@ export class JwtAuthGuard implements CanActivate {
 		const token = this.extractTokenFromHeader(request);
 
 		if (!token) {
-			throw new UnauthorizedException("Token d'accès requis");
+			throw new UnauthorizedException('ERROR_ACCESS_TOKEN_REQUIRED');
 		}
 
 		try {
@@ -22,13 +22,13 @@ export class JwtAuthGuard implements CanActivate {
 			]);
 
 			if (isDeviceRevoked || isTokenRevoked) {
-				throw new UnauthorizedException('Token révoqué');
+				throw new UnauthorizedException('ERROR_TOKEN_REVOKED');
 			}
 
 			request.user = payload;
 			return true;
 		} catch {
-			throw new UnauthorizedException('Token invalide');
+			throw new UnauthorizedException('ERROR_INVALID_TOKEN');
 		}
 	}
 
