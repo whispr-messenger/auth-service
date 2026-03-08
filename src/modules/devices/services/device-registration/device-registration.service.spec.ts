@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Logger } from '@nestjs/common';
+import { ForbiddenException, Logger } from '@nestjs/common';
 import { DataSource, EntityManager, UpdateResult } from 'typeorm';
 import { DeviceRegistrationService } from './device-registration.service';
 import { DeviceRepository } from '../../repositories/device.repository';
@@ -53,6 +53,7 @@ describe('DeviceRegistrationService', () => {
 		// Mock repository
 		const mockDeviceRepository = {
 			findByUserAndFingerprint: jest.fn(),
+			countVerifiedDevices: jest.fn(),
 			create: jest.fn(),
 			save: jest.fn(),
 			update: jest.fn(),
@@ -111,6 +112,7 @@ describe('DeviceRegistrationService', () => {
 
 				// Mock: aucun appareil existant
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
@@ -155,6 +157,7 @@ describe('DeviceRegistrationService', () => {
 				});
 
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
@@ -182,6 +185,7 @@ describe('DeviceRegistrationService', () => {
 				const expectedDevice = createDeviceFixture();
 
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
@@ -205,6 +209,7 @@ describe('DeviceRegistrationService', () => {
 				const expectedDevice = createDeviceFixture({ lastActive: now });
 
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
@@ -226,6 +231,71 @@ describe('DeviceRegistrationService', () => {
 				expect(Math.abs(lastActiveTime - expectedTime)).toBeLessThan(1000);
 
 				jest.useRealTimers();
+			});
+		});
+
+		describe('Device limit enforcement', () => {
+			it('should throw ForbiddenException when device limit is reached', async () => {
+				const registrationData = createRegistrationDataFixture();
+
+				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(10);
+
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
+					return callback(entityManager);
+				});
+
+				await expect(service.registerDevice(registrationData)).rejects.toThrow(ForbiddenException);
+			});
+
+			it('should throw ForbiddenException with descriptive message at limit', async () => {
+				const registrationData = createRegistrationDataFixture();
+
+				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(10);
+
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
+					return callback(entityManager);
+				});
+
+				await expect(service.registerDevice(registrationData)).rejects.toThrow(
+					'Device limit reached. Maximum 10 devices allowed per user.'
+				);
+			});
+
+			it('should allow registration when below device limit', async () => {
+				const registrationData = createRegistrationDataFixture();
+				const expectedDevice = createDeviceFixture();
+
+				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(9);
+				transactionRepository.create.mockReturnValue(expectedDevice);
+				transactionRepository.save.mockResolvedValue(expectedDevice);
+
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
+					return callback(entityManager);
+				});
+
+				const result = await service.registerDevice(registrationData);
+
+				expect(result).toBeDefined();
+				expect(transactionRepository.create).toHaveBeenCalled();
+			});
+
+			it('should not check device count when updating an existing device', async () => {
+				const existingDevice = createDeviceFixture();
+				const registrationData = createRegistrationDataFixture();
+
+				transactionRepository.findByUserAndFingerprint.mockResolvedValue(existingDevice);
+				transactionRepository.save.mockImplementation(async (device) => device as Device);
+
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
+					return callback(entityManager);
+				});
+
+				await service.registerDevice(registrationData);
+
+				expect(transactionRepository.countVerifiedDevices).not.toHaveBeenCalled();
 			});
 		});
 
@@ -365,6 +435,7 @@ describe('DeviceRegistrationService', () => {
 				const expectedDevice = createDeviceFixture();
 
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
@@ -399,6 +470,7 @@ describe('DeviceRegistrationService', () => {
 				const error = new Error('Database error');
 
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
 				transactionRepository.save.mockRejectedValue(error);
 
 				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
@@ -416,6 +488,7 @@ describe('DeviceRegistrationService', () => {
 				const expectedDevice = createDeviceFixture();
 
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
@@ -541,6 +614,7 @@ describe('DeviceRegistrationService', () => {
 				});
 
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
@@ -562,6 +636,7 @@ describe('DeviceRegistrationService', () => {
 				});
 
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockResolvedValue(expectedDevice);
 
@@ -597,6 +672,7 @@ describe('DeviceRegistrationService', () => {
 				const error = new Error('Database save error');
 
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
 				transactionRepository.create.mockReturnValue(expectedDevice);
 				transactionRepository.save.mockRejectedValue(error);
 

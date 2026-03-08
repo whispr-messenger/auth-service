@@ -1,8 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { Device } from '../../entities/device.entity';
 import { DeviceRepository } from '../../repositories/device.repository';
 import { DeviceRegistrationData } from '../../types/device-registration-data.interface';
+
+const MAX_DEVICES_PER_USER = 10;
 
 @Injectable()
 export class DeviceRegistrationService {
@@ -26,6 +28,13 @@ export class DeviceRegistrationService {
 			if (existingDevice) {
 				this.logger.log(`Updating existing device: ${existingDevice.id}`);
 				return this.updateExistingDevice(existingDevice, data, transactionRepository);
+			}
+
+			const deviceCount = await transactionRepository.countVerifiedDevices(data.userId);
+			if (deviceCount >= MAX_DEVICES_PER_USER) {
+				throw new ForbiddenException(
+					`Device limit reached. Maximum ${MAX_DEVICES_PER_USER} devices allowed per user.`
+				);
 			}
 
 			this.logger.log(`Registering new device for user: ${data.userId}`);
