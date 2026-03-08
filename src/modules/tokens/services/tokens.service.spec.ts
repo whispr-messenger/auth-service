@@ -203,7 +203,7 @@ describe('TokensService', () => {
 			jwtService.verify.mockReturnValue({ type: 'access', tokenId: 'some-id' });
 
 			await expect(service.refreshAccessToken('some-token', mockFingerprint)).rejects.toThrow(
-				'Token de rafraîchissement invalide'
+				'ERROR_INVALID_REFRESH_TOKEN'
 			);
 		});
 
@@ -212,7 +212,7 @@ describe('TokensService', () => {
 			cacheService.get.mockResolvedValue(null);
 
 			await expect(service.refreshAccessToken('some-token', mockFingerprint)).rejects.toThrow(
-				'Token de rafraîchissement expiré ou révoqué'
+				'ERROR_REFRESH_TOKEN_EXPIRED_OR_REVOKED'
 			);
 		});
 
@@ -224,7 +224,7 @@ describe('TokensService', () => {
 			jest.spyOn(service as any, 'generateDeviceFingerprint').mockReturnValue('bbbbbb');
 
 			await expect(service.refreshAccessToken('some-token', mockFingerprint)).rejects.toThrow(
-				"Empreinte d'appareil invalide"
+				'ERROR_DEVICE_FINGERPRINT_MISMATCH'
 			);
 		});
 	});
