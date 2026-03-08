@@ -16,8 +16,12 @@ export class JwtAuthGuard implements CanActivate {
 		try {
 			const payload = this.tokenService.validateToken(token);
 
-			const isDeviceRevoked = await this.tokenService.isDeviceRevoked(payload.deviceId);
-			if (isDeviceRevoked) {
+			const [isDeviceRevoked, isTokenRevoked] = await Promise.all([
+				this.tokenService.isDeviceRevoked(payload.deviceId),
+				this.tokenService.isTokenRevoked(payload.jti),
+			]);
+
+			if (isDeviceRevoked || isTokenRevoked) {
 				throw new UnauthorizedException('Token révoqué');
 			}
 

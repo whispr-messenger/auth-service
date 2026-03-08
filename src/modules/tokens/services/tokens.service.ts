@@ -23,10 +23,12 @@ export class TokensService {
 		fingerprint: DeviceFingerprint
 	): Promise<TokenPair> {
 		const deviceFingerprint = this.generateDeviceFingerprint(fingerprint);
+		const accessTokenId = uuidv4();
 		const refreshTokenId = uuidv4();
 
 		const accessTokenPayload: JwtPayload = {
 			sub: userId,
+			jti: accessTokenId,
 			iat: Math.floor(Date.now() / 1000),
 			exp: Math.floor(Date.now() / 1000) + this.ACCESS_TOKEN_TTL,
 			deviceId,
@@ -99,9 +101,10 @@ export class TokensService {
 	async revokeToken(token: string): Promise<void> {
 		try {
 			const decoded = this.jwtService.decode(token) as any;
-			if (decoded && decoded.tokenId) {
+			const tokenId = decoded?.jti ?? decoded?.tokenId;
+			if (decoded && tokenId) {
 				await this.cacheService.set(
-					`revoked:${decoded.tokenId}`,
+					`revoked:${tokenId}`,
 					{ revokedAt: Date.now() },
 					decoded.exp - Math.floor(Date.now() / 1000)
 				);

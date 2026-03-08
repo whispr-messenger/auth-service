@@ -78,6 +78,32 @@ describe('TokensService', () => {
 				refreshToken,
 			});
 		});
+
+		it('should include a jti claim in the access token payload', async () => {
+			jwtService.sign.mockReturnValue('any-token');
+			cacheService.set.mockResolvedValue(undefined);
+
+			await service.generateTokenPair('user-id', 'device-id', mockFingerprint);
+
+			const accessPayload = jwtService.sign.mock.calls[0][0] as any;
+			expect(accessPayload).toHaveProperty('jti');
+			expect(typeof accessPayload.jti).toBe('string');
+			expect(accessPayload.jti).toMatch(
+				/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+			);
+		});
+
+		it('should use a different jti for each generated token pair', async () => {
+			jwtService.sign.mockReturnValue('any-token');
+			cacheService.set.mockResolvedValue(undefined);
+
+			await service.generateTokenPair('user-id', 'device-id', mockFingerprint);
+			await service.generateTokenPair('user-id', 'device-id', mockFingerprint);
+
+			const firstJti = (jwtService.sign.mock.calls[0][0] as any).jti;
+			const secondJti = (jwtService.sign.mock.calls[2][0] as any).jti;
+			expect(firstJti).not.toBe(secondJti);
+		});
 	});
 
 	describe('refreshAccessToken', () => {
@@ -158,21 +184,37 @@ describe('TokensService', () => {
 	});
 
 	describe('revokeToken', () => {
-		it('should revoke token successfully', async () => {
-			const refreshToken = 'valid-refresh-token';
-			const tokenId = 'token-id';
+		it('should revoke an access token using its jti claim', async () => {
+			const accessToken = 'valid-access-token';
+			const jti = 'access-token-uuid';
 
-			const decodedToken = {
-				tokenId: tokenId,
+			jwtService.decode.mockReturnValue({
+				jti,
 				exp: Math.floor(Date.now() / 1000) + 3600,
-			};
-
-			jwtService.decode.mockReturnValue(decodedToken);
+			});
 			cacheService.set.mockResolvedValue(undefined);
 
-			await service.revokeToken(refreshToken);
+			await service.revokeToken(accessToken);
 
-			expect(jwtService.decode).toHaveBeenCalledWith(refreshToken);
+			expect(cacheService.set).toHaveBeenCalledWith(
+				`revoked:${jti}`,
+				expect.any(Object),
+				expect.any(Number)
+			);
+		});
+
+		it('should revoke a legacy token using its tokenId claim when jti is absent', async () => {
+			const legacyToken = 'valid-legacy-token';
+			const tokenId = 'legacy-token-id';
+
+			jwtService.decode.mockReturnValue({
+				tokenId,
+				exp: Math.floor(Date.now() / 1000) + 3600,
+			});
+			cacheService.set.mockResolvedValue(undefined);
+
+			await service.revokeToken(legacyToken);
+
 			expect(cacheService.set).toHaveBeenCalledWith(
 				`revoked:${tokenId}`,
 				expect.any(Object),
@@ -180,13 +222,42 @@ describe('TokensService', () => {
 			);
 		});
 
-		it('should handle invalid token gracefully', async () => {
-			const invalidRefreshToken = 'invalid-refresh-token';
+		it('should prefer jti over tokenId when both are present', async () => {
+			const token = 'some-token';
+			const jti = 'jti-claim';
 
+			jwtService.decode.mockReturnValue({
+				jti,
+				tokenId: 'should-not-be-used',
+				exp: Math.floor(Date.now() / 1000) + 3600,
+			});
+			cacheService.set.mockResolvedValue(undefined);
+
+			await service.revokeToken(token);
+
+			expect(cacheService.set).toHaveBeenCalledWith(
+				`revoked:${jti}`,
+				expect.any(Object),
+				expect.any(Number)
+			);
+		});
+
+		it('should not write to cache when token has no jti or tokenId', async () => {
+			jwtService.decode.mockReturnValue({
+				sub: 'user-id',
+				exp: Math.floor(Date.now() / 1000) + 3600,
+			});
+
+			await service.revokeToken('some-token');
+
+			expect(cacheService.set).not.toHaveBeenCalled();
+		});
+
+		it('should handle invalid token gracefully', async () => {
 			jwtService.decode.mockReturnValue(null);
 
-			await expect(service.revokeToken(invalidRefreshToken)).resolves.not.toThrow();
-			expect(jwtService.decode).toHaveBeenCalledWith(invalidRefreshToken);
+			await expect(service.revokeToken('invalid-token')).resolves.not.toThrow();
+			expect(cacheService.set).not.toHaveBeenCalled();
 		});
 	});
 });
