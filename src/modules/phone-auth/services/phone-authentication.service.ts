@@ -71,7 +71,7 @@ export class PhoneAuthenticationService {
 				appVersion: deviceInfo.appVersion,
 				fcmToken: deviceInfo.fcmToken,
 				apnsToken: deviceInfo.apnsToken,
-				deviceFingerprint: deviceInfo.deviceId,
+				deviceFingerprint: deviceInfo.deviceId ?? randomUUID(),
 			});
 
 			await this.signalKeyStorageService.storeIdentityKey(

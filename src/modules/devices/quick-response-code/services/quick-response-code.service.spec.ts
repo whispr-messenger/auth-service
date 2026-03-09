@@ -336,13 +336,18 @@ describe('QuickResponseCodeService', () => {
 
 				const result = await service.scanLogin(dto, mockFingerprint);
 
-				expect(deviceRegistrationService.registerDevice).toHaveBeenCalledWith({
-					userId: 'user-456',
-					deviceName: 'New iPhone',
-					deviceType: 'mobile',
-					publicKey: 'mock-public-key',
-					ipAddress: '192.168.1.1',
-				});
+				expect(deviceRegistrationService.registerDevice).toHaveBeenCalledWith(
+					expect.objectContaining({
+						userId: 'user-456',
+						deviceName: 'New iPhone',
+						deviceType: 'mobile',
+						publicKey: 'mock-public-key',
+						ipAddress: '192.168.1.1',
+						deviceFingerprint: expect.stringMatching(
+							/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+						),
+					})
+				);
 				expect(userAuthRepository.save).toHaveBeenCalled();
 				expect(tokensService.generateTokenPair).toHaveBeenCalledWith(
 					'user-456',
