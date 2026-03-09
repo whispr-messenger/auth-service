@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -275,6 +276,7 @@ export class AuthGrpcService {
 				deviceType: device_type,
 				publicKey: public_key,
 				ipAddress: ip_address,
+				deviceFingerprint: randomUUID(),
 			});
 
 			callback(null, {
