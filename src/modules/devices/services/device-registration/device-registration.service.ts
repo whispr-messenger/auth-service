@@ -1,4 +1,5 @@
 import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Device } from '../../entities/device.entity';
 import { DeviceRepository } from '../../repositories/device.repository';
@@ -12,7 +13,7 @@ export class DeviceRegistrationService {
 
 	constructor(
 		private readonly deviceRepository: DeviceRepository,
-		private readonly dataSource: DataSource
+		@InjectDataSource() private readonly dataSource: DataSource
 	) {}
 
 	async registerDevice(data: DeviceRegistrationData): Promise<Device> {
