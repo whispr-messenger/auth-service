@@ -23,7 +23,8 @@ export class DeviceRegistrationService {
 			const existingDevice = await transactionRepository.findByUserAndFingerprint(
 				data.userId,
 				data.deviceName,
-				data.deviceType
+				data.deviceType,
+				data.deviceFingerprint
 			);
 
 			if (existingDevice) {
@@ -76,6 +77,7 @@ export class DeviceRegistrationService {
 			appVersion: data.appVersion,
 			fcmToken: data.fcmToken,
 			apnsToken: data.apnsToken,
+			deviceFingerprint: data.deviceFingerprint ?? null,
 			isVerified: true,
 			lastActive: new Date(),
 		});
