@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 // TODO: Install @nestjs/schedule dependency for scheduled tasks
 // import { ScheduleModule } from '@nestjs/schedule';
 
@@ -66,9 +67,24 @@ import { TokensModule } from '../tokens/tokens.module';
 	],
 	providers: [
 		// Custom repositories
-		IdentityKeyRepository,
-		SignedPreKeyRepository,
-		PreKeyRepository,
+		{
+			provide: IdentityKeyRepository,
+			inject: [DataSource],
+			useFactory: (dataSource: DataSource) =>
+				new IdentityKeyRepository(IdentityKey, dataSource.createEntityManager()),
+		},
+		{
+			provide: SignedPreKeyRepository,
+			inject: [DataSource],
+			useFactory: (dataSource: DataSource) =>
+				new SignedPreKeyRepository(SignedPreKey, dataSource.createEntityManager()),
+		},
+		{
+			provide: PreKeyRepository,
+			inject: [DataSource],
+			useFactory: (dataSource: DataSource) =>
+				new PreKeyRepository(PreKey, dataSource.createEntityManager()),
+		},
 		// Services
 		SignalKeyStorageService,
 		SignalPreKeyBundleService,

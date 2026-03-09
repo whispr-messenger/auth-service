@@ -1,12 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource, Repository, MoreThan } from 'typeorm';
+import { Repository, EntityManager, EntityTarget, QueryRunner, MoreThan } from 'typeorm';
 import { Device } from '../entities/device.entity';
 
-@Injectable()
 export class DeviceRepository extends Repository<Device> {
-	constructor(@InjectDataSource() private dataSource: DataSource) {
-		super(Device, dataSource.createEntityManager());
+	constructor(target: EntityTarget<Device>, manager: EntityManager, queryRunner?: QueryRunner) {
+		super(target, manager, queryRunner);
 	}
 
 	async findByUserAndFingerprint(
