@@ -140,7 +140,8 @@ describe('DeviceRegistrationService', () => {
 				expect(transactionRepository.findByUserAndFingerprint).toHaveBeenCalledWith(
 					registrationData.userId,
 					registrationData.deviceName,
-					registrationData.deviceType
+					registrationData.deviceType,
+					registrationData.deviceFingerprint
 				);
 				expect(transactionRepository.create).toHaveBeenCalled();
 				expect(transactionRepository.save).toHaveBeenCalledWith(expectedDevice);
@@ -175,6 +176,7 @@ describe('DeviceRegistrationService', () => {
 					publicKey: registrationData.publicKey,
 					ipAddress: undefined,
 					fcmToken: undefined,
+					deviceFingerprint: null,
 					isVerified: true,
 					lastActive: expect.any(Date),
 				});
@@ -231,6 +233,71 @@ describe('DeviceRegistrationService', () => {
 				expect(Math.abs(lastActiveTime - expectedTime)).toBeLessThan(1000);
 
 				jest.useRealTimers();
+			});
+
+			it('should set deviceFingerprint when provided', async () => {
+				const fingerprint = 'client-uuid-abc';
+				const registrationData = createRegistrationDataFixture({ deviceFingerprint: fingerprint });
+				const expectedDevice = createDeviceFixture({ deviceFingerprint: fingerprint });
+
+				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
+				transactionRepository.create.mockReturnValue(expectedDevice);
+				transactionRepository.save.mockResolvedValue(expectedDevice);
+
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
+					return callback(entityManager);
+				});
+
+				await service.registerDevice(registrationData);
+
+				expect(transactionRepository.create).toHaveBeenCalledWith(
+					expect.objectContaining({ deviceFingerprint: fingerprint })
+				);
+			});
+
+			it('should set deviceFingerprint to null when not provided', async () => {
+				const registrationData = createRegistrationDataFixture();
+				const expectedDevice = createDeviceFixture({ deviceFingerprint: null });
+
+				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
+				transactionRepository.create.mockReturnValue(expectedDevice);
+				transactionRepository.save.mockResolvedValue(expectedDevice);
+
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
+					return callback(entityManager);
+				});
+
+				await service.registerDevice(registrationData);
+
+				expect(transactionRepository.create).toHaveBeenCalledWith(
+					expect.objectContaining({ deviceFingerprint: null })
+				);
+			});
+
+			it('should pass deviceFingerprint to findByUserAndFingerprint', async () => {
+				const fingerprint = 'client-uuid-abc';
+				const registrationData = createRegistrationDataFixture({ deviceFingerprint: fingerprint });
+				const expectedDevice = createDeviceFixture({ deviceFingerprint: fingerprint });
+
+				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
+				transactionRepository.create.mockReturnValue(expectedDevice);
+				transactionRepository.save.mockResolvedValue(expectedDevice);
+
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
+					return callback(entityManager);
+				});
+
+				await service.registerDevice(registrationData);
+
+				expect(transactionRepository.findByUserAndFingerprint).toHaveBeenCalledWith(
+					registrationData.userId,
+					registrationData.deviceName,
+					registrationData.deviceType,
+					fingerprint
+				);
 			});
 		});
 
