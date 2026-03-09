@@ -12,6 +12,14 @@ export class BaseAuthDto implements DeviceInfo {
 	@IsUUID()
 	verificationId: string;
 
+	@ApiPropertyOptional({
+		description: 'Client-generated stable UUID identifying the device',
+		example: '550e8400-e29b-41d4-a716-446655440000',
+	})
+	@IsOptional()
+	@IsString()
+	deviceId?: string;
+
 	@ApiPropertyOptional({ description: 'Name of the device', example: 'iPhone 15 Pro' })
 	@IsOptional()
 	@IsString()

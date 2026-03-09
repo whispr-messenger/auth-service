@@ -67,6 +67,53 @@ describe('PhoneAuthenticationService', () => {
 		jest.clearAllMocks();
 	});
 
+	describe('handleDeviceRegistration (deviceId forwarding)', () => {
+		it('should forward deviceId as deviceFingerprint when registering a device', async () => {
+			const deviceId = 'stable-client-uuid';
+			const registeredDevice = { id: 'device-db-id' };
+
+			mockPhoneVerificationService.getConfirmedVerification.mockResolvedValue({
+				phoneNumber: '+33600000001',
+				purpose: 'login',
+			});
+			mockUserAuthService.findByPhoneNumber.mockResolvedValue({
+				id: 'user-1',
+				phoneNumber: '+33600000001',
+				lastAuthenticatedAt: new Date(),
+			});
+			mockDeviceRegistrationService.registerDevice.mockResolvedValue(registeredDevice);
+			mockSignalKeyStorageService.storeIdentityKey.mockResolvedValue(undefined);
+			mockSignalKeyStorageService.storeSignedPreKey.mockResolvedValue(undefined);
+			mockSignalKeyStorageService.storePreKeys.mockResolvedValue(undefined);
+			mockUserAuthService.saveUser.mockResolvedValue({ id: 'user-1' });
+			mockPhoneVerificationService.consumeVerification.mockResolvedValue(undefined);
+			mockTokensService.generateTokenPair.mockResolvedValue({
+				accessToken: 'token-a',
+				refreshToken: 'refresh-a',
+				userId: 'user-1',
+				deviceId: 'device-db-id',
+			});
+
+			const dto = {
+				verificationId: 'ver-1',
+				deviceId,
+				deviceName: 'iPhone 15',
+				deviceType: 'ios',
+				signalKeyBundle: {
+					identityKey: 'ik',
+					signedPreKey: { keyId: 1, publicKey: 'spk', signature: 'sig' },
+					preKeys: [],
+				},
+			};
+
+			await service.login(dto as any, fingerprint);
+
+			expect(mockDeviceRegistrationService.registerDevice).toHaveBeenCalledWith(
+				expect.objectContaining({ deviceFingerprint: deviceId })
+			);
+		});
+	});
+
 	describe('handleDeviceRegistration (web session path)', () => {
 		it('should return a unique UUID for each web session when no signalKeyBundle is provided', async () => {
 			mockPhoneVerificationService.getConfirmedVerification.mockResolvedValue({

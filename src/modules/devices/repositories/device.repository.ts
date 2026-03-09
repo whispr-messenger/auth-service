@@ -9,15 +9,13 @@ export class DeviceRepository extends Repository<Device> {
 	async findByUserAndFingerprint(
 		userId: string,
 		deviceName: string,
-		deviceType: string
+		deviceType: string,
+		deviceFingerprint?: string
 	): Promise<Device | null> {
-		return this.findOne({
-			where: {
-				userId,
-				deviceName,
-				deviceType,
-			},
-		});
+		if (deviceFingerprint) {
+			return this.findOne({ where: { userId, deviceFingerprint } });
+		}
+		return this.findOne({ where: { userId, deviceName, deviceType } });
 	}
 
 	async findVerifiedByUserId(userId: string): Promise<Device[]> {
