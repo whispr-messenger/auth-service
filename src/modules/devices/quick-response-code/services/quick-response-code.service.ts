@@ -79,6 +79,7 @@ export class QuickResponseCodeService {
 				deviceType: dto.deviceType,
 				publicKey: challengeData.publicKey,
 				ipAddress: fingerprint.ipAddress,
+				deviceFingerprint: uuidv4(),
 			});
 			deviceId = device.id;
 		} else {

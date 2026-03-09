@@ -114,6 +114,55 @@ describe('PhoneAuthenticationService', () => {
 		});
 	});
 
+	describe('handleDeviceRegistration (server-side UUID fallback)', () => {
+		it('should generate a server-side UUID as deviceFingerprint when deviceId is absent', async () => {
+			const registeredDevice = { id: 'device-db-id' };
+
+			mockPhoneVerificationService.getConfirmedVerification.mockResolvedValue({
+				phoneNumber: '+33600000001',
+				purpose: 'login',
+			});
+			mockUserAuthService.findByPhoneNumber.mockResolvedValue({
+				id: 'user-1',
+				phoneNumber: '+33600000001',
+				lastAuthenticatedAt: new Date(),
+			});
+			mockDeviceRegistrationService.registerDevice.mockResolvedValue(registeredDevice);
+			mockSignalKeyStorageService.storeIdentityKey.mockResolvedValue(undefined);
+			mockSignalKeyStorageService.storeSignedPreKey.mockResolvedValue(undefined);
+			mockSignalKeyStorageService.storePreKeys.mockResolvedValue(undefined);
+			mockUserAuthService.saveUser.mockResolvedValue({ id: 'user-1' });
+			mockPhoneVerificationService.consumeVerification.mockResolvedValue(undefined);
+			mockTokensService.generateTokenPair.mockResolvedValue({
+				accessToken: 'token-a',
+				refreshToken: 'refresh-a',
+				userId: 'user-1',
+				deviceId: 'device-db-id',
+			});
+
+			const dto = {
+				verificationId: 'ver-1',
+				// no deviceId
+				deviceName: 'iPhone 15',
+				deviceType: 'ios',
+				signalKeyBundle: {
+					identityKey: 'ik',
+					signedPreKey: { keyId: 1, publicKey: 'spk', signature: 'sig' },
+					preKeys: [],
+				},
+			};
+
+			await service.login(dto as any, fingerprint);
+
+			const call = mockDeviceRegistrationService.registerDevice.mock.calls[0][0];
+			expect(call.deviceFingerprint).toBeDefined();
+			expect(typeof call.deviceFingerprint).toBe('string');
+			expect(call.deviceFingerprint).toMatch(
+				/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+			);
+		});
+	});
+
 	describe('handleDeviceRegistration (web session path)', () => {
 		it('should return a unique UUID for each web session when no signalKeyBundle is provided', async () => {
 			mockPhoneVerificationService.getConfirmedVerification.mockResolvedValue({

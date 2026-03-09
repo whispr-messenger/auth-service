@@ -32,9 +32,9 @@ export class Device {
 		type: 'varchar',
 		length: 255,
 		unique: true,
-		nullable: true,
+		nullable: false,
 	})
-	deviceFingerprint: string | null;
+	deviceFingerprint: string;
 
 	@Column({ name: 'model', type: 'varchar', length: 100, nullable: true })
 	model: string;

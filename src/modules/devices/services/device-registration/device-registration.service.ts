@@ -77,7 +77,7 @@ export class DeviceRegistrationService {
 			appVersion: data.appVersion,
 			fcmToken: data.fcmToken,
 			apnsToken: data.apnsToken,
-			deviceFingerprint: data.deviceFingerprint ?? null,
+			deviceFingerprint: data.deviceFingerprint,
 			isVerified: true,
 			lastActive: new Date(),
 		});
