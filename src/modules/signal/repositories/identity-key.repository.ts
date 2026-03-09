@@ -1,12 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { Repository, EntityManager, EntityTarget, QueryRunner } from 'typeorm';
 import { IdentityKey } from '../entities/identity-key.entity';
 
-@Injectable()
 export class IdentityKeyRepository extends Repository<IdentityKey> {
-	constructor(@InjectDataSource() private dataSource: DataSource) {
-		super(IdentityKey, dataSource.createEntityManager());
+	constructor(target: EntityTarget<IdentityKey>, manager: EntityManager, queryRunner?: QueryRunner) {
+		super(target, manager, queryRunner);
 	}
 
 	/**
