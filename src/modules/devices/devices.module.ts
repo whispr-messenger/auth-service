@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 // QR Codes
 import { QuickResponseCodeService } from './quick-response-code/services';
 import { QuickResponseCodeController } from './quick-response-code/controller/quick-response-code.controller';
@@ -25,7 +26,12 @@ import { UserAuth } from '../common/entities/user-auth.entity';
 		DeviceActivityService,
 		DeviceStatsService,
 		DeviceFingerprintService,
-		DeviceRepository,
+		{
+			provide: DeviceRepository,
+			inject: [DataSource],
+			useFactory: (dataSource: DataSource) =>
+				new DeviceRepository(Device, dataSource.createEntityManager()),
+		},
 		QuickResponseCodeService,
 	],
 	controllers: [DevicesController, QuickResponseCodeController],
