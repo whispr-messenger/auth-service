@@ -9,5 +9,5 @@ export interface DeviceRegistrationData {
 	appVersion?: string;
 	fcmToken?: string;
 	apnsToken?: string;
-	deviceFingerprint?: string;
+	deviceFingerprint: string;
 }

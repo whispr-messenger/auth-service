@@ -46,6 +46,7 @@ describe('DeviceRegistrationService', () => {
 		publicKey: 'public-key-abc',
 		ipAddress: '192.168.1.100',
 		fcmToken: 'fcm-token-xyz',
+		deviceFingerprint: 'fingerprint-123',
 		...overrides,
 	});
 
@@ -176,7 +177,7 @@ describe('DeviceRegistrationService', () => {
 					publicKey: registrationData.publicKey,
 					ipAddress: undefined,
 					fcmToken: undefined,
-					deviceFingerprint: null,
+					deviceFingerprint: registrationData.deviceFingerprint,
 					isVerified: true,
 					lastActive: expect.any(Date),
 				});
@@ -253,26 +254,6 @@ describe('DeviceRegistrationService', () => {
 
 				expect(transactionRepository.create).toHaveBeenCalledWith(
 					expect.objectContaining({ deviceFingerprint: fingerprint })
-				);
-			});
-
-			it('should set deviceFingerprint to null when not provided', async () => {
-				const registrationData = createRegistrationDataFixture();
-				const expectedDevice = createDeviceFixture({ deviceFingerprint: null });
-
-				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
-				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
-				transactionRepository.create.mockReturnValue(expectedDevice);
-				transactionRepository.save.mockResolvedValue(expectedDevice);
-
-				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
-					return callback(entityManager);
-				});
-
-				await service.registerDevice(registrationData);
-
-				expect(transactionRepository.create).toHaveBeenCalledWith(
-					expect.objectContaining({ deviceFingerprint: null })
 				);
 			});
 
