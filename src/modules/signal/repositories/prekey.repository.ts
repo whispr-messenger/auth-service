@@ -1,12 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource, Repository, LessThan } from 'typeorm';
+import { Repository, EntityManager, EntityTarget, QueryRunner, LessThan } from 'typeorm';
 import { PreKey } from '../entities/prekey.entity';
 
-@Injectable()
 export class PreKeyRepository extends Repository<PreKey> {
-	constructor(@InjectDataSource() private dataSource: DataSource) {
-		super(PreKey, dataSource.createEntityManager());
+	constructor(target: EntityTarget<PreKey>, manager: EntityManager, queryRunner?: QueryRunner) {
+		super(target, manager, queryRunner);
 	}
 
 	/**
