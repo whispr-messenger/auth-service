@@ -49,9 +49,9 @@ export default function runEnvChecks(): void {
 	checkRequired('DB_PASSWORD');
 	checkRequired('DB_NAME');
 
-	// JWT
-	checkRequired('JWT_PRIVATE_KEY');
-	checkRequired('JWT_PUBLIC_KEY');
+	// JWT (file paths to Docker Compose secrets)
+	checkRequired('JWT_PRIVATE_KEY_FILE');
+	checkRequired('JWT_PUBLIC_KEY_FILE');
 
 	// Redis
 	checkRequired('REDIS_HOST');

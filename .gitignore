@@ -65,5 +65,9 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # Kubernetes
 **/k8s/secret*
 
+# Docker Compose secrets (key files — never commit)
+docker/dev/secrets/
+docker/prod/secrets/
+
 # Migration plans (local tracking)
 MIGRATION_PLAN.md

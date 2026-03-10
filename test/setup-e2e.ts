@@ -1,4 +1,24 @@
-// import crypto from 'node:crypto';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+
+// Write EC key files to a temp directory so validateJwtKeys can read them
+const TEST_PRIVATE_KEY = `-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEIAbziHa/xFA+np4yxov/eARnnTYTOxY/ukqGhSOkfMoboAoGCCqGSM49
+AwEHoUQDQgAEIDUdceFHvmbx6lUNwciNRmyJqpAakLzZzdPgcgDVf10YHfiaprI0
+fir7QKxkq7dr1AlUUpYdbkOmYmfXnqk1Ag==
+-----END EC PRIVATE KEY-----`;
+
+const TEST_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIDUdceFHvmbx6lUNwciNRmyJqpAa
+kLzZzdPgcgDVf10YHfiaprI0fir7QKxkq7dr1AlUUpYdbkOmYmfXnqk1Ag==
+-----END PUBLIC KEY-----`;
+
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'whispr-test-'));
+const privateKeyFile = path.join(tmpDir, 'jwt_private_key');
+const publicKeyFile = path.join(tmpDir, 'jwt_public_key');
+fs.writeFileSync(privateKeyFile, TEST_PRIVATE_KEY);
+fs.writeFileSync(publicKeyFile, TEST_PUBLIC_KEY);
 
 // Mock environment variables for testing
 process.env.NODE_ENV = 'test';
@@ -10,8 +30,8 @@ process.env.DB_PASSWORD = 'test';
 process.env.DB_NAME = 'test';
 process.env.DB_SYNCHRONIZE = 'true';
 process.env.DB_LOGGING = 'false';
-process.env.JWT_PRIVATE_KEY = 'test-private-key';
-process.env.JWT_PUBLIC_KEY = 'test-public-key';
+process.env.JWT_PRIVATE_KEY_FILE = privateKeyFile;
+process.env.JWT_PUBLIC_KEY_FILE = publicKeyFile;
 process.env.JWT_ACCESS_TOKEN_EXPIRY = '1h';
 process.env.JWT_REFRESH_TOKEN_EXPIRY = '7d';
 process.env.REDIS_HOST = 'localhost';
