@@ -67,6 +67,29 @@ export class SignedPreKeyRepository extends Repository<SignedPreKey> {
 	}
 
 	/**
+	 * Create or update a signed prekey identified by (userId, deviceId, keyId)
+	 */
+	async upsertSignedPreKey(
+		userId: string,
+		deviceId: string,
+		keyId: number,
+		publicKey: string,
+		signature: string,
+		expiresAt: Date
+	): Promise<SignedPreKey> {
+		const existing = await this.findByUserIdDeviceIdAndKeyId(userId, deviceId, keyId);
+
+		if (existing) {
+			existing.publicKey = publicKey;
+			existing.signature = signature;
+			existing.expiresAt = expiresAt;
+			return this.save(existing);
+		}
+
+		return this.createSignedPreKey(userId, deviceId, keyId, publicKey, signature, expiresAt);
+	}
+
+	/**
 	 * Find all expired signed prekeys
 	 */
 	async findExpired(): Promise<SignedPreKey[]> {
