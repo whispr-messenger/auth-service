@@ -112,6 +112,17 @@ describe('TokensService', () => {
 			);
 		});
 
+		it('should sign tokens without expiresIn option since exp is already in the payload', async () => {
+			jwtService.sign.mockReturnValue('any-token');
+			cacheService.set.mockResolvedValue(undefined);
+
+			await service.generateTokenPair('user-id', 'device-id', mockFingerprint);
+
+			for (const [, options] of jwtService.sign.mock.calls) {
+				expect(options).not.toHaveProperty('expiresIn');
+			}
+		});
+
 		it('should use a different jti for each generated token pair', async () => {
 			jwtService.sign.mockReturnValue('any-token');
 			cacheService.set.mockResolvedValue(undefined);
