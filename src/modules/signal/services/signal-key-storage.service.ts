@@ -64,7 +64,7 @@ export class SignalKeyStorageService {
 			const expiresAt = new Date();
 			expiresAt.setDate(expiresAt.getDate() + 7);
 
-			return await this.signedPreKeyRepository.createSignedPreKey(
+			return await this.signedPreKeyRepository.upsertSignedPreKey(
 				userId,
 				deviceId,
 				signedPreKey.keyId,
@@ -90,7 +90,7 @@ export class SignalKeyStorageService {
 		this.logger.log(`Storing ${preKeys.length} prekeys for user ${userId}, device ${deviceId}`);
 
 		try {
-			return await this.preKeyRepository.createPreKeys(
+			return await this.preKeyRepository.replacePreKeys(
 				userId,
 				deviceId,
 				preKeys.map((pk) => ({
