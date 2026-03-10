@@ -47,12 +47,10 @@ export class TokensService {
 
 		const accessToken = this.jwtService.sign(accessTokenPayload, {
 			algorithm: 'ES256',
-			expiresIn: this.ACCESS_TOKEN_TTL,
 		});
 
 		const refreshToken = this.jwtService.sign(refreshTokenPayload, {
 			algorithm: 'ES256',
-			expiresIn: this.REFRESH_TOKEN_TTL,
 		});
 
 		await this.cacheService.set(
