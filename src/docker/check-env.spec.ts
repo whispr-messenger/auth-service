@@ -44,8 +44,8 @@ describe('check-env', () => {
 			process.env.DB_USERNAME = 'user';
 			process.env.DB_PASSWORD = 'password';
 			process.env.DB_NAME = 'auth_db';
-			process.env.JWT_PRIVATE_KEY = 'private-key';
-			process.env.JWT_PUBLIC_KEY = 'public-key';
+			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
+			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
@@ -83,8 +83,8 @@ describe('check-env', () => {
 				'DB_USERNAME',
 				'DB_PASSWORD',
 				'DB_NAME',
-				'JWT_PRIVATE_KEY',
-				'JWT_PUBLIC_KEY',
+				'JWT_PRIVATE_KEY_FILE',
+				'JWT_PUBLIC_KEY_FILE',
 				'REDIS_HOST',
 				'REDIS_PORT',
 				'HTTP_PORT',
@@ -120,8 +120,8 @@ describe('check-env', () => {
 			process.env.DB_USERNAME = 'user';
 			process.env.DB_PASSWORD = 'password';
 			process.env.DB_NAME = 'auth_db';
-			process.env.JWT_PRIVATE_KEY = 'private-key';
-			process.env.JWT_PUBLIC_KEY = 'public-key';
+			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
+			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
@@ -161,8 +161,8 @@ describe('check-env', () => {
 			process.env.DB_USERNAME = 'user';
 			process.env.DB_PASSWORD = 'password';
 			process.env.DB_NAME = 'auth_db';
-			process.env.JWT_PRIVATE_KEY = 'private-key';
-			process.env.JWT_PUBLIC_KEY = 'public-key';
+			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
+			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
@@ -182,8 +182,8 @@ describe('check-env', () => {
 
 		it('should throw error when database variables are missing', () => {
 			process.env.NODE_ENV = 'production';
-			process.env.JWT_PRIVATE_KEY = 'private-key';
-			process.env.JWT_PUBLIC_KEY = 'public-key';
+			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
+			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
@@ -204,7 +204,7 @@ describe('check-env', () => {
 			);
 		});
 
-		it('should throw error when JWT keys are missing', () => {
+		it('should throw error when JWT key file vars are missing', () => {
 			process.env.NODE_ENV = 'production';
 			process.env.DB_HOST = 'localhost';
 			process.env.DB_PORT = '5432';
@@ -224,10 +224,10 @@ describe('check-env', () => {
 			expect(() => runEnvChecks()).toThrow('Missing required environment variables');
 
 			expect(consoleErrorSpy).toHaveBeenCalledWith(
-				expect.stringContaining('JWT_PRIVATE_KEY is NOT set (REQUIRED)')
+				expect.stringContaining('JWT_PRIVATE_KEY_FILE is NOT set (REQUIRED)')
 			);
 			expect(consoleErrorSpy).toHaveBeenCalledWith(
-				expect.stringContaining('JWT_PUBLIC_KEY is NOT set (REQUIRED)')
+				expect.stringContaining('JWT_PUBLIC_KEY_FILE is NOT set (REQUIRED)')
 			);
 		});
 
@@ -238,8 +238,8 @@ describe('check-env', () => {
 			process.env.DB_USERNAME = 'user';
 			process.env.DB_PASSWORD = 'password';
 			process.env.DB_NAME = 'auth_db';
-			process.env.JWT_PRIVATE_KEY = 'private-key';
-			process.env.JWT_PUBLIC_KEY = 'public-key';
+			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
+			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.HTTP_PORT = '3000';
 			process.env.GRPC_PORT = '50051';
 			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
@@ -265,8 +265,8 @@ describe('check-env', () => {
 			process.env.DB_USERNAME = 'user';
 			process.env.DB_PASSWORD = 'password';
 			process.env.DB_NAME = 'auth_db';
-			process.env.JWT_PRIVATE_KEY = 'private-key';
-			process.env.JWT_PUBLIC_KEY = 'public-key';
+			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
+			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
@@ -292,8 +292,8 @@ describe('check-env', () => {
 			process.env.DB_USERNAME = 'user';
 			process.env.DB_PASSWORD = 'password';
 			process.env.DB_NAME = 'auth_db';
-			process.env.JWT_PRIVATE_KEY = 'private-key';
-			process.env.JWT_PUBLIC_KEY = 'public-key';
+			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
+			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
@@ -319,8 +319,8 @@ describe('check-env', () => {
 			process.env.DB_USERNAME = 'user';
 			process.env.DB_PASSWORD = 'password';
 			process.env.DB_NAME = 'auth_db';
-			process.env.JWT_PRIVATE_KEY = 'private-key';
-			process.env.JWT_PUBLIC_KEY = 'public-key';
+			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
+			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
@@ -374,8 +374,8 @@ describe('check-env', () => {
 			process.env.DB_USERNAME = 'user';
 			process.env.DB_PASSWORD = 'password';
 			process.env.DB_NAME = 'auth_db';
-			process.env.JWT_PRIVATE_KEY = 'private-key';
-			process.env.JWT_PUBLIC_KEY = 'public-key';
+			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
+			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
@@ -400,8 +400,8 @@ describe('check-env', () => {
 			process.env.DB_USERNAME = 'user';
 			process.env.DB_PASSWORD = 'password';
 			process.env.DB_NAME = 'auth_db';
-			process.env.JWT_PRIVATE_KEY = 'private-key';
-			process.env.JWT_PUBLIC_KEY = 'public-key';
+			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
+			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
@@ -427,8 +427,8 @@ describe('check-env', () => {
 			process.env.DB_USERNAME = 'user';
 			process.env.DB_PASSWORD = 'password';
 			process.env.DB_NAME = 'auth_db';
-			process.env.JWT_PRIVATE_KEY = 'private-key';
-			process.env.JWT_PUBLIC_KEY = 'public-key';
+			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
+			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
@@ -457,8 +457,8 @@ describe('check-env', () => {
 			process.env.DB_USERNAME = 'user';
 			process.env.DB_PASSWORD = 'password';
 			process.env.DB_NAME = 'auth_db';
-			process.env.JWT_PRIVATE_KEY = 'private-key';
-			process.env.JWT_PUBLIC_KEY = 'public-key';
+			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
+			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
@@ -519,8 +519,8 @@ describe('check-env', () => {
 			process.env.DB_USERNAME = 'user';
 			process.env.DB_PASSWORD = 'password';
 			process.env.DB_NAME = 'auth_db';
-			process.env.JWT_PRIVATE_KEY = 'private-key';
-			process.env.JWT_PUBLIC_KEY = 'public-key';
+			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
+			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
@@ -558,8 +558,8 @@ describe('check-env', () => {
 			process.env.DB_USERNAME = 'user';
 			process.env.DB_PASSWORD = 'password';
 			process.env.DB_NAME = 'auth_db';
-			process.env.JWT_PRIVATE_KEY = 'private-key';
-			process.env.JWT_PUBLIC_KEY = 'public-key';
+			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
+			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';

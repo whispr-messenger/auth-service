@@ -7,11 +7,13 @@ import { AuthModule } from '../auth.module';
 import { typeOrmModuleOptionsFactory } from './typeorm';
 import { CacheModule } from '../cache/cache.module';
 import { APP_GUARD } from '@nestjs/core';
+import { validateJwtKeys } from '../../config/jwt-keys.config';
 
 // Environment variables
 const configModuleOptions: ConfigModuleOptions = {
 	isGlobal: true,
 	envFilePath: '.env',
+	validate: validateJwtKeys,
 };
 
 // Database (Postgres)
