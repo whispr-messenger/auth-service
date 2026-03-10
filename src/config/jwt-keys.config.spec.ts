@@ -1,18 +1,13 @@
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import { validateJwtKeys } from './jwt-keys.config';
 
 jest.mock('fs');
 
-const VALID_PRIVATE_KEY = `-----BEGIN EC PRIVATE KEY-----
-MHcCAQEEIAbziHa/xFA+np4yxov/eARnnTYTOxY/ukqGhSOkfMoboAoGCCqGSM49
-AwEHoUQDQgAEIDUdceFHvmbx6lUNwciNRmyJqpAakLzZzdPgcgDVf10YHfiaprI0
-fir7QKxkq7dr1AlUUpYdbkOmYmfXnqk1Ag==
------END EC PRIVATE KEY-----`;
-
-const VALID_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIDUdceFHvmbx6lUNwciNRmyJqpAa
-kLzZzdPgcgDVf10YHfiaprI0fir7QKxkq7dr1AlUUpYdbkOmYmfXnqk1Ag==
------END PUBLIC KEY-----`;
+// Generate a fresh ephemeral EC key pair for tests — never commit real keys
+const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' });
+const VALID_PRIVATE_KEY = privateKey.export({ type: 'sec1', format: 'pem' }) as string;
+const VALID_PUBLIC_KEY = publicKey.export({ type: 'spki', format: 'pem' }) as string;
 
 describe('validateJwtKeys', () => {
 	const mockReadFileSync = fs.readFileSync as jest.Mock;
@@ -33,8 +28,8 @@ describe('validateJwtKeys', () => {
 			JWT_PUBLIC_KEY_FILE: '/run/secrets/jwt_public_key',
 		});
 
-		expect(result.jwtPrivateKey).toBe(VALID_PRIVATE_KEY);
-		expect(result.jwtPublicKey).toBe(VALID_PUBLIC_KEY);
+		expect(result.jwtPrivateKey).toBe(VALID_PRIVATE_KEY.trim());
+		expect(result.jwtPublicKey).toBe(VALID_PUBLIC_KEY.trim());
 	});
 
 	it('throws when JWT_PRIVATE_KEY_FILE is missing', () => {
