@@ -11,7 +11,6 @@ export async function jwtModuleOptionsFactory(configService: ConfigService): Pro
 		publicKey: fs.readFileSync(publicKeyFile, 'utf8').trim(),
 		signOptions: {
 			algorithm: 'ES256',
-			expiresIn: '1h',
 		},
 		verifyOptions: {
 			algorithms: ['ES256'],
