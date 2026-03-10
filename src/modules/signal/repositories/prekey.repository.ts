@@ -88,6 +88,21 @@ export class PreKeyRepository extends Repository<PreKey> {
 	}
 
 	/**
+	 * Replace all prekeys for a user and device with a new set
+	 *
+	 * Deletes all existing prekeys (used and unused) before inserting the new ones,
+	 * avoiding duplicate key violations on re-login.
+	 */
+	async replacePreKeys(
+		userId: string,
+		deviceId: string,
+		preKeys: Array<{ keyId: number; publicKey: string }>
+	): Promise<PreKey[]> {
+		await this.deleteByUserIdAndDeviceId(userId, deviceId);
+		return this.createPreKeys(userId, deviceId, preKeys);
+	}
+
+	/**
 	 * Find old unused prekeys (older than specified days)
 	 */
 	async findOldUnused(days: number = 30): Promise<PreKey[]> {

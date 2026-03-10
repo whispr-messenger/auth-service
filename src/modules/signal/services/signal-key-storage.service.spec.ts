@@ -33,7 +33,7 @@ describe('SignalKeyStorageService', () => {
 				{
 					provide: SignedPreKeyRepository,
 					useValue: {
-						createSignedPreKey: jest.fn(),
+						upsertSignedPreKey: jest.fn(),
 						findActiveByUserIdAndDeviceId: jest.fn(),
 						deleteByUserId: jest.fn(),
 						deleteByUserIdAndDeviceId: jest.fn(),
@@ -42,7 +42,7 @@ describe('SignalKeyStorageService', () => {
 				{
 					provide: PreKeyRepository,
 					useValue: {
-						createPreKeys: jest.fn(),
+						replacePreKeys: jest.fn(),
 						getRandomUnusedPreKey: jest.fn(),
 						countUnusedByUserIdAndDeviceId: jest.fn(),
 						markAsUsed: jest.fn(),
@@ -99,7 +99,7 @@ describe('SignalKeyStorageService', () => {
 	});
 
 	describe('storeSignedPreKey', () => {
-		it('should store a signed prekey with expiration', async () => {
+		it('should upsert a signed prekey with expiration', async () => {
 			const signedPreKeyDto: SignedPreKeyDto = {
 				keyId: 1,
 				publicKey: 'base64-signed-prekey',
@@ -117,11 +117,11 @@ describe('SignalKeyStorageService', () => {
 				user: undefined,
 			};
 
-			signedPreKeyRepository.createSignedPreKey.mockResolvedValue(mockSignedPreKey as SignedPreKey);
+			signedPreKeyRepository.upsertSignedPreKey.mockResolvedValue(mockSignedPreKey as SignedPreKey);
 
 			const result = await service.storeSignedPreKey(mockUserId, mockDeviceId, signedPreKeyDto);
 
-			expect(signedPreKeyRepository.createSignedPreKey).toHaveBeenCalledWith(
+			expect(signedPreKeyRepository.upsertSignedPreKey).toHaveBeenCalledWith(
 				mockUserId,
 				mockDeviceId,
 				signedPreKeyDto.keyId,
@@ -131,10 +131,36 @@ describe('SignalKeyStorageService', () => {
 			);
 			expect(result).toEqual(mockSignedPreKey);
 		});
+
+		it('should update an existing signed prekey on re-login', async () => {
+			const signedPreKeyDto: SignedPreKeyDto = {
+				keyId: 1,
+				publicKey: 'new-base64-signed-prekey',
+				signature: 'new-base64-signature',
+			};
+
+			const updatedMock: Partial<SignedPreKey> = {
+				id: 'spk-id',
+				userId: mockUserId,
+				keyId: 1,
+				publicKey: 'new-base64-signed-prekey',
+				signature: 'new-base64-signature',
+				createdAt: new Date(),
+				expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+				user: undefined,
+			};
+
+			signedPreKeyRepository.upsertSignedPreKey.mockResolvedValue(updatedMock as SignedPreKey);
+
+			const result = await service.storeSignedPreKey(mockUserId, mockDeviceId, signedPreKeyDto);
+
+			expect(signedPreKeyRepository.upsertSignedPreKey).toHaveBeenCalledTimes(1);
+			expect(result.publicKey).toBe('new-base64-signed-prekey');
+		});
 	});
 
 	describe('storePreKeys', () => {
-		it('should store multiple prekeys', async () => {
+		it('should replace prekeys for the device', async () => {
 			const preKeysDto: PreKeyDto[] = [
 				{ keyId: 1, publicKey: 'pk1' },
 				{ keyId: 2, publicKey: 'pk2' },
@@ -152,17 +178,42 @@ describe('SignalKeyStorageService', () => {
 				user: undefined,
 			}));
 
-			preKeyRepository.createPreKeys.mockResolvedValue(mockPreKeys as PreKey[]);
+			preKeyRepository.replacePreKeys.mockResolvedValue(mockPreKeys as PreKey[]);
 
 			const result = await service.storePreKeys(mockUserId, mockDeviceId, preKeysDto);
 
-			expect(preKeyRepository.createPreKeys).toHaveBeenCalledWith(
+			expect(preKeyRepository.replacePreKeys).toHaveBeenCalledWith(
 				mockUserId,
 				mockDeviceId,
 				preKeysDto.map((pk) => ({ keyId: pk.keyId, publicKey: pk.publicKey }))
 			);
 			expect(result).toEqual(mockPreKeys);
 			expect(result).toHaveLength(3);
+		});
+
+		it('should replace existing prekeys on re-login without duplicate key errors', async () => {
+			const preKeysDto: PreKeyDto[] = [
+				{ keyId: 1, publicKey: 'new-pk1' },
+				{ keyId: 2, publicKey: 'new-pk2' },
+			];
+
+			const mockPreKeys: Partial<PreKey>[] = preKeysDto.map((pk, index) => ({
+				id: `pk-id-${index}`,
+				userId: mockUserId,
+				keyId: pk.keyId,
+				publicKey: pk.publicKey,
+				isOneTime: true,
+				isUsed: false,
+				createdAt: new Date(),
+				user: undefined,
+			}));
+
+			preKeyRepository.replacePreKeys.mockResolvedValue(mockPreKeys as PreKey[]);
+
+			const result = await service.storePreKeys(mockUserId, mockDeviceId, preKeysDto);
+
+			expect(preKeyRepository.replacePreKeys).toHaveBeenCalledTimes(1);
+			expect(result).toHaveLength(2);
 		});
 	});
 
