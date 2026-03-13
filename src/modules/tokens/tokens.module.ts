@@ -5,6 +5,7 @@ import { TokensController } from './controllers/tokens.controller';
 import { TokensService } from './services/tokens.service';
 import { JwtAuthGuard } from './guards';
 import { jwtModuleOptionsFactory } from './config/jwt.config';
+import { JwksModule } from '../jwks/jwks.module';
 
 const jwtModuleAsyncOptions: JwtModuleAsyncOptions = {
 	imports: [ConfigModule],
@@ -15,7 +16,7 @@ const jwtModuleAsyncOptions: JwtModuleAsyncOptions = {
 @Module({
 	providers: [TokensService, JwtAuthGuard],
 	controllers: [TokensController],
-	imports: [JwtModule.registerAsync(jwtModuleAsyncOptions)],
+	imports: [JwtModule.registerAsync(jwtModuleAsyncOptions), JwksModule],
 	exports: [TokensService, JwtModule, JwtAuthGuard],
 })
 export class TokensModule {}
