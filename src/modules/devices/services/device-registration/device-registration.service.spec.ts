@@ -651,6 +651,79 @@ describe('DeviceRegistrationService', () => {
 		});
 	});
 
+	describe('Cross-user same-fingerprint registration', () => {
+		it('should allow a second user to register with the same fingerprint as an existing user', async () => {
+			const sharedFingerprint = 'shared-device-fingerprint';
+
+			const user1RegistrationData = createRegistrationDataFixture({
+				userId: 'user-1',
+				deviceFingerprint: sharedFingerprint,
+			});
+			const user2RegistrationData = createRegistrationDataFixture({
+				userId: 'user-2',
+				deviceFingerprint: sharedFingerprint,
+			});
+
+			const user1Device = createDeviceFixture({
+				id: 'device-user-1',
+				userId: 'user-1',
+				deviceFingerprint: sharedFingerprint,
+			});
+			const user2Device = createDeviceFixture({
+				id: 'device-user-2',
+				userId: 'user-2',
+				deviceFingerprint: sharedFingerprint,
+			});
+
+			// User 1 registers first: no existing device
+			transactionRepository.findByUserAndFingerprint.mockResolvedValueOnce(null);
+			transactionRepository.countVerifiedDevices.mockResolvedValueOnce(0);
+			transactionRepository.create.mockReturnValueOnce(user1Device);
+			transactionRepository.save.mockResolvedValueOnce(user1Device);
+
+			(dataSource.transaction as jest.Mock).mockImplementationOnce(async (callback) => {
+				return callback(entityManager);
+			});
+
+			const result1 = await service.registerDevice(user1RegistrationData);
+			expect(result1.userId).toBe('user-1');
+
+			// User 2 registers with same fingerprint: no existing device for user-2
+			transactionRepository.findByUserAndFingerprint.mockResolvedValueOnce(null);
+			transactionRepository.countVerifiedDevices.mockResolvedValueOnce(0);
+			transactionRepository.create.mockReturnValueOnce(user2Device);
+			transactionRepository.save.mockResolvedValueOnce(user2Device);
+
+			(dataSource.transaction as jest.Mock).mockImplementationOnce(async (callback) => {
+				return callback(entityManager);
+			});
+
+			const result2 = await service.registerDevice(user2RegistrationData);
+			expect(result2.userId).toBe('user-2');
+			expect(result2.deviceFingerprint).toBe(sharedFingerprint);
+		});
+
+		it('should reject same user registering the same fingerprint twice (returns existing device)', async () => {
+			const fingerprint = 'my-device-fingerprint';
+			const registrationData = createRegistrationDataFixture({ deviceFingerprint: fingerprint });
+			const existingDevice = createDeviceFixture({ deviceFingerprint: fingerprint });
+
+			// Same user, same fingerprint: findByUserAndFingerprint returns existing device
+			transactionRepository.findByUserAndFingerprint.mockResolvedValue(existingDevice);
+			transactionRepository.save.mockImplementation(async (device) => device as Device);
+
+			(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
+				return callback(entityManager);
+			});
+
+			const result = await service.registerDevice(registrationData);
+
+			// Should update (not create) and return the same device id
+			expect(result.id).toBe(existingDevice.id);
+			expect(transactionRepository.create).not.toHaveBeenCalled();
+		});
+	});
+
 	describe('Edge cases and validation', () => {
 		describe('Special characters', () => {
 			it('should handle device names with special characters', async () => {
