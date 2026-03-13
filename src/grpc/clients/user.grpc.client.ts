@@ -30,7 +30,7 @@ export class UserGrpcClient implements OnModuleInit {
 
 			const userServiceUrl = this.configService.get<string>(
 				'USER_SERVICE_GRPC_URL',
-				'user-service:50052'
+				'user-service:50011'
 			);
 
 			this.client = new userProto.UserService(userServiceUrl, grpc.credentials.createInsecure(), {
