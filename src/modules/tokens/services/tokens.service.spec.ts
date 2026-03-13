@@ -6,6 +6,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { TokensService } from './tokens.service';
 import { CacheService } from '../../cache';
 import { DeviceFingerprint } from '../../devices/types/device-fingerprint.interface';
+import { JwksService } from '../../jwks/jwks.service';
 
 describe('TokensService', () => {
 	let service: TokensService;
@@ -44,6 +45,12 @@ describe('TokensService', () => {
 						get: jest.fn(),
 						set: jest.fn(),
 						del: jest.fn(),
+					},
+				},
+				{
+					provide: JwksService,
+					useValue: {
+						getKid: jest.fn().mockReturnValue('test-kid'),
 					},
 				},
 			],
