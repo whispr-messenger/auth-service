@@ -49,7 +49,7 @@ export class GrpcServer implements OnModuleInit {
 				validateQRCode: this.authGrpcService.validateQRCode.bind(this.authGrpcService),
 			});
 
-			const grpcPort = this.configService.get<number>('GRPC_PORT', 50051);
+			const grpcPort = this.configService.get<number>('GRPC_PORT', 50010);
 			const grpcHost = '0.0.0.0';
 
 			this.server.bindAsync(

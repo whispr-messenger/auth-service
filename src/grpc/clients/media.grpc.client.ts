@@ -29,7 +29,7 @@ export class MediaGrpcClient implements OnModuleInit {
 			const mediaProto = grpc.loadPackageDefinition(packageDefinition).media as any;
 			const mediaServiceUrl = this.configService.get<string>(
 				'MEDIA_SERVICE_GRPC_URL',
-				'media-service:50053'
+				'media-service:50012'
 			);
 
 			this.client = new mediaProto.MediaService(mediaServiceUrl, grpc.credentials.createInsecure(), {
