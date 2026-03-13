@@ -5,6 +5,7 @@ import { PhoneVerificationModule } from './phone-verification/phone-verification
 import { TokensModule } from './tokens/tokens.module';
 import { TwoFactorAuthenticationModule } from './two-factor-authentication/two-factor-authentication.module';
 import { SignalModule } from './signal/signal.module';
+import { JwksModule } from './jwks/jwks.module';
 
 @Module({
 	imports: [
@@ -14,6 +15,7 @@ import { SignalModule } from './signal/signal.module';
 		TokensModule,
 		DevicesModule,
 		TwoFactorAuthenticationModule,
+		JwksModule,
 	],
 })
 export class AuthModule {}

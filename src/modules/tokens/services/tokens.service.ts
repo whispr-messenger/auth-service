@@ -6,6 +6,7 @@ import { DeviceFingerprint } from '../../devices/types/device-fingerprint.interf
 import { TokenPair } from '../types/token-pair.interface';
 import { JwtPayload } from '../types/jwt-payload.interface';
 import { CacheService } from '../../cache/cache.service';
+import { JwksService } from '../../jwks/jwks.service';
 
 @Injectable()
 export class TokensService {
@@ -14,7 +15,8 @@ export class TokensService {
 
 	constructor(
 		private readonly jwtService: JwtService,
-		private readonly cacheService: CacheService
+		private readonly cacheService: CacheService,
+		private readonly jwksService: JwksService
 	) {}
 
 	async generateTokenPair(
@@ -45,12 +47,16 @@ export class TokensService {
 			exp: Math.floor(Date.now() / 1000) + this.REFRESH_TOKEN_TTL,
 		};
 
+		const kid = this.jwksService.getKid();
+
 		const accessToken = this.jwtService.sign(accessTokenPayload, {
 			algorithm: 'ES256',
+			keyid: kid,
 		});
 
 		const refreshToken = this.jwtService.sign(refreshTokenPayload, {
 			algorithm: 'ES256',
+			keyid: kid,
 		});
 
 		await this.cacheService.set(
