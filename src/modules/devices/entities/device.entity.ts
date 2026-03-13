@@ -7,6 +7,7 @@ import {
 	ManyToOne,
 	JoinColumn,
 	Index,
+	Unique,
 } from 'typeorm';
 import { UserAuth } from '../../common/entities/user-auth.entity';
 
@@ -14,6 +15,7 @@ import { UserAuth } from '../../common/entities/user-auth.entity';
 @Index(['userId'])
 @Index(['lastActive'])
 @Index(['isActive'])
+@Unique(['userId', 'deviceFingerprint'])
 export class Device {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
@@ -31,7 +33,6 @@ export class Device {
 		name: 'device_fingerprint',
 		type: 'varchar',
 		length: 255,
-		unique: true,
 		nullable: false,
 	})
 	deviceFingerprint: string;
