@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Request, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { TwoFactorSetupDto, TwoFactorVerifyDto } from '../dto';
 import { TwoFactorAuthenticationService } from '../services/two-factor-authentication.service';
 import { JwtAuthGuard } from '../../tokens/guards';
@@ -24,6 +24,7 @@ export class TwoFactorAuthenticationController {
 	@HttpCode(HttpStatus.OK)
 	@ApiBearerAuth()
 	@ApiOperation({ summary: 'Enable two-factor authentication' })
+	@ApiBody({ type: TwoFactorSetupDto })
 	@ApiResponse({ status: 200, description: '2FA enabled successfully with backup codes' })
 	@ApiResponse({ status: 400, description: 'Invalid token or secret' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -36,6 +37,7 @@ export class TwoFactorAuthenticationController {
 	@HttpCode(HttpStatus.OK)
 	@ApiBearerAuth()
 	@ApiOperation({ summary: 'Verify two-factor authentication token' })
+	@ApiBody({ type: TwoFactorVerifyDto })
 	@ApiResponse({ status: 200, description: 'Token verification result' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
 	async verifyTwoFactor(@Request() req: any, @Body() dto: TwoFactorVerifyDto) {
@@ -48,6 +50,7 @@ export class TwoFactorAuthenticationController {
 	@HttpCode(HttpStatus.OK)
 	@ApiBearerAuth()
 	@ApiOperation({ summary: 'Disable two-factor authentication' })
+	@ApiBody({ type: TwoFactorVerifyDto })
 	@ApiResponse({ status: 200, description: '2FA disabled successfully' })
 	@ApiResponse({ status: 400, description: 'Invalid token' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -60,6 +63,7 @@ export class TwoFactorAuthenticationController {
 	@UseGuards(JwtAuthGuard)
 	@ApiBearerAuth()
 	@ApiOperation({ summary: 'Generate new 2FA backup codes' })
+	@ApiBody({ type: TwoFactorVerifyDto })
 	@ApiResponse({ status: 200, description: 'New backup codes generated' })
 	@ApiResponse({ status: 400, description: 'Invalid token' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })

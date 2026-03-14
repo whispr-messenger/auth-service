@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, HttpStatus, Request, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../tokens/guards';
 import { DeviceFingerprintService } from '../../services/device-fingerprint/device-fingerprint.service';
 import { QuickResponseCodeService } from '../services/quick-response-code.service';
@@ -17,6 +17,11 @@ export class QuickResponseCodeController {
 	@UseGuards(JwtAuthGuard)
 	@ApiBearerAuth()
 	@ApiOperation({ summary: 'Generate QR code challenge for device authentication' })
+	@ApiParam({
+		name: 'deviceId',
+		description: 'UUID of the device to generate a QR challenge for',
+		type: String,
+	})
 	@ApiResponse({ status: 200, description: 'QR challenge generated successfully' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
 	@ApiResponse({ status: 404, description: 'Device not found' })
@@ -27,6 +32,7 @@ export class QuickResponseCodeController {
 	@Post('scan')
 	@HttpCode(HttpStatus.OK)
 	@ApiOperation({ summary: 'Login by scanning QR code' })
+	@ApiBody({ type: ScanLoginDto })
 	@ApiResponse({ status: 200, description: 'QR code login successful' })
 	@ApiResponse({ status: 400, description: 'Invalid QR code data' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })

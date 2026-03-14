@@ -1,5 +1,5 @@
 import { Controller, Delete, Get, HttpCode, HttpStatus, Request, Param, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../tokens/guards';
 import { DevicesService } from '../services/devices.service';
 import { DeviceResponseDto } from '../dto';
@@ -24,6 +24,7 @@ export class DevicesController {
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@ApiBearerAuth()
 	@ApiOperation({ summary: 'Revoke/delete a specific device' })
+	@ApiParam({ name: 'deviceId', description: 'UUID of the device to revoke', type: String })
 	@ApiResponse({ status: 204, description: 'Device successfully revoked' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
 	@ApiResponse({ status: 404, description: 'Device not found' })
