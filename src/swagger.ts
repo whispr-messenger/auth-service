@@ -3,13 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerCustomOptions, SwaggerModule } from '@nestjs/swagger';
 
-function buildSwaggerDocument(port: number) {
+function buildSwaggerDocument(_port: number) {
 	return new DocumentBuilder()
 		.setTitle('Authentication Service')
 		.setDescription('API documentation for the Authentication Service')
 		.setVersion('1.0')
-		.addServer('https://whispr.epitech.beer', 'Production')
-		.addServer(`http://127.0.0.1:${port}`, 'Development')
+		.addServer('/', 'Current host')
 		.build();
 }
 
