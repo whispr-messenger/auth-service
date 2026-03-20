@@ -1,5 +1,7 @@
 #!/bin/bash
 
-npm install
+if [ ! -d node_modules ]; then
+  npm install
+fi
 
 npm run start:dev -- -b swc

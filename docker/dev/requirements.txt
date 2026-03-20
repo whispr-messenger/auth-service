@@ -1,14 +1,3 @@
-git
-curl
-wget
+tini
 postgresql-client
 redis-tools
-vim
-nano
-htop
-procps
-tini
-python3
-make
-g++
-build-essential
