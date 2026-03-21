@@ -5,7 +5,7 @@ import { DevicesService } from '../services/devices.service';
 import { DeviceResponseDto } from '../dto';
 
 @ApiTags('Auth - User Devices')
-@Controller('auth/device')
+@Controller('device')
 export class DevicesController {
 	constructor(private readonly deviceService: DevicesService) {}
 

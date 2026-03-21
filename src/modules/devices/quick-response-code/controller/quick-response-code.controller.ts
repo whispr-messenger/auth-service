@@ -6,7 +6,7 @@ import { QuickResponseCodeService } from '../services/quick-response-code.servic
 import { ScanLoginDto } from '../dto/scan-login.dto';
 
 @ApiTags('Auth - QR Codes')
-@Controller('auth/qr-code')
+@Controller('qr-code')
 export class QuickResponseCodeController {
 	constructor(
 		private readonly quickResponseCodeService: QuickResponseCodeService,
