@@ -9,7 +9,7 @@
  * route because it is guarded by JwtAuthGuard.
  */
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../src/modules/app/app.module';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserAuth } from '../src/modules/common/entities/user-auth.entity';
@@ -28,6 +28,7 @@ import { PreKeyRepository } from '../src/modules/signal/repositories/prekey.repo
 import { SignedPreKeyRepository } from '../src/modules/signal/repositories/signed-prekey.repository';
 import { IdentityKeyRepository } from '../src/modules/signal/repositories/identity-key.repository';
 import { JwtPayload } from '../src/modules/tokens/types/jwt-payload.interface';
+import { createTestApp } from './helpers/create-test-app';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const request = require('supertest');
@@ -105,9 +106,7 @@ describe('Token revocation (e2e)', () => {
 			.useValue(mockRepository)
 			.compile();
 
-		const application = moduleFixture.createNestApplication();
-		application.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-		await application.init();
+		const application = await createTestApp(moduleFixture);
 		return application;
 	};
 
@@ -127,7 +126,7 @@ describe('Token revocation (e2e)', () => {
 
 	/** Sends a GET to the guard-protected /auth/device endpoint */
 	const hitProtectedEndpoint = (token?: string) => {
-		const req = request(app.getHttpServer()).get('/auth/device');
+		const req = request(app.getHttpServer()).get('/auth/v1/device');
 		if (token) req.set('Authorization', `Bearer ${token}`);
 		return req;
 	};
@@ -139,7 +138,7 @@ describe('Token revocation (e2e)', () => {
 
 		it('returns 401 when scheme is not Bearer', async () => {
 			await request(app.getHttpServer())
-				.get('/auth/device')
+				.get('/auth/v1/device')
 				.set('Authorization', 'Basic sometoken')
 				.expect(401);
 		});

@@ -6,7 +6,7 @@ import { DeviceFingerprintService } from '../../devices/services/device-fingerpr
 import { RegisterDto, LoginDto, LogoutDto, RegisterResponseDto, LoginResponseDto } from '../dto';
 
 @ApiTags('Auth - Authentication by SMS')
-@Controller('auth')
+@Controller('')
 export class PhoneAuthenticationController {
 	constructor(
 		private readonly authService: PhoneAuthenticationService,
