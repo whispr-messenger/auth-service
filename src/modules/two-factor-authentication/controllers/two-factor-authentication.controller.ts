@@ -5,7 +5,7 @@ import { TwoFactorAuthenticationService } from '../services/two-factor-authentic
 import { JwtAuthGuard } from '../../tokens/guards';
 
 @ApiTags('Auth - Two Factor Authentication (2FA)')
-@Controller('auth/2fa')
+@Controller('2fa')
 export class TwoFactorAuthenticationController {
 	constructor(private readonly twoFactorService: TwoFactorAuthenticationService) {}
 
