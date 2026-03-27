@@ -1,3 +1,5 @@
+import { randomInt } from 'crypto';
+
 import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
@@ -17,8 +19,8 @@ export class VerificationCodeGeneratorService {
 	 */
 	public generateCode(length: number = this.DEFAULT_CODE_LENGTH): string {
 		const min = Math.pow(10, length - 1);
-		const max = Math.pow(10, length) - 1;
-		return Math.floor(min + Math.random() * (max - min + 1)).toString();
+		const max = Math.pow(10, length);
+		return randomInt(min, max).toString();
 	}
 
 	/**
