@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../src/modules/app/app.module';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserAuth } from '../src/modules/common/entities/user-auth.entity';
@@ -18,6 +18,7 @@ import { PreKeyRepository } from '../src/modules/signal/repositories/prekey.repo
 import { SignedPreKeyRepository } from '../src/modules/signal/repositories/signed-prekey.repository';
 import { IdentityKeyRepository } from '../src/modules/signal/repositories/identity-key.repository';
 import { DeviceRegistrationService } from '../src/modules/devices/services/device-registration/device-registration.service';
+import { createTestApp } from './helpers/create-test-app';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const request = require('supertest');
@@ -206,11 +207,7 @@ describe('Login Flow (e2e)', () => {
 			.useValue({ canActivate: () => true })
 			.compile();
 
-		const nestApp = moduleFixture.createNestApplication();
-		nestApp.useGlobalPipes(
-			new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })
-		);
-		await nestApp.init();
+		const nestApp = await createTestApp(moduleFixture);
 		return nestApp;
 	}
 
@@ -263,7 +260,7 @@ describe('Login Flow (e2e)', () => {
 	describe('POST /auth/login', () => {
 		it('should return 200 with tokens on first login', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/login')
+				.post('/auth/v1/login')
 				.send({
 					verificationId: VERIFICATION_ID,
 					deviceName: 'Test Device',
@@ -286,7 +283,7 @@ describe('Login Flow (e2e)', () => {
 			};
 
 			const first = await request(app.getHttpServer())
-				.post('/auth/login')
+				.post('/auth/v1/login')
 				.send(loginPayload)
 				.set('User-Agent', 'Test Agent')
 				.expect(200);
@@ -296,7 +293,7 @@ describe('Login Flow (e2e)', () => {
 			setupVerificationCache();
 
 			const second = await request(app.getHttpServer())
-				.post('/auth/login')
+				.post('/auth/v1/login')
 				.send(loginPayload)
 				.set('User-Agent', 'Test Agent')
 				.expect(200);
@@ -310,7 +307,7 @@ describe('Login Flow (e2e)', () => {
 			mockUserAuthRepository.findOne.mockResolvedValueOnce(null);
 
 			const response = await request(app.getHttpServer())
-				.post('/auth/login')
+				.post('/auth/v1/login')
 				.send({ verificationId: VERIFICATION_ID })
 				.set('User-Agent', 'Test Agent');
 

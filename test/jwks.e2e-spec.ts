@@ -11,7 +11,7 @@
  * matching the kid returned by the JWKS endpoint.
  */
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../src/modules/app/app.module';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserAuth } from '../src/modules/common/entities/user-auth.entity';
@@ -29,6 +29,7 @@ import { SignedPreKeyRepository } from '../src/modules/signal/repositories/signe
 import { IdentityKeyRepository } from '../src/modules/signal/repositories/identity-key.repository';
 import { TokensService } from '../src/modules/tokens/services/tokens.service';
 import { JwksService } from '../src/modules/jwks/jwks.service';
+import { createTestApp } from './helpers/create-test-app';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const request = require('supertest');
@@ -89,10 +90,7 @@ describe('JWKS endpoint (e2e)', () => {
 			.useValue(mockRepository)
 			.compile();
 
-		app = moduleFixture.createNestApplication();
-		app.setGlobalPrefix('auth');
-		app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-		await app.init();
+		app = await createTestApp(moduleFixture);
 	});
 
 	afterEach(async () => {
