@@ -13,7 +13,7 @@ import {
 } from '../swagger/phone-verification.examples';
 
 @ApiTags('Auth - Phone Number Verification')
-@Controller('auth/verify')
+@Controller('verify')
 export class PhoneVerificationController {
 	constructor(private readonly phoneVerificationService: PhoneVerificationService) {}
 

@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../src/modules/app/app.module';
-import { ValidationPipe } from '@nestjs/common';
 import { JwtAuthGuard } from '../src/modules/tokens/guards/jwt-auth.guard';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserAuth } from '../src/modules/common/entities/user-auth.entity';
@@ -23,6 +22,7 @@ import { DeviceRepository } from '../src/modules/devices/repositories/device.rep
 import { PreKeyRepository } from '../src/modules/signal/repositories/prekey.repository';
 import { SignedPreKeyRepository } from '../src/modules/signal/repositories/signed-prekey.repository';
 import { IdentityKeyRepository } from '../src/modules/signal/repositories/identity-key.repository';
+import { createTestApp } from './helpers/create-test-app';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const request = require('supertest');
@@ -133,9 +133,7 @@ describe('AuthController (e2e)', () => {
 				.useValue({ canActivate: () => true })
 				.compile();
 
-			app = moduleFixture.createNestApplication();
-			app.useGlobalPipes(new ValidationPipe());
-			await app.init();
+			app = await createTestApp(moduleFixture);
 		} catch (error) {
 			console.error('Failed to initialize test app:', error);
 			throw error;
@@ -161,7 +159,7 @@ describe('AuthController (e2e)', () => {
 
 	describe('Health Check', () => {
 		it('should return application info', async () => {
-			const response = await request(app.getHttpServer()).get('/health').expect(200);
+			const response = await request(app.getHttpServer()).get('/auth/v1/health').expect(200);
 			expect(response).toBeDefined();
 			expect(response.body).toBeDefined();
 			expect(response.body.status).toBeDefined();
