@@ -1,6 +1,5 @@
 import * as crypto from 'node:crypto';
-import * as fs from 'node:fs';
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 export interface JwkKey {
@@ -19,14 +18,24 @@ export interface JwksDocument {
 
 @Injectable()
 export class JwksService implements OnModuleInit {
+	private readonly logger = new Logger(JwksService.name);
 	private jwk: JwkKey;
 
 	constructor(private readonly configService: ConfigService) {}
 
 	onModuleInit(): void {
 		const publicKeyFile = this.configService.get<string>('JWT_PUBLIC_KEY_FILE')!;
-		const pem = fs.readFileSync(publicKeyFile, 'utf8').trim();
-		this.jwk = this.buildJwk(pem);
+		try {
+			const pem = this.configService.get<string>('jwtPublicKey')!;
+			this.jwk = this.buildJwk(pem, publicKeyFile);
+		} catch (err) {
+			const error = err instanceof Error ? err : new Error(String(err));
+			this.logger.error(
+				`Failed to initialize JWKS from "${publicKeyFile}": ${error.message}`,
+				error.stack
+			);
+			throw err;
+		}
 	}
 
 	getJwks(): JwksDocument {
@@ -37,8 +46,27 @@ export class JwksService implements OnModuleInit {
 		return this.jwk.kid;
 	}
 
-	private buildJwk(pem: string): JwkKey {
-		const key = crypto.createPublicKey(pem);
+	private buildJwk(pem: string, filePath: string): JwkKey {
+		let key: crypto.KeyObject;
+		try {
+			key = crypto.createPublicKey(pem);
+		} catch (err) {
+			throw new Error(`"${filePath}" does not contain a valid PEM: ${(err as Error).message}`);
+		}
+
+		const keyDetails = key.asymmetricKeyDetails;
+		if (key.asymmetricKeyType !== 'ec') {
+			throw new Error(
+				`"${filePath}" contains a ${key.asymmetricKeyType?.toUpperCase() ?? 'unknown'} key, but EC is required for ES256`
+			);
+		}
+
+		if (keyDetails?.namedCurve !== 'prime256v1') {
+			throw new Error(
+				`"${filePath}" uses curve "${keyDetails?.namedCurve ?? 'unknown'}", but P-256 (prime256v1) is required`
+			);
+		}
+
 		const { x, y } = key.export({ format: 'jwk' }) as { x: string; y: string; kty: string; crv: string };
 
 		// Derive a stable kid from the SHA-256 thumbprint of the raw x||y coordinates
