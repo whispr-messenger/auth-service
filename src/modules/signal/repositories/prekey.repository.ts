@@ -1,3 +1,5 @@
+import { randomInt } from 'node:crypto';
+
 import { Repository, EntityManager, EntityTarget, QueryRunner, LessThan } from 'typeorm';
 import { PreKey } from '../entities/prekey.entity';
 
@@ -41,7 +43,7 @@ export class PreKeyRepository extends Repository<PreKey> {
 		}
 
 		// Return a random prekey from the unused ones
-		const randomIndex = Math.floor(Math.random() * unusedKeys.length);
+		const randomIndex = randomInt(unusedKeys.length);
 		return unusedKeys[randomIndex];
 	}
 
