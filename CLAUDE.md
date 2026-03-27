@@ -110,7 +110,8 @@ so manual runs are only needed if husky is not installed.
 Before staging, run a pre-commit scope check:
 
 ```json
-{ "tool": "mcp__gitnexus__detect_changes", "scope": "staged" }
+// mcp__gitnexus__detect_changes
+{ "scope": "staged" }
 ```
 
 If the diff includes unexpected symbols or execution flows, investigate before proceeding.
@@ -152,7 +153,7 @@ before retrying — do not force-push to bypass.
 
 After every push to an existing PR branch, **immediately**:
 
-1. Request a new Copilot review:
+1. Copilot Code Review is triggered automatically by CI on each push — do **not** manually request a new review unless explicitly asked by maintainers or if the automation fails. If a manual trigger is needed:
 
 ```json
 // mcp__github__request_copilot_review
@@ -404,9 +405,11 @@ Use beads for **in-session planning and subtask decomposition**. Jira remains th
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **auth-service** (1523 symbols, 3849 relationships, 117 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **auth-service**. Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+
+> **Naming note:** In prose and examples below, `gitnexus_impact(...)` is shorthand for the MCP tool `mcp__gitnexus__impact`. The two names refer to the same tool.
 
 ## Always Do
 
@@ -492,13 +495,15 @@ To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.
 
 ## CLI
 
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+These skills are configured in the Claude workspace (not stored in this repository).
+
+| Task | Skill name |
+|------|-----------|
+| Understand architecture / "How does X work?" | `gitnexus-exploring` |
+| Blast radius / "What breaks if I change X?" | `gitnexus-impact-analysis` |
+| Trace bugs / "Why is X failing?" | `gitnexus-debugging` |
+| Rename / extract / split / refactor | `gitnexus-refactoring` |
+| Tools, resources, schema reference | `gitnexus-guide` |
+| Index, status, clean, wiki CLI commands | `gitnexus-cli` |
 
 <!-- gitnexus:end -->
