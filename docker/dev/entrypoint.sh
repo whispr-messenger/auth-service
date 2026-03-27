@@ -1,7 +1,6 @@
 #!/bin/bash
 
-if [ ! -d node_modules ]; then
-  npm install
-fi
+set -e
 
-npm run start:dev -- -b swc
+npm run build
+npm run start:prod
