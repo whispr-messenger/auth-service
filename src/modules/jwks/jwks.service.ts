@@ -1,5 +1,4 @@
 import * as crypto from 'node:crypto';
-import * as fs from 'node:fs';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -27,10 +26,14 @@ export class JwksService implements OnModuleInit {
 	onModuleInit(): void {
 		const publicKeyFile = this.configService.get<string>('JWT_PUBLIC_KEY_FILE')!;
 		try {
-			const pem = fs.readFileSync(publicKeyFile, 'utf8').trim();
+			const pem = this.configService.get<string>('jwtPublicKey')!;
 			this.jwk = this.buildJwk(pem, publicKeyFile);
 		} catch (err) {
-			this.logger.error(`Failed to initialize JWKS from "${publicKeyFile}": ${(err as Error).message}`);
+			const error = err instanceof Error ? err : new Error(String(err));
+			this.logger.error(
+				`Failed to initialize JWKS from "${publicKeyFile}": ${error.message}`,
+				error.stack
+			);
 			throw err;
 		}
 	}
