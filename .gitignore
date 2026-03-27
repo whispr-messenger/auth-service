@@ -1,6 +1,3 @@
-# Local Claude Code instructions (never committed)
-CLAUDE.local.md
-
 # compiled output
 /dist
 /node_modules
@@ -69,5 +66,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 docker/dev/secrets/
 docker/prod/secrets/
 
-# Migration plans (local tracking)
-MIGRATION_PLAN.md
+.gitnexus
+
+# Claude Code local overrides (machine-specific, never commit)
+CLAUDE.local.md
