@@ -2,6 +2,7 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { Logger } from '@nestjs/common';
 import { JwksService } from './jwks.service';
 
 // Generate a real P-256 key pair for testing
@@ -127,6 +128,84 @@ describe('JwksService', () => {
 			const verify = crypto.createVerify('SHA256');
 			verify.update('test-payload');
 			expect(verify.verify(reconstructed, signature)).toBe(true);
+		});
+	});
+
+	describe('onModuleInit() error handling', () => {
+		it('throws and logs when the key file is missing', () => {
+			const loggerErrorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+			readFileSyncSpy.mockImplementationOnce(() => {
+				throw Object.assign(new Error('ENOENT: no such file or directory'), { code: 'ENOENT' });
+			});
+
+			const brokenService = new JwksService({
+				get: jest.fn().mockReturnValue('/missing/public.pem'),
+			} as any);
+
+			expect(() => brokenService.onModuleInit()).toThrow('ENOENT');
+			expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('/missing/public.pem'));
+			loggerErrorSpy.mockRestore();
+		});
+
+		it('logs a structured error before rethrowing on any init failure', () => {
+			const loggerErrorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+			readFileSyncSpy.mockImplementationOnce(() => {
+				throw new Error('disk read error');
+			});
+
+			const brokenService = new JwksService({
+				get: jest.fn().mockReturnValue('/bad/public.pem'),
+			} as any);
+
+			expect(() => brokenService.onModuleInit()).toThrow('disk read error');
+			expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
+			loggerErrorSpy.mockRestore();
+		});
+	});
+
+	describe('buildJwk() key validation', () => {
+		it('throws a clear error when given a corrupted PEM', () => {
+			readFileSyncSpy.mockReturnValueOnce(
+				'-----BEGIN PUBLIC KEY-----\nNOTVALIDBASE64!!!!\n-----END PUBLIC KEY-----' as any
+			);
+
+			const brokenService = new JwksService({
+				get: jest.fn().mockReturnValue('/fake/corrupted.pem'),
+			} as any);
+
+			expect(() => brokenService.onModuleInit()).toThrow(
+				expect.objectContaining({ message: expect.stringContaining('/fake/corrupted.pem') })
+			);
+		});
+
+		it('throws a clear error when given an RSA public key', () => {
+			const { publicKey: rsaPublicKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+			const rsaPem = rsaPublicKey.export({ type: 'spki', format: 'pem' }) as string;
+			readFileSyncSpy.mockReturnValueOnce(rsaPem as any);
+
+			const brokenService = new JwksService({
+				get: jest.fn().mockReturnValue('/fake/rsa-key.pem'),
+			} as any);
+
+			expect(() => brokenService.onModuleInit()).toThrow(
+				expect.objectContaining({ message: expect.stringMatching(/RSA.*EC is required for ES256/i) })
+			);
+		});
+
+		it('throws a clear error when the EC key uses the wrong curve', () => {
+			const { publicKey: p384PublicKey } = crypto.generateKeyPairSync('ec', {
+				namedCurve: 'secp384r1',
+			});
+			const p384Pem = p384PublicKey.export({ type: 'spki', format: 'pem' }) as string;
+			readFileSyncSpy.mockReturnValueOnce(p384Pem as any);
+
+			const brokenService = new JwksService({
+				get: jest.fn().mockReturnValue('/fake/p384-key.pem'),
+			} as any);
+
+			expect(() => brokenService.onModuleInit()).toThrow(
+				expect.objectContaining({ message: expect.stringMatching(/secp384r1.*prime256v1/i) })
+			);
 		});
 	});
 });
