@@ -1,4 +1,4 @@
-import { randomInt } from 'crypto';
+import { randomInt } from 'node:crypto';
 
 import { Repository, EntityManager, EntityTarget, QueryRunner, LessThan } from 'typeorm';
 import { PreKey } from '../entities/prekey.entity';

@@ -1,4 +1,4 @@
-import { randomInt } from 'crypto';
+import { randomInt } from 'node:crypto';
 
 import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
