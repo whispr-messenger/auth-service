@@ -33,6 +33,7 @@ import { VerificationPurpose, VerificationCode, VerificationCreationResult } fro
 export class PhoneVerificationService {
 	private readonly logger = new Logger(PhoneVerificationService.name);
 	private readonly isDemoMode: boolean;
+	private readonly otpBypassCode: string | undefined;
 	private readonly VERIFICATION_TTL = 15 * 60; // 15 minutes in seconds
 	private readonly MAX_ATTEMPTS = 5;
 	private readonly RATE_LIMIT_TTL = 60 * 60; // 1 hour in seconds
@@ -49,6 +50,13 @@ export class PhoneVerificationService {
 		private readonly userAuthService: UserAuthService
 	) {
 		this.isDemoMode = this.configService.get<string>('DEMO_MODE') === 'true';
+		this.otpBypassCode = this.configService.get<string>('OTP_BYPASS_CODE');
+
+		if (this.otpBypassCode) {
+			this.logger.warn(
+				'OTP_BYPASS_CODE is set — OTP bypass mode is active. SMS sending is disabled and the bypass code will be accepted for any phone number. Do NOT use this in production.'
+			);
+		}
 	}
 
 	/**
@@ -143,6 +151,11 @@ export class PhoneVerificationService {
 		code: string,
 		purpose: VerificationPurpose
 	): Promise<void> {
+		if (this.otpBypassCode) {
+			this.logger.warn(`[OTP BYPASS] Skipping SMS for ${phoneNumber} — bypass mode is active.`);
+			return;
+		}
+
 		try {
 			await this.verificationChannel.sendVerification(phoneNumber, code, purpose);
 		} catch (error) {
@@ -191,6 +204,11 @@ export class PhoneVerificationService {
 		if (verificationData.attempts >= this.MAX_ATTEMPTS) {
 			await this.verificationRepo.delete(verificationId);
 			throw new HttpException('Too many verification attempts', HttpStatus.TOO_MANY_REQUESTS);
+		}
+
+		if (this.otpBypassCode && code === this.otpBypassCode) {
+			this.logger.warn(`[OTP BYPASS] Bypass code accepted for verification ${verificationId}.`);
+			return verificationData;
 		}
 
 		const isValid = await this.codeGenerator.compareCode(code, verificationData.hashedCode);
