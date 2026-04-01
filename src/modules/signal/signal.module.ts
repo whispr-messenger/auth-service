@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-// TODO: Install @nestjs/schedule dependency for scheduled tasks
-// import { ScheduleModule } from '@nestjs/schedule';
+import { ScheduleModule } from '@nestjs/schedule';
 
 // Entities
 import { IdentityKey, SignedPreKey, PreKey } from './entities';
@@ -16,8 +15,7 @@ import {
 	SignalPreKeyBundleService,
 	SignalKeyRotationService,
 	SignalKeyValidationService,
-	// TODO: Re-enable when @nestjs/schedule is installed
-	// SignalKeySchedulerService,
+	SignalKeySchedulerService,
 } from './services';
 
 // Controllers
@@ -50,8 +48,7 @@ import { TokensModule } from '../tokens/tokens.module';
 		// Register TypeORM entities for Signal Protocol keys
 		TypeOrmModule.forFeature([IdentityKey, SignedPreKey, PreKey]),
 		// Enable scheduled tasks (cron jobs)
-		// TODO: Uncomment when @nestjs/schedule is installed
-		// ScheduleModule.forRoot(),
+		ScheduleModule.forRoot(),
 		// Import DevicesModule for device ownership verification
 		DevicesModule,
 		// Import TokensModule for JWT authentication guards
@@ -90,8 +87,7 @@ import { TokensModule } from '../tokens/tokens.module';
 		SignalPreKeyBundleService,
 		SignalKeyRotationService,
 		SignalKeyValidationService,
-		// TODO: Re-enable when @nestjs/schedule is installed
-		// SignalKeySchedulerService,
+		SignalKeySchedulerService,
 	],
 	exports: [
 		// Export repositories for direct access if needed
@@ -103,8 +99,7 @@ import { TokensModule } from '../tokens/tokens.module';
 		SignalPreKeyBundleService,
 		SignalKeyRotationService,
 		SignalKeyValidationService,
-		// TODO: Re-enable when @nestjs/schedule is installed
-		// SignalKeySchedulerService,
+		SignalKeySchedulerService,
 	],
 })
 export class SignalModule {}

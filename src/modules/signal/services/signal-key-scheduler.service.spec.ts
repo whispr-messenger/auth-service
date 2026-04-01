@@ -29,6 +29,7 @@ describe('SignalKeySchedulerService', () => {
 							addSelect: jest.fn().mockReturnThis(),
 							where: jest.fn().mockReturnThis(),
 							groupBy: jest.fn().mockReturnThis(),
+							addGroupBy: jest.fn().mockReturnThis(),
 							having: jest.fn().mockReturnThis(),
 							getRawMany: jest.fn(),
 						})),
@@ -52,9 +53,7 @@ describe('SignalKeySchedulerService', () => {
 
 			await service.cleanupExpiredSignedPreKeys();
 
-			expect(rotationService.cleanupExpiredSignedPreKeys).toHaveBeenCalledWith(
-				30,
-			);
+			expect(rotationService.cleanupExpiredSignedPreKeys).toHaveBeenCalledWith(30);
 			expect(service.getSchedulerStats().lastCleanupTime).toBeDefined();
 		});
 
@@ -67,14 +66,10 @@ describe('SignalKeySchedulerService', () => {
 		});
 
 		it('should handle errors gracefully', async () => {
-			rotationService.cleanupExpiredSignedPreKeys.mockRejectedValue(
-				new Error('Database error'),
-			);
+			rotationService.cleanupExpiredSignedPreKeys.mockRejectedValue(new Error('Database error'));
 
 			// Should not throw
-			await expect(
-				service.cleanupExpiredSignedPreKeys(),
-			).resolves.not.toThrow();
+			await expect(service.cleanupExpiredSignedPreKeys()).resolves.not.toThrow();
 		});
 	});
 
@@ -85,18 +80,15 @@ describe('SignalKeySchedulerService', () => {
 				addSelect: jest.fn().mockReturnThis(),
 				where: jest.fn().mockReturnThis(),
 				groupBy: jest.fn().mockReturnThis(),
+				addGroupBy: jest.fn().mockReturnThis(),
 				having: jest.fn().mockReturnThis(),
-				getRawMany: jest
-					.fn()
-					.mockResolvedValue([
-						{ userId: 'user1', count: '10' },
-						{ userId: 'user2', count: '15' },
-					]),
+				getRawMany: jest.fn().mockResolvedValue([
+					{ userId: 'user1', deviceId: 'device1', count: '10' },
+					{ userId: 'user2', deviceId: 'device2', count: '15' },
+				]),
 			};
 
-			preKeyRepository.createQueryBuilder.mockReturnValue(
-				mockQueryBuilder as any,
-			);
+			preKeyRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 
 			await service.checkUsersWithLowPrekeys();
 
@@ -110,13 +102,12 @@ describe('SignalKeySchedulerService', () => {
 				addSelect: jest.fn().mockReturnThis(),
 				where: jest.fn().mockReturnThis(),
 				groupBy: jest.fn().mockReturnThis(),
+				addGroupBy: jest.fn().mockReturnThis(),
 				having: jest.fn().mockReturnThis(),
 				getRawMany: jest.fn().mockResolvedValue([]),
 			};
 
-			preKeyRepository.createQueryBuilder.mockReturnValue(
-				mockQueryBuilder as any,
-			);
+			preKeyRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 
 			await service.checkUsersWithLowPrekeys();
 
@@ -159,9 +150,7 @@ describe('SignalKeySchedulerService', () => {
 
 			expect(preKeyRepository.find).toHaveBeenCalled();
 			expect(preKeyRepository.remove).toHaveBeenCalledWith(mockOldPreKeys);
-			expect(
-				service.getSchedulerStats().lastOldPreKeyCleanupTime,
-			).toBeDefined();
+			expect(service.getSchedulerStats().lastOldPreKeyCleanupTime).toBeDefined();
 		});
 
 		it('should handle no old prekeys to cleanup', async () => {
@@ -200,10 +189,7 @@ describe('SignalKeySchedulerService', () => {
 	describe('manualCleanup', () => {
 		it('should perform manual cleanup', async () => {
 			rotationService.cleanupExpiredSignedPreKeys.mockResolvedValue(3);
-			preKeyRepository.find.mockResolvedValue([
-				{ id: 'pk1' },
-				{ id: 'pk2' },
-			] as PreKey[]);
+			preKeyRepository.find.mockResolvedValue([{ id: 'pk1' }, { id: 'pk2' }] as PreKey[]);
 			preKeyRepository.remove.mockResolvedValue(undefined as any);
 
 			const result = await service.manualCleanup();
@@ -213,9 +199,7 @@ describe('SignalKeySchedulerService', () => {
 				oldPreKeysDeleted: 2,
 			});
 
-			expect(rotationService.cleanupExpiredSignedPreKeys).toHaveBeenCalledWith(
-				30,
-			);
+			expect(rotationService.cleanupExpiredSignedPreKeys).toHaveBeenCalledWith(30);
 			expect(preKeyRepository.find).toHaveBeenCalled();
 			expect(preKeyRepository.remove).toHaveBeenCalled();
 		});
