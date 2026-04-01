@@ -25,6 +25,8 @@ async function bootstrap() {
 
 	app.useGlobalInterceptors(new LoggingInterceptor());
 
+	app.enableShutdownHooks();
+
 	await app.listen(port);
 
 	logger.log(`Application is running on: http://0.0.0.0:${port}`);
