@@ -1,7 +1,6 @@
 import { Controller, Get, Post, HttpCode, HttpStatus, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-// TODO: Re-enable when @nestjs/schedule is installed
-// import { SignalKeySchedulerService } from '../services/signal-key-scheduler.service';
+import { SignalKeySchedulerService } from '../services/signal-key-scheduler.service';
 import { PreKeyRepository } from '../repositories';
 import {
 	SIGNAL_HEALTH_STATUS_SCHEMA,
@@ -25,8 +24,7 @@ export class SignalKeysHealthController {
 	private readonly logger = new Logger(SignalKeysHealthController.name);
 
 	constructor(
-		// TODO: Re-enable when @nestjs/schedule is installed
-		// private readonly schedulerService: SignalKeySchedulerService,
+		private readonly schedulerService: SignalKeySchedulerService,
 		private readonly preKeyRepository: PreKeyRepository
 	) {}
 
@@ -52,14 +50,7 @@ export class SignalKeysHealthController {
 	async getHealth(): Promise<SignalHealthStatusDto> {
 		this.logger.debug('Health check requested');
 
-		// TODO: Re-enable when @nestjs/schedule is installed
-		const schedulerStats = {
-			isHealthy: true,
-			lastCleanupTime: null,
-			lastPreKeyCheckTime: null,
-			lastOldPreKeyCleanupTime: null,
-		};
-		// const schedulerStats = this.schedulerService.getSchedulerStats();
+		const schedulerStats = this.schedulerService.getSchedulerStats();
 
 		// Get prekey statistics
 		const totalUnused = await this.preKeyRepository.count({
@@ -147,13 +138,12 @@ export class SignalKeysHealthController {
 	async triggerManualCleanup(): Promise<CleanupResultDto> {
 		this.logger.log('Manual cleanup triggered via API');
 
-		// TODO: Re-enable when @nestjs/schedule is installed
-		// const result = await this.schedulerService.manualCleanup();
+		const result = await this.schedulerService.manualCleanup();
 
 		return {
-			message: 'Cleanup completed successfully (scheduler disabled)',
-			expiredKeysDeleted: 0,
-			oldPreKeysDeleted: 0,
+			message: 'Cleanup completed successfully',
+			expiredKeysDeleted: result.expiredKeysDeleted,
+			oldPreKeysDeleted: result.oldPreKeysDeleted,
 		};
 	}
 }
