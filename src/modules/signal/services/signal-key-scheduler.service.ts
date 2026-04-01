@@ -6,7 +6,7 @@ import { LessThan } from 'typeorm';
 
 /**
  * Service responsible for scheduled maintenance tasks for Signal Protocol keys
- * 
+ *
  * Handles automatic cleanup and monitoring:
  * - Daily cleanup of expired SignedPreKeys
  * - Hourly check for users with low prekeys
@@ -21,12 +21,12 @@ export class SignalKeySchedulerService {
 
 	constructor(
 		private readonly rotationService: SignalKeyRotationService,
-		private readonly preKeyRepository: PreKeyRepository,
+		private readonly preKeyRepository: PreKeyRepository
 	) {}
 
 	/**
 	 * Clean up expired SignedPreKeys daily at 3 AM
-	 * 
+	 *
 	 * Removes SignedPreKeys that have been expired for more than 30 days.
 	 * This grace period ensures that pending sessions can still complete.
 	 */
@@ -35,33 +35,27 @@ export class SignalKeySchedulerService {
 		this.logger.log('Starting scheduled cleanup of expired SignedPreKeys');
 
 		try {
-			const deletedCount =
-				await this.rotationService.cleanupExpiredSignedPreKeys(30);
+			const deletedCount = await this.rotationService.cleanupExpiredSignedPreKeys(30);
 
 			this.lastCleanupTime = new Date();
 
-			this.logger.log(
-				`Successfully cleaned up ${deletedCount} expired SignedPreKeys`,
-			);
+			this.logger.log(`Successfully cleaned up ${deletedCount} expired SignedPreKeys`);
 
 			// Log a warning if a significant number of keys were cleaned up
 			if (deletedCount > 100) {
 				this.logger.warn(
-					`High number of expired keys cleaned up (${deletedCount}). Consider investigating key rotation issues.`,
+					`High number of expired keys cleaned up (${deletedCount}). Consider investigating key rotation issues.`
 				);
 			}
 		} catch (error) {
-			this.logger.error(
-				'Failed to cleanup expired SignedPreKeys',
-				error.stack,
-			);
+			this.logger.error('Failed to cleanup expired SignedPreKeys', error.stack);
 			// Don't throw - we don't want to crash the scheduler
 		}
 	}
 
 	/**
 	 * Check for devices with low prekeys every hour
-	 * 
+	 *
 	 * Monitors prekey availability and logs warnings for devices that need
 	 * to replenish their prekeys. In a production system, this would
 	 * trigger notifications to clients.
@@ -77,7 +71,7 @@ export class SignalKeySchedulerService {
 
 			if (devicesWithLowPrekeys.length > 0) {
 				this.logger.warn(
-					`Found ${devicesWithLowPrekeys.length} devices with low prekeys: ${devicesWithLowPrekeys.map((d) => `${d.userId}:${d.deviceId}(${d.count})`).join(', ')}`,
+					`Found ${devicesWithLowPrekeys.length} devices with low prekeys: ${devicesWithLowPrekeys.map((d) => `${d.userId}:${d.deviceId}(${d.count})`).join(', ')}`
 				);
 
 				// In production, emit events here for notification service
@@ -92,7 +86,7 @@ export class SignalKeySchedulerService {
 
 	/**
 	 * Clean up old unused prekeys every Sunday at 4 AM
-	 * 
+	 *
 	 * Removes prekeys that have been unused for more than 30 days.
 	 * This helps keep the database size under control.
 	 */
@@ -118,9 +112,7 @@ export class SignalKeySchedulerService {
 
 				this.lastOldPreKeyCleanupTime = new Date();
 
-				this.logger.log(
-					`Successfully cleaned up ${oldPreKeys.length} old unused PreKeys`,
-				);
+				this.logger.log(`Successfully cleaned up ${oldPreKeys.length} old unused PreKeys`);
 
 				// Group by user and device for better visibility
 				const byUserDevice = oldPreKeys.reduce(
@@ -129,26 +121,21 @@ export class SignalKeySchedulerService {
 						acc[key] = (acc[key] || 0) + 1;
 						return acc;
 					},
-					{} as Record<string, number>,
+					{} as Record<string, number>
 				);
 
-				this.logger.debug(
-					`PreKeys cleaned per device: ${JSON.stringify(byUserDevice)}`,
-				);
+				this.logger.debug(`PreKeys cleaned per device: ${JSON.stringify(byUserDevice)}`);
 			} else {
 				this.logger.debug('No old unused PreKeys to clean up');
 			}
 		} catch (error) {
-			this.logger.error(
-				'Failed to cleanup old unused PreKeys',
-				error.stack,
-			);
+			this.logger.error('Failed to cleanup old unused PreKeys', error.stack);
 		}
 	}
 
 	/**
 	 * Find devices that have fewer than 20 unused prekeys
-	 * 
+	 *
 	 * @returns Array of objects with userId, deviceId and prekey count
 	 */
 	private async findDevicesWithLowPrekeys(): Promise<
@@ -174,7 +161,7 @@ export class SignalKeySchedulerService {
 
 	/**
 	 * Get scheduler statistics for health checks
-	 * 
+	 *
 	 * @returns Object with scheduler status information
 	 */
 	getSchedulerStats(): {
@@ -210,8 +197,7 @@ export class SignalKeySchedulerService {
 	}> {
 		this.logger.log('Manual cleanup triggered');
 
-		const expiredKeysDeleted =
-			await this.rotationService.cleanupExpiredSignedPreKeys(30);
+		const expiredKeysDeleted = await this.rotationService.cleanupExpiredSignedPreKeys(30);
 
 		const thirtyDaysAgo = new Date();
 		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -226,7 +212,7 @@ export class SignalKeySchedulerService {
 		await this.preKeyRepository.remove(oldPreKeys);
 
 		this.logger.log(
-			`Manual cleanup completed: ${expiredKeysDeleted} expired keys, ${oldPreKeys.length} old prekeys`,
+			`Manual cleanup completed: ${expiredKeysDeleted} expired keys, ${oldPreKeys.length} old prekeys`
 		);
 
 		return {
