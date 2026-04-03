@@ -11,7 +11,7 @@ import {
 import { UserAuth } from '../../common/entities/user-auth.entity';
 import { Device } from '../../devices/entities/device.entity';
 
-@Entity('prekeys')
+@Entity({ name: 'prekeys', schema: 'auth' })
 @Index(['userId', 'deviceId'])
 @Index(['userId', 'deviceId', 'isUsed'], { where: 'is_used = false' })
 @Unique(['userId', 'deviceId', 'keyId'])

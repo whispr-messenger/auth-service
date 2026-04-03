@@ -11,7 +11,7 @@ import {
 import { UserAuth } from '../../common/entities/user-auth.entity';
 import { Device } from '../../devices/entities/device.entity';
 
-@Entity('signed_prekeys')
+@Entity({ name: 'signed_prekeys', schema: 'auth' })
 @Index(['userId', 'deviceId'])
 @Unique(['userId', 'deviceId', 'keyId'])
 export class SignedPreKey {
