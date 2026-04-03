@@ -64,3 +64,16 @@ jobs:
     with:
       ref: ${{ github.ref }}
       should_deploy: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+
+  # ================================
+  # Deploy (only on main push, after Docker succeeds)
+  # ================================
+  deploy:
+    name: 🚀 Deploy
+    needs: [docker]
+    if: success() && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    uses: ./.github/workflows/cd.yml
+    with:
+      commit_sha: ${{ github.sha }}
+      ref: main
+    secrets: inherit
