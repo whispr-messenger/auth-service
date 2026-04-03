@@ -59,11 +59,6 @@ export default function runEnvChecks(): void {
 
 	// Ports
 	checkRequired('HTTP_PORT');
-	checkRequired('GRPC_PORT');
-
-	// gRPC services
-	checkRequired('USER_SERVICE_GRPC_URL');
-	checkRequired('MEDIA_SERVICE_GRPC_URL');
 
 	// Twilio
 	checkRequired('TWILIO_ACCOUNT_SID');

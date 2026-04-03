@@ -49,9 +49,6 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
-			process.env.GRPC_PORT = '50051';
-			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
-			process.env.MEDIA_SERVICE_GRPC_URL = 'localhost:50053';
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
@@ -88,9 +85,6 @@ describe('check-env', () => {
 				'REDIS_HOST',
 				'REDIS_PORT',
 				'HTTP_PORT',
-				'GRPC_PORT',
-				'USER_SERVICE_GRPC_URL',
-				'MEDIA_SERVICE_GRPC_URL',
 				'TWILIO_ACCOUNT_SID',
 				'TWILIO_AUTH_TOKEN',
 				'TWILIO_FROM_NUMBER',
@@ -125,9 +119,6 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
-			process.env.GRPC_PORT = '50051';
-			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
-			process.env.MEDIA_SERVICE_GRPC_URL = 'localhost:50053';
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
@@ -166,9 +157,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
-			process.env.GRPC_PORT = '50051';
-			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
-			process.env.MEDIA_SERVICE_GRPC_URL = 'localhost:50053';
+
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
@@ -187,9 +176,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
-			process.env.GRPC_PORT = '50051';
-			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
-			process.env.MEDIA_SERVICE_GRPC_URL = 'localhost:50053';
+
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
@@ -214,9 +201,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
-			process.env.GRPC_PORT = '50051';
-			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
-			process.env.MEDIA_SERVICE_GRPC_URL = 'localhost:50053';
+
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
@@ -241,9 +226,7 @@ describe('check-env', () => {
 			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
 			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.HTTP_PORT = '3000';
-			process.env.GRPC_PORT = '50051';
-			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
-			process.env.MEDIA_SERVICE_GRPC_URL = 'localhost:50053';
+
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
@@ -269,8 +252,6 @@ describe('check-env', () => {
 			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
-			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
-			process.env.MEDIA_SERVICE_GRPC_URL = 'localhost:50053';
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
@@ -279,36 +260,6 @@ describe('check-env', () => {
 
 			expect(consoleErrorSpy).toHaveBeenCalledWith(
 				expect.stringContaining('HTTP_PORT is NOT set (REQUIRED)')
-			);
-			expect(consoleErrorSpy).toHaveBeenCalledWith(
-				expect.stringContaining('GRPC_PORT is NOT set (REQUIRED)')
-			);
-		});
-
-		it('should throw error when gRPC service URLs are missing', () => {
-			process.env.NODE_ENV = 'production';
-			process.env.DB_HOST = 'localhost';
-			process.env.DB_PORT = '5432';
-			process.env.DB_USERNAME = 'user';
-			process.env.DB_PASSWORD = 'password';
-			process.env.DB_NAME = 'auth_db';
-			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
-			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
-			process.env.REDIS_HOST = 'localhost';
-			process.env.REDIS_PORT = '6379';
-			process.env.HTTP_PORT = '3000';
-			process.env.GRPC_PORT = '50051';
-			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
-			process.env.TWILIO_AUTH_TOKEN = 'token123';
-			process.env.TWILIO_FROM_NUMBER = '+1234567890';
-
-			expect(() => runEnvChecks()).toThrow('Missing required environment variables');
-
-			expect(consoleErrorSpy).toHaveBeenCalledWith(
-				expect.stringContaining('USER_SERVICE_GRPC_URL is NOT set (REQUIRED)')
-			);
-			expect(consoleErrorSpy).toHaveBeenCalledWith(
-				expect.stringContaining('MEDIA_SERVICE_GRPC_URL is NOT set (REQUIRED)')
 			);
 		});
 
@@ -324,9 +275,6 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
-			process.env.GRPC_PORT = '50051';
-			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
-			process.env.MEDIA_SERVICE_GRPC_URL = 'localhost:50053';
 
 			expect(() => runEnvChecks()).toThrow('Missing required environment variables');
 
@@ -348,9 +296,8 @@ describe('check-env', () => {
 			expect(() => runEnvChecks()).toThrow('Missing required environment variables');
 
 			// DB_PORT, DB_USERNAME, DB_PASSWORD, DB_NAME, JWT_PRIVATE_KEY, JWT_PUBLIC_KEY,
-			// REDIS_HOST, REDIS_PORT, HTTP_PORT, GRPC_PORT,
-			// USER_SERVICE_GRPC_URL, MEDIA_SERVICE_GRPC_URL,
-			// TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER = 15 missing
+			// REDIS_HOST, REDIS_PORT, HTTP_PORT,
+			// TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER = 12 missing
 			expect(consoleErrorSpy).toHaveBeenCalledWith(
 				expect.stringContaining('required environment variable(s) missing!')
 			);
@@ -359,7 +306,7 @@ describe('check-env', () => {
 		it('should throw error when multiple variables are missing', () => {
 			expect(() => runEnvChecks()).toThrow('Missing required environment variables');
 
-			// All 17 required variables are missing
+			// All 14 required variables are missing
 			expect(consoleErrorSpy).toHaveBeenCalledWith(
 				expect.stringContaining('required environment variable(s) missing!')
 			);
@@ -379,9 +326,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
-			process.env.GRPC_PORT = '50051';
-			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
-			process.env.MEDIA_SERVICE_GRPC_URL = 'localhost:50053';
+
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
@@ -405,9 +350,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
-			process.env.GRPC_PORT = '50051';
-			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
-			process.env.MEDIA_SERVICE_GRPC_URL = 'localhost:50053';
+
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
@@ -432,9 +375,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
-			process.env.GRPC_PORT = '50051';
-			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
-			process.env.MEDIA_SERVICE_GRPC_URL = 'localhost:50053';
+
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
@@ -462,9 +403,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
-			process.env.GRPC_PORT = '50051';
-			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
-			process.env.MEDIA_SERVICE_GRPC_URL = 'localhost:50053';
+
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
@@ -524,9 +463,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
-			process.env.GRPC_PORT = '50051';
-			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
-			process.env.MEDIA_SERVICE_GRPC_URL = 'localhost:50053';
+
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
@@ -563,9 +500,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
-			process.env.GRPC_PORT = '50051';
-			process.env.USER_SERVICE_GRPC_URL = 'localhost:50052';
-			process.env.MEDIA_SERVICE_GRPC_URL = 'localhost:50053';
+
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
