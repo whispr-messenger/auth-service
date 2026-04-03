@@ -6,12 +6,12 @@ export class FixDeviceFingerprintCompositeUnique1741651200000 implements Migrati
 	public async up(queryRunner: QueryRunner): Promise<void> {
 		// Drop the old global unique constraint on device_fingerprint alone
 		await queryRunner.query(`
-      ALTER TABLE "devices"
+      ALTER TABLE "auth"."devices"
       DROP CONSTRAINT IF EXISTS "UQ_b7c1a1b1d1eff0d845ae768113f"
     `);
 
 		await queryRunner.query(`
-      ALTER TABLE "devices"
+      ALTER TABLE "auth"."devices"
       DROP CONSTRAINT IF EXISTS "UQ_devices_device_fingerprint"
     `);
 
@@ -22,8 +22,9 @@ export class FixDeviceFingerprintCompositeUnique1741651200000 implements Migrati
         IF NOT EXISTS (
           SELECT 1 FROM pg_constraint
           WHERE conname = 'UQ_devices_userId_deviceFingerprint'
+            AND conrelid = '"auth"."devices"'::regclass
         ) THEN
-          ALTER TABLE "devices"
+          ALTER TABLE "auth"."devices"
           ADD CONSTRAINT "UQ_devices_userId_deviceFingerprint"
           UNIQUE ("user_id", "device_fingerprint");
         END IF;
@@ -34,7 +35,7 @@ export class FixDeviceFingerprintCompositeUnique1741651200000 implements Migrati
 
 	public async down(queryRunner: QueryRunner): Promise<void> {
 		await queryRunner.query(`
-      ALTER TABLE "devices"
+      ALTER TABLE "auth"."devices"
       DROP CONSTRAINT IF EXISTS "UQ_devices_userId_deviceFingerprint"
     `);
 
@@ -44,8 +45,9 @@ export class FixDeviceFingerprintCompositeUnique1741651200000 implements Migrati
         IF NOT EXISTS (
           SELECT 1 FROM pg_constraint
           WHERE conname = 'UQ_devices_device_fingerprint'
+            AND conrelid = '"auth"."devices"'::regclass
         ) THEN
-          ALTER TABLE "devices"
+          ALTER TABLE "auth"."devices"
           ADD CONSTRAINT "UQ_devices_device_fingerprint" UNIQUE ("device_fingerprint");
         END IF;
       END
