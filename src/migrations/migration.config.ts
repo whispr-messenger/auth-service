@@ -1,8 +1,29 @@
 import { DataSource } from 'typeorm';
-import { config } from 'dotenv';
+import { UserAuth } from '../modules/common/entities/user-auth.entity';
+import { Device } from '../modules/devices/entities/device.entity';
+import { PreKey } from '../modules/signal/entities/prekey.entity';
+import { SignedPreKey } from '../modules/signal/entities/signed-prekey.entity';
+import { IdentityKey } from '../modules/signal/entities/identity-key.entity';
+import { BackupCode } from '../modules/two-factor-authentication/entities/backup-code.entity';
+import { LoginHistory } from '../modules/phone-auth/entities/login-history.entity';
 
-// Load .env if present (for local development)
-config();
+// Load .env if present (for local development); skip gracefully in production
+try {
+	// eslint-disable-next-line @typescript-eslint/no-require-imports
+	require('dotenv').config();
+} catch (error) {
+	const isModuleNotFound =
+		error instanceof Error &&
+		'code' in error &&
+		(error as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND';
+
+	if (!isModuleNotFound) {
+		throw error;
+	}
+}
+
+// Same entity list as src/modules/app/typeorm.ts — keep in sync
+const ENTITIES = [UserAuth, Device, PreKey, SignedPreKey, IdentityKey, BackupCode, LoginHistory];
 
 const DEFAULT_POSTGRES_PORT = 5432;
 
@@ -33,7 +54,7 @@ const dbConfig = getDatabaseConfig();
 export default new DataSource({
 	type: 'postgres',
 	...dbConfig,
-	entities: [__dirname + '/../modules/**/entities/*{.ts,.js}'],
+	entities: ENTITIES,
 	migrations: [__dirname + '/../modules/app/migrations/*{.ts,.js}'],
 	logging: process.env.DB_LOGGING === 'true',
 });
