@@ -26,6 +26,7 @@ export class AddDeviceFingerprintNotNull1741564800000 implements MigrationInterf
         IF NOT EXISTS (
           SELECT 1 FROM pg_constraint
           WHERE conname = 'UQ_devices_device_fingerprint'
+            AND conrelid = '"auth"."devices"'::regclass
         ) THEN
           ALTER TABLE "auth"."devices"
           ADD CONSTRAINT "UQ_devices_device_fingerprint" UNIQUE ("device_fingerprint");

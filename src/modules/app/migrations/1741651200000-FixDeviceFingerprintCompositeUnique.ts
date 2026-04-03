@@ -22,6 +22,7 @@ export class FixDeviceFingerprintCompositeUnique1741651200000 implements Migrati
         IF NOT EXISTS (
           SELECT 1 FROM pg_constraint
           WHERE conname = 'UQ_devices_userId_deviceFingerprint'
+            AND conrelid = '"auth"."devices"'::regclass
         ) THEN
           ALTER TABLE "auth"."devices"
           ADD CONSTRAINT "UQ_devices_userId_deviceFingerprint"
@@ -44,6 +45,7 @@ export class FixDeviceFingerprintCompositeUnique1741651200000 implements Migrati
         IF NOT EXISTS (
           SELECT 1 FROM pg_constraint
           WHERE conname = 'UQ_devices_device_fingerprint'
+            AND conrelid = '"auth"."devices"'::regclass
         ) THEN
           ALTER TABLE "auth"."devices"
           ADD CONSTRAINT "UQ_devices_device_fingerprint" UNIQUE ("device_fingerprint");
