@@ -4,8 +4,10 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
 	name = 'CreateInitialTables1700000000000';
 
 	public async up(queryRunner: QueryRunner): Promise<void> {
+		await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "auth"`);
+
 		await queryRunner.query(`
-      CREATE TABLE "users_auth" (
+      CREATE TABLE "auth"."users_auth" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "phone_number" character varying(20) NOT NULL,
         "two_factor_secret" character varying(255),
@@ -19,7 +21,7 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
     `);
 
 		await queryRunner.query(`
-      CREATE TABLE "devices" (
+      CREATE TABLE "auth"."devices" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "user_id" uuid NOT NULL,
         "device_name" character varying(100) NOT NULL,
@@ -36,7 +38,7 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
     `);
 
 		await queryRunner.query(`
-      CREATE TABLE "prekeys" (
+      CREATE TABLE "auth"."prekeys" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "user_id" uuid NOT NULL,
         "device_id" uuid NOT NULL,
@@ -48,7 +50,7 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
     `);
 
 		await queryRunner.query(`
-      CREATE TABLE "signed_prekeys" (
+      CREATE TABLE "auth"."signed_prekeys" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "user_id" uuid NOT NULL,
         "device_id" uuid NOT NULL,
@@ -61,7 +63,7 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
     `);
 
 		await queryRunner.query(`
-      CREATE TABLE "identity_keys" (
+      CREATE TABLE "auth"."identity_keys" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "user_id" uuid NOT NULL,
         "public_key" text NOT NULL,
@@ -74,7 +76,7 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
     `);
 
 		await queryRunner.query(`
-      CREATE TABLE "backup_codes" (
+      CREATE TABLE "auth"."backup_codes" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "user_id" uuid NOT NULL,
         "code_hash" character varying(255) NOT NULL,
@@ -86,7 +88,7 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
     `);
 
 		await queryRunner.query(`
-      CREATE TABLE "login_history" (
+      CREATE TABLE "auth"."login_history" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "user_id" uuid NOT NULL,
         "device_id" uuid,
@@ -99,118 +101,119 @@ export class CreateInitialTables1700000000000 implements MigrationInterface {
     `);
 
 		await queryRunner.query(`
-      ALTER TABLE "devices" ADD CONSTRAINT "FK_devices_user_id"
-      FOREIGN KEY ("user_id") REFERENCES "users_auth"("id") ON DELETE CASCADE
+      ALTER TABLE "auth"."devices" ADD CONSTRAINT "FK_devices_user_id"
+      FOREIGN KEY ("user_id") REFERENCES "auth"."users_auth"("id") ON DELETE CASCADE
     `);
 
 		await queryRunner.query(`
-      ALTER TABLE "prekeys" ADD CONSTRAINT "FK_prekeys_user_id"
-      FOREIGN KEY ("user_id") REFERENCES "users_auth"("id") ON DELETE CASCADE
+      ALTER TABLE "auth"."prekeys" ADD CONSTRAINT "FK_prekeys_user_id"
+      FOREIGN KEY ("user_id") REFERENCES "auth"."users_auth"("id") ON DELETE CASCADE
     `);
 
 		await queryRunner.query(`
-      ALTER TABLE "prekeys" ADD CONSTRAINT "FK_prekeys_device_id"
-      FOREIGN KEY ("device_id") REFERENCES "devices"("id") ON DELETE CASCADE
+      ALTER TABLE "auth"."prekeys" ADD CONSTRAINT "FK_prekeys_device_id"
+      FOREIGN KEY ("device_id") REFERENCES "auth"."devices"("id") ON DELETE CASCADE
     `);
 
 		await queryRunner.query(`
-      ALTER TABLE "signed_prekeys" ADD CONSTRAINT "FK_signed_prekeys_user_id"
-      FOREIGN KEY ("user_id") REFERENCES "users_auth"("id") ON DELETE CASCADE
+      ALTER TABLE "auth"."signed_prekeys" ADD CONSTRAINT "FK_signed_prekeys_user_id"
+      FOREIGN KEY ("user_id") REFERENCES "auth"."users_auth"("id") ON DELETE CASCADE
     `);
 
 		await queryRunner.query(`
-      ALTER TABLE "signed_prekeys" ADD CONSTRAINT "FK_signed_prekeys_device_id"
-      FOREIGN KEY ("device_id") REFERENCES "devices"("id") ON DELETE CASCADE
+      ALTER TABLE "auth"."signed_prekeys" ADD CONSTRAINT "FK_signed_prekeys_device_id"
+      FOREIGN KEY ("device_id") REFERENCES "auth"."devices"("id") ON DELETE CASCADE
     `);
 
 		await queryRunner.query(`
-      ALTER TABLE "identity_keys" ADD CONSTRAINT "FK_identity_keys_user_id"
-      FOREIGN KEY ("user_id") REFERENCES "users_auth"("id") ON DELETE CASCADE
+      ALTER TABLE "auth"."identity_keys" ADD CONSTRAINT "FK_identity_keys_user_id"
+      FOREIGN KEY ("user_id") REFERENCES "auth"."users_auth"("id") ON DELETE CASCADE
     `);
 
 		await queryRunner.query(`
-      ALTER TABLE "backup_codes" ADD CONSTRAINT "FK_backup_codes_user_id"
-      FOREIGN KEY ("user_id") REFERENCES "users_auth"("id") ON DELETE CASCADE
+      ALTER TABLE "auth"."backup_codes" ADD CONSTRAINT "FK_backup_codes_user_id"
+      FOREIGN KEY ("user_id") REFERENCES "auth"."users_auth"("id") ON DELETE CASCADE
     `);
 
 		await queryRunner.query(`
-      ALTER TABLE "login_history" ADD CONSTRAINT "FK_login_history_user_id"
-      FOREIGN KEY ("user_id") REFERENCES "users_auth"("id") ON DELETE CASCADE
+      ALTER TABLE "auth"."login_history" ADD CONSTRAINT "FK_login_history_user_id"
+      FOREIGN KEY ("user_id") REFERENCES "auth"."users_auth"("id") ON DELETE CASCADE
     `);
 
 		await queryRunner.query(`
-      ALTER TABLE "login_history" ADD CONSTRAINT "FK_login_history_device_id"
-      FOREIGN KEY ("device_id") REFERENCES "devices"("id") ON DELETE SET NULL
+      ALTER TABLE "auth"."login_history" ADD CONSTRAINT "FK_login_history_device_id"
+      FOREIGN KEY ("device_id") REFERENCES "auth"."devices"("id") ON DELETE SET NULL
     `);
 
 		await queryRunner.query(`
-      CREATE INDEX "IDX_users_auth_phone_number" ON "users_auth" ("phone_number")
+      CREATE INDEX "IDX_users_auth_phone_number" ON "auth"."users_auth" ("phone_number")
     `);
 		await queryRunner.query(`
-      CREATE INDEX "IDX_users_auth_created_at" ON "users_auth" ("created_at")
+      CREATE INDEX "IDX_users_auth_created_at" ON "auth"."users_auth" ("created_at")
     `);
 		await queryRunner.query(`
-      CREATE INDEX "IDX_devices_user_id" ON "devices" ("user_id")
+      CREATE INDEX "IDX_devices_user_id" ON "auth"."devices" ("user_id")
     `);
 		await queryRunner.query(`
-      CREATE INDEX "IDX_devices_last_active" ON "devices" ("last_active")
+      CREATE INDEX "IDX_devices_last_active" ON "auth"."devices" ("last_active")
     `);
 		await queryRunner.query(`
-      CREATE INDEX "IDX_backup_codes_user_id" ON "backup_codes" ("user_id")
+      CREATE INDEX "IDX_backup_codes_user_id" ON "auth"."backup_codes" ("user_id")
     `);
 		await queryRunner.query(`
-      CREATE INDEX "IDX_login_history_user_id" ON "login_history" ("user_id")
+      CREATE INDEX "IDX_login_history_user_id" ON "auth"."login_history" ("user_id")
     `);
 		await queryRunner.query(`
-      CREATE INDEX "IDX_login_history_device_id" ON "login_history" ("device_id")
+      CREATE INDEX "IDX_login_history_device_id" ON "auth"."login_history" ("device_id")
     `);
 		await queryRunner.query(`
-      CREATE INDEX "IDX_login_history_created_at" ON "login_history" ("created_at")
+      CREATE INDEX "IDX_login_history_created_at" ON "auth"."login_history" ("created_at")
     `);
 	}
 
 	public async down(queryRunner: QueryRunner): Promise<void> {
-		await queryRunner.query(`DROP INDEX "IDX_login_history_created_at"`);
-		await queryRunner.query(`DROP INDEX "IDX_login_history_device_id"`);
-		await queryRunner.query(`DROP INDEX "IDX_login_history_user_id"`);
-		await queryRunner.query(`DROP INDEX "IDX_backup_codes_user_id"`);
-		await queryRunner.query(`DROP INDEX "IDX_devices_last_active"`);
-		await queryRunner.query(`DROP INDEX "IDX_devices_user_id"`);
-		await queryRunner.query(`DROP INDEX "IDX_users_auth_created_at"`);
-		await queryRunner.query(`DROP INDEX "IDX_users_auth_phone_number"`);
+		await queryRunner.query(`DROP INDEX "auth"."IDX_login_history_created_at"`);
+		await queryRunner.query(`DROP INDEX "auth"."IDX_login_history_device_id"`);
+		await queryRunner.query(`DROP INDEX "auth"."IDX_login_history_user_id"`);
+		await queryRunner.query(`DROP INDEX "auth"."IDX_backup_codes_user_id"`);
+		await queryRunner.query(`DROP INDEX "auth"."IDX_devices_last_active"`);
+		await queryRunner.query(`DROP INDEX "auth"."IDX_devices_user_id"`);
+		await queryRunner.query(`DROP INDEX "auth"."IDX_users_auth_created_at"`);
+		await queryRunner.query(`DROP INDEX "auth"."IDX_users_auth_phone_number"`);
 		await queryRunner.query(`
-      ALTER TABLE "login_history" DROP CONSTRAINT "FK_login_history_device_id"
+      ALTER TABLE "auth"."login_history" DROP CONSTRAINT "FK_login_history_device_id"
     `);
 		await queryRunner.query(`
-      ALTER TABLE "login_history" DROP CONSTRAINT "FK_login_history_user_id"
+      ALTER TABLE "auth"."login_history" DROP CONSTRAINT "FK_login_history_user_id"
     `);
 		await queryRunner.query(`
-      ALTER TABLE "backup_codes" DROP CONSTRAINT "FK_backup_codes_user_id"
+      ALTER TABLE "auth"."backup_codes" DROP CONSTRAINT "FK_backup_codes_user_id"
     `);
 		await queryRunner.query(`
-      ALTER TABLE "identity_keys" DROP CONSTRAINT "FK_identity_keys_user_id"
+      ALTER TABLE "auth"."identity_keys" DROP CONSTRAINT "FK_identity_keys_user_id"
     `);
 		await queryRunner.query(`
-      ALTER TABLE "signed_prekeys" DROP CONSTRAINT "FK_signed_prekeys_device_id"
+      ALTER TABLE "auth"."signed_prekeys" DROP CONSTRAINT "FK_signed_prekeys_device_id"
     `);
 		await queryRunner.query(`
-      ALTER TABLE "signed_prekeys" DROP CONSTRAINT "FK_signed_prekeys_user_id"
+      ALTER TABLE "auth"."signed_prekeys" DROP CONSTRAINT "FK_signed_prekeys_user_id"
     `);
 		await queryRunner.query(`
-      ALTER TABLE "prekeys" DROP CONSTRAINT "FK_prekeys_device_id"
+      ALTER TABLE "auth"."prekeys" DROP CONSTRAINT "FK_prekeys_device_id"
     `);
 		await queryRunner.query(`
-      ALTER TABLE "prekeys" DROP CONSTRAINT "FK_prekeys_user_id"
+      ALTER TABLE "auth"."prekeys" DROP CONSTRAINT "FK_prekeys_user_id"
     `);
 		await queryRunner.query(`
-      ALTER TABLE "devices" DROP CONSTRAINT "FK_devices_user_id"
+      ALTER TABLE "auth"."devices" DROP CONSTRAINT "FK_devices_user_id"
     `);
-		await queryRunner.query(`DROP TABLE "login_history"`);
-		await queryRunner.query(`DROP TABLE "backup_codes"`);
-		await queryRunner.query(`DROP TABLE "identity_keys"`);
-		await queryRunner.query(`DROP TABLE "signed_prekeys"`);
-		await queryRunner.query(`DROP TABLE "prekeys"`);
-		await queryRunner.query(`DROP TABLE "devices"`);
-		await queryRunner.query(`DROP TABLE "users_auth"`);
+		await queryRunner.query(`DROP TABLE "auth"."login_history"`);
+		await queryRunner.query(`DROP TABLE "auth"."backup_codes"`);
+		await queryRunner.query(`DROP TABLE "auth"."identity_keys"`);
+		await queryRunner.query(`DROP TABLE "auth"."signed_prekeys"`);
+		await queryRunner.query(`DROP TABLE "auth"."prekeys"`);
+		await queryRunner.query(`DROP TABLE "auth"."devices"`);
+		await queryRunner.query(`DROP TABLE "auth"."users_auth"`);
+		await queryRunner.query(`DROP SCHEMA IF EXISTS "auth"`);
 	}
 }
