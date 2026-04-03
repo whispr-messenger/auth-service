@@ -76,4 +76,6 @@ jobs:
     with:
       commit_sha: ${{ github.sha }}
       ref: main
-    secrets: inherit
+    secrets:
+      ACTIONS_CD: ${{ secrets.ACTIONS_CD }}
+      ACTIONS_CD_PRIVATE_KEY: ${{ secrets.ACTIONS_CD_PRIVATE_KEY }}
