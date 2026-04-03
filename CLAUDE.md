@@ -416,7 +416,7 @@ Use beads for **in-session planning and subtask decomposition**. Jira remains th
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **auth-service** (1548 symbols, 3909 relationships, 119 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **auth-service** (1568 symbols, 3974 relationships, 121 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

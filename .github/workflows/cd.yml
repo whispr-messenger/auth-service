@@ -1,10 +1,22 @@
 name: CD Pipeline
 
 on:
-  workflow_run:
-    workflows: [🚀 CI Pipeline]
-    types: [completed]
-    branches: [main, deploy/avant-preprod, deploy/preprod]
+  workflow_call:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to deploy'
+        required: true
+        type: string
+      ref:
+        description: 'Branch ref to deploy'
+        required: false
+        type: string
+        default: 'main'
+    secrets:
+      ACTIONS_CD:
+        required: true
+      ACTIONS_CD_PRIVATE_KEY:
+        required: true
   workflow_dispatch:
     inputs:
       commit_sha:
@@ -18,7 +30,6 @@ env:
 
 jobs:
   update-deployment:
-    if: ${{ (github.event.workflow_run.event == 'push') || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     name: Update Deployment Manifest
 
@@ -36,7 +47,7 @@ jobs:
       - name: Checkout auth-service
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_branch || 'main' }}
+          ref: ${{ inputs.ref || 'main' }}
           fetch-depth: 0
           token: ${{ steps.generate_token.outputs.token }}
 
@@ -48,42 +59,29 @@ jobs:
       - name: Validate and determine commit SHA
         id: validate_commit
         run: |
-          # Determine the commit SHA based on trigger type
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # Manual trigger - use input or current commit
-            if [ -n "${{ inputs.commit_sha }}" ]; then
-              COMMIT_SHA="${{ inputs.commit_sha }}"
-              echo "Validating manually provided commit SHA: $COMMIT_SHA"
-              
-              # Validate SHA format (40 hex characters for full SHA or 7+ for short SHA)
-              if ! echo "$COMMIT_SHA" | grep -qE '^[a-fA-F0-9]{7,40}$'; then
-                echo "❌ Error: Invalid commit SHA format. Must be 7-40 hexadecimal characters."
-                exit 1
-              fi
-              
-              # Verify the commit exists in the repository
-              if ! git rev-parse --verify "${COMMIT_SHA}^{commit}" >/dev/null 2>&1; then
-                echo "❌ Error: Commit SHA '${COMMIT_SHA}' does not exist in the repository."
-                echo "Please provide a valid commit SHA from the main branch."
-                exit 1
-              fi
-              
-              # Get the full SHA if a short SHA was provided
-              COMMIT_SHA=$(git rev-parse --verify "${COMMIT_SHA}^{commit}")
-              echo "✅ Commit SHA validated successfully"
-              echo "Using manually provided commit SHA: $COMMIT_SHA"
-            else
-              COMMIT_SHA="${{ github.sha }}"
-              echo "Using current commit SHA: $COMMIT_SHA"
-            fi
+          # Determine the commit SHA from inputs
+          COMMIT_SHA="${{ inputs.commit_sha }}"
+
+          if [ -z "$COMMIT_SHA" ]; then
+            COMMIT_SHA="${{ github.sha }}"
+            echo "No commit SHA provided, using current: $COMMIT_SHA"
           else
-            # Automatic trigger from CI workflow
-            COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
-            # If empty, use github.sha as fallback
-            if [ -z "$COMMIT_SHA" ]; then
-              COMMIT_SHA="${{ github.sha }}"
-              echo "Using github.sha as fallback: $COMMIT_SHA"
-            fi
+            echo "Using provided commit SHA: $COMMIT_SHA"
+          fi
+
+          # Validate SHA format (7-40 hex characters)
+          if ! echo "$COMMIT_SHA" | grep -qE '^[a-fA-F0-9]{7,40}$'; then
+            echo "❌ Error: Invalid commit SHA format."
+            exit 1
+          fi
+
+          # Resolve to full SHA if short SHA was provided
+          if git rev-parse --verify "${COMMIT_SHA}^{commit}" >/dev/null 2>&1; then
+            COMMIT_SHA=$(git rev-parse --verify "${COMMIT_SHA}^{commit}")
+            echo "✅ Commit SHA resolved: $COMMIT_SHA"
+          else
+            echo "❌ Error: Commit SHA '${COMMIT_SHA}' does not exist in the repository."
+            exit 1
           fi
 
           # Store COMMIT_SHA as output for use in subsequent steps
