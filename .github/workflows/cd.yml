@@ -12,6 +12,11 @@ on:
         required: false
         type: string
         default: 'main'
+    secrets:
+      ACTIONS_CD:
+        required: true
+      ACTIONS_CD_PRIVATE_KEY:
+        required: true
   workflow_dispatch:
     inputs:
       commit_sha:
