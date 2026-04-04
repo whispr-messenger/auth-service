@@ -340,4 +340,86 @@ describe('TokensService', () => {
 			expect(cacheService.set).not.toHaveBeenCalled();
 		});
 	});
+
+	describe('revokeRefreshToken', () => {
+		it('should delete the refresh token from cache', async () => {
+			cacheService.del.mockResolvedValue(undefined);
+
+			await service.revokeRefreshToken('token-id');
+
+			expect(cacheService.del).toHaveBeenCalledWith('refresh_token:token-id');
+		});
+	});
+
+	describe('revokeAllTokensForDevice', () => {
+		it('should set the revoked_device key in cache', async () => {
+			cacheService.set.mockResolvedValue(undefined);
+
+			await service.revokeAllTokensForDevice('device-id');
+
+			expect(cacheService.set).toHaveBeenCalledWith(
+				'revoked_device:device-id',
+				'true',
+				expect.any(Number)
+			);
+		});
+	});
+
+	describe('isTokenRevoked', () => {
+		it('should return true when token is in revoked cache', async () => {
+			cacheService.get.mockResolvedValue({ revokedAt: Date.now() });
+
+			const result = await service.isTokenRevoked('token-id');
+
+			expect(result).toBe(true);
+			expect(cacheService.get).toHaveBeenCalledWith('revoked:token-id');
+		});
+
+		it('should return false when token is not in revoked cache', async () => {
+			cacheService.get.mockResolvedValue(null);
+
+			const result = await service.isTokenRevoked('token-id');
+
+			expect(result).toBe(false);
+		});
+	});
+
+	describe('isDeviceRevoked', () => {
+		it('should return true when device is revoked', async () => {
+			cacheService.get.mockResolvedValue('true');
+
+			const result = await service.isDeviceRevoked('device-id');
+
+			expect(result).toBe(true);
+			expect(cacheService.get).toHaveBeenCalledWith('revoked_device:device-id');
+		});
+
+		it('should return false when device is not revoked', async () => {
+			cacheService.get.mockResolvedValue(null);
+
+			const result = await service.isDeviceRevoked('device-id');
+
+			expect(result).toBe(false);
+		});
+	});
+
+	describe('validateToken', () => {
+		it('should return the decoded payload for a valid token', () => {
+			const payload = { sub: 'user-id', deviceId: 'device-id', jti: 'jti-value' };
+			jwtService.verify.mockReturnValue(payload as any);
+
+			const result = service.validateToken('valid-token');
+
+			expect(result).toEqual(payload);
+			expect(jwtService.verify).toHaveBeenCalledWith('valid-token', { algorithms: ['ES256'] });
+		});
+
+		it('should throw UnauthorizedException for an invalid token', () => {
+			jwtService.verify.mockImplementation(() => {
+				throw new Error('invalid signature');
+			});
+
+			expect(() => service.validateToken('bad-token')).toThrow(UnauthorizedException);
+		});
+	});
 });
