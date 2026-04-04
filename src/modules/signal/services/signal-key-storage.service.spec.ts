@@ -328,6 +328,62 @@ describe('SignalKeyStorageService', () => {
 		});
 	});
 
+	describe('storeSignedPreKey - error branch', () => {
+		it('should rethrow when upsertSignedPreKey fails', async () => {
+			signedPreKeyRepository.upsertSignedPreKey.mockRejectedValue(new Error('DB error'));
+
+			await expect(
+				service.storeSignedPreKey(mockUserId, mockDeviceId, {
+					keyId: 1,
+					publicKey: 'key',
+					signature: 'sig',
+				})
+			).rejects.toThrow('DB error');
+		});
+	});
+
+	describe('storePreKeys - error branch', () => {
+		it('should rethrow when replacePreKeys fails', async () => {
+			preKeyRepository.replacePreKeys.mockRejectedValue(new Error('DB error'));
+
+			await expect(
+				service.storePreKeys(mockUserId, mockDeviceId, [{ keyId: 1, publicKey: 'key' }])
+			).rejects.toThrow('DB error');
+		});
+	});
+
+	describe('getIdentityKey - error branch', () => {
+		it('should rethrow when findByUserIdAndDeviceId fails', async () => {
+			identityKeyRepository.findByUserIdAndDeviceId.mockRejectedValue(new Error('DB error'));
+
+			await expect(service.getIdentityKey(mockUserId, mockDeviceId)).rejects.toThrow('DB error');
+		});
+	});
+
+	describe('getActiveSignedPreKey - error branch', () => {
+		it('should rethrow when findActiveByUserIdAndDeviceId fails', async () => {
+			signedPreKeyRepository.findActiveByUserIdAndDeviceId.mockRejectedValue(new Error('DB error'));
+
+			await expect(service.getActiveSignedPreKey(mockUserId, mockDeviceId)).rejects.toThrow('DB error');
+		});
+	});
+
+	describe('getUnusedPreKey - error branch', () => {
+		it('should rethrow when getRandomUnusedPreKey fails', async () => {
+			preKeyRepository.getRandomUnusedPreKey.mockRejectedValue(new Error('DB error'));
+
+			await expect(service.getUnusedPreKey(mockUserId, mockDeviceId)).rejects.toThrow('DB error');
+		});
+	});
+
+	describe('getUnusedPreKeyCount - error branch', () => {
+		it('should rethrow when countUnusedByUserIdAndDeviceId fails', async () => {
+			preKeyRepository.countUnusedByUserIdAndDeviceId.mockRejectedValue(new Error('DB error'));
+
+			await expect(service.getUnusedPreKeyCount(mockUserId, mockDeviceId)).rejects.toThrow('DB error');
+		});
+	});
+
 	describe('markPreKeyAsUsed', () => {
 		it('should mark a prekey as used', async () => {
 			const preKeyId = 'pk-id';
@@ -336,6 +392,40 @@ describe('SignalKeyStorageService', () => {
 			await service.markPreKeyAsUsed(preKeyId);
 
 			expect(preKeyRepository.markAsUsed).toHaveBeenCalledWith(preKeyId);
+		});
+
+		it('should rethrow when markAsUsed fails', async () => {
+			preKeyRepository.markAsUsed.mockRejectedValue(new Error('DB error'));
+
+			await expect(service.markPreKeyAsUsed('pk-id')).rejects.toThrow('DB error');
+		});
+	});
+
+	describe('deleteAllKeysForDevice', () => {
+		it('should delete all keys for a device', async () => {
+			identityKeyRepository.deleteByUserIdAndDeviceId.mockResolvedValue(undefined);
+			signedPreKeyRepository.deleteByUserIdAndDeviceId.mockResolvedValue(undefined);
+			preKeyRepository.deleteByUserIdAndDeviceId.mockResolvedValue(undefined);
+
+			await service.deleteAllKeysForDevice(mockUserId, mockDeviceId);
+
+			expect(identityKeyRepository.deleteByUserIdAndDeviceId).toHaveBeenCalledWith(
+				mockUserId,
+				mockDeviceId
+			);
+			expect(signedPreKeyRepository.deleteByUserIdAndDeviceId).toHaveBeenCalledWith(
+				mockUserId,
+				mockDeviceId
+			);
+			expect(preKeyRepository.deleteByUserIdAndDeviceId).toHaveBeenCalledWith(mockUserId, mockDeviceId);
+		});
+
+		it('should rethrow when deletion fails', async () => {
+			identityKeyRepository.deleteByUserIdAndDeviceId.mockRejectedValue(new Error('Delete failed'));
+
+			await expect(service.deleteAllKeysForDevice(mockUserId, mockDeviceId)).rejects.toThrow(
+				'Delete failed'
+			);
 		});
 	});
 
