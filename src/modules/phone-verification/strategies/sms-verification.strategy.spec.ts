@@ -41,23 +41,31 @@ describe('SmsVerificationStrategy', () => {
 		it('should not throw when smsService fails in non-production env', async () => {
 			const originalEnv = process.env.NODE_ENV;
 			process.env.NODE_ENV = 'development';
-			mockSmsService.sendVerificationCode.mockRejectedValue(new Error('SMS failed'));
 
-			await expect(strategy.sendVerification('+33612345678', '123456', 'login')).resolves.not.toThrow();
+			try {
+				mockSmsService.sendVerificationCode.mockRejectedValue(new Error('SMS failed'));
 
-			process.env.NODE_ENV = originalEnv;
+				await expect(
+					strategy.sendVerification('+33612345678', '123456', 'login')
+				).resolves.toBeUndefined();
+			} finally {
+				process.env.NODE_ENV = originalEnv;
+			}
 		});
 
 		it('should rethrow when smsService fails in production', async () => {
 			const originalEnv = process.env.NODE_ENV;
 			process.env.NODE_ENV = 'production';
-			mockSmsService.sendVerificationCode.mockRejectedValue(new Error('SMS failed'));
 
-			await expect(strategy.sendVerification('+33612345678', '123456', 'registration')).rejects.toThrow(
-				'SMS failed'
-			);
+			try {
+				mockSmsService.sendVerificationCode.mockRejectedValue(new Error('SMS failed'));
 
-			process.env.NODE_ENV = originalEnv;
+				await expect(
+					strategy.sendVerification('+33612345678', '123456', 'registration')
+				).rejects.toThrow('SMS failed');
+			} finally {
+				process.env.NODE_ENV = originalEnv;
+			}
 		});
 	});
 });
