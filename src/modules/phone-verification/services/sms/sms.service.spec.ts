@@ -26,6 +26,10 @@ describe('SmsService', () => {
 		service = await buildModule({ NODE_ENV: 'development' });
 	});
 
+	afterEach(() => {
+		jest.restoreAllMocks();
+	});
+
 	it('should be defined', () => {
 		expect(service).toBeDefined();
 	});
@@ -36,7 +40,7 @@ describe('SmsService', () => {
 
 			await expect(
 				service.sendVerificationCode('+33612345678', '123456', 'registration')
-			).resolves.not.toThrow();
+			).resolves.toBeUndefined();
 		});
 
 		it('should log and return in development mode without sending SMS', async () => {
@@ -44,7 +48,7 @@ describe('SmsService', () => {
 
 			await expect(
 				service.sendVerificationCode('+33612345678', '123456', 'login')
-			).resolves.not.toThrow();
+			).resolves.toBeUndefined();
 		});
 
 		it('should throw HttpException when Twilio fails in production', async () => {
@@ -60,11 +64,14 @@ describe('SmsService', () => {
 				text: jest.fn().mockResolvedValue('error'),
 			} as any);
 
-			await expect(
-				service.sendVerificationCode('+33612345678', '123456', 'registration')
-			).rejects.toThrow(
-				new HttpException("Erreur lors de l'envoi du SMS", HttpStatus.INTERNAL_SERVER_ERROR)
-			);
+			const promise = service.sendVerificationCode('+33612345678', '123456', 'registration');
+
+			await expect(promise).rejects.toThrow(HttpException);
+			await expect(promise).rejects.toThrow("Erreur lors de l'envoi du SMS");
+
+			await expect(promise).rejects.toMatchObject({
+				status: HttpStatus.INTERNAL_SERVER_ERROR,
+			});
 		});
 
 		it('should succeed when Twilio responds ok in production', async () => {
@@ -79,7 +86,7 @@ describe('SmsService', () => {
 
 			await expect(
 				service.sendVerificationCode('+33612345678', '123456', 'registration')
-			).resolves.not.toThrow();
+			).resolves.toBeUndefined();
 		});
 	});
 
@@ -87,7 +94,7 @@ describe('SmsService', () => {
 		it('should log and return in development mode', async () => {
 			service = await buildModule({ NODE_ENV: 'development' });
 
-			await expect(service.sendSecurityAlert('+33612345678', 'new_device')).resolves.not.toThrow();
+			await expect(service.sendSecurityAlert('+33612345678', 'new_device')).resolves.toBeUndefined();
 		});
 
 		it('should not throw when Twilio fails (security alerts are non-critical)', async () => {
@@ -105,14 +112,14 @@ describe('SmsService', () => {
 
 			await expect(
 				service.sendSecurityAlert('+33612345678', 'suspicious_login')
-			).resolves.not.toThrow();
+			).resolves.toBeUndefined();
 		});
 
 		it('should handle all alert types', async () => {
 			service = await buildModule({ NODE_ENV: 'development' });
 
 			for (const alertType of ['new_device', 'suspicious_login', 'password_change'] as const) {
-				await expect(service.sendSecurityAlert('+33612345678', alertType)).resolves.not.toThrow();
+				await expect(service.sendSecurityAlert('+33612345678', alertType)).resolves.toBeUndefined();
 			}
 		});
 	});

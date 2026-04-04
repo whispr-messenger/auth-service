@@ -26,13 +26,13 @@ describe('RateLimitService', () => {
 		it('should not throw when count is below max', async () => {
 			mockCacheService.get.mockResolvedValue('3');
 
-			await expect(service.checkLimit('key', 5, 3600, 'Too many')).resolves.not.toThrow();
+			await expect(service.checkLimit('key', 5, 3600, 'Too many')).resolves.toBeUndefined();
 		});
 
 		it('should not throw when no count exists yet', async () => {
 			mockCacheService.get.mockResolvedValue(null);
 
-			await expect(service.checkLimit('key', 5, 3600, 'Too many')).resolves.not.toThrow();
+			await expect(service.checkLimit('key', 5, 3600, 'Too many')).resolves.toBeUndefined();
 		});
 
 		it('should throw TOO_MANY_REQUESTS when count reaches max', async () => {
