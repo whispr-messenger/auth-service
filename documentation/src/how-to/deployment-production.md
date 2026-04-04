@@ -1,51 +1,45 @@
 # Production Deployment Guide
 
-This guide describes how to deploy the Authentication Service in a production-like environment using Docker Compose.
+The production reference environment for `auth-service` is Kubernetes with ArgoCD. The files under `docker/prod/` are useful for local image validation, but they are not the source of truth for production orchestration.
 
-## 🐳 Docker Deployment
+## Kubernetes Production
 
-The production setup uses a optimized `Dockerfile` and a hardened `compose.yml`.
+Production deployments should follow these rules:
 
-### 1. Build the Image
-```bash
-just up prod
-```
-This command uses `docker/prod/compose.yml` to build and launch the containers.
-
-### 2. Environment Configuration
-Ensure your `.env` file in `docker/prod/` is properly configured. Key variables:
-- `NODE_ENV=production`
 - `DB_SYNCHRONIZE=false`
-- `DB_MIGRATIONS_RUN=true`
-- `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY` (ECDSA P-256)
+- `DB_MIGRATIONS_RUN=false` on the application pod
+- run `npm run migration:run` from a dedicated migration job or deployment step before serving traffic
+- use Kubernetes-managed secrets for JWT keys and external credentials
 
-### 3. JWT Key Generation (Mandatory)
-For production, you **must** generate your own keys. Do not use the defaults.
+### JWT Key Generation
+
+Generate your own ECDSA P-256 keypair for production:
+
 ```bash
-# Generate private key
 openssl ecparam -genkey -name prime256v1 -noout -out private-key.pem
-
-# Generate public key
 openssl ec -in private-key.pem -pubout -out public-key.pem
 ```
 
-## 🔒 Security Best Practices
+## Database
 
-### Database
-- **Migrations**: Always use `npm run migration:run`. Never use `synchronize: true`.
-- **Backups**: Implement a regular `pg_dump` schedule.
+- Schema changes are managed by TypeORM migrations in `src/modules/app/migrations/`.
+- Do not rely on ad hoc SQL files to create auth-service tables in production.
+- Use `npm run migration:run` to apply pending migrations.
+- Never enable `synchronize: true` in production.
+- Implement regular `pg_dump` backups.
 
-### Redis
-- Use **Redis Sentinel** for high availability.
+## Redis
+
+- Use Redis Sentinel for high availability.
 - Ensure `REDIS_PASSWORD` is strong and unique.
 
-### Infrastructure (Kubernetes/Istio)
-While Docker Compose is used for standalone deployments, the primary production environment is Kubernetes with Istio:
-- **mTLS**: Ensure Istio `PeerAuthentication` is set to `STRICT`.
-- **Resources**: Assign at least 1vCPU and 2GB RAM per replica.
+## Infrastructure
 
-## 📊 Monitoring
+- Ensure Istio `PeerAuthentication` is set to `STRICT`.
+- Assign at least 1 vCPU and 2 GiB RAM per replica on critical environments.
 
-- **Health Checks**: Monitor `/auth/v1/health/ready`.
-- **Metrics**: Prometheus metrics are available at `:3001/metrics` (if enabled).
-- **Logs**: Use a log aggregator (Loki, ELK) to collect JSON logs from the container.
+## Monitoring
+
+- Monitor `/auth/v1/health/ready`.
+- Expose `:3001/metrics` when metrics are enabled.
+- Ship application logs to a centralized log platform.
