@@ -26,4 +26,26 @@ describe('TokensController', () => {
 	it('should be defined', () => {
 		expect(controller).toBeDefined();
 	});
+
+	describe('refreshToken', () => {
+		it('should delegate to tokensService with the dto and a fingerprint built from the request', async () => {
+			const dto = { refreshToken: 'rt-value' };
+			const req = {
+				headers: { 'user-agent': 'Mozilla/5.0' },
+				ip: '127.0.0.1',
+			};
+			const tokenPair = { accessToken: 'at', refreshToken: 'rt2', userId: 'u', deviceId: 'd' };
+			mockTokensService.refreshAccessToken.mockResolvedValue(tokenPair);
+
+			const result = await controller.refreshToken(dto, req);
+
+			expect(mockTokensService.refreshAccessToken).toHaveBeenCalledWith('rt-value', {
+				userAgent: 'Mozilla/5.0',
+				ipAddress: '127.0.0.1',
+				deviceType: 'unknown',
+				timestamp: expect.any(Number),
+			});
+			expect(result).toEqual(tokenPair);
+		});
+	});
 });
