@@ -21,11 +21,11 @@ export class TwoFactorAuthenticationService {
 		const user = await this.userAuthService.findById(userId);
 
 		if (!user) {
-			throw new BadRequestException('Utilisateur non trouvé');
+			throw new BadRequestException('User not found');
 		}
 
 		if (user.twoFactorEnabled) {
-			throw new BadRequestException("L'authentification à deux facteurs est déjà activée");
+			throw new BadRequestException('Two-factor authentication is already enabled');
 		}
 
 		const secret = speakeasy.generateSecret({
@@ -47,13 +47,13 @@ export class TwoFactorAuthenticationService {
 	async enableTwoFactor(userId: string, secret: string, token: string): Promise<void> {
 		const user = await this.userAuthService.findById(userId);
 		if (!user) {
-			throw new BadRequestException('Utilisateur non trouvé');
+			throw new BadRequestException('User not found');
 		}
 
 		const isValid = speakeasy.totp.verify({ secret, encoding: 'base32', token, window: 2 });
 
 		if (!isValid) {
-			throw new BadRequestException('Code de vérification invalide');
+			throw new BadRequestException('Invalid verification code');
 		}
 
 		user.twoFactorSecret = secret;
@@ -66,7 +66,7 @@ export class TwoFactorAuthenticationService {
 		const user = await this.userAuthService.findById(userId);
 
 		if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
-			throw new BadRequestException('Authentification à deux facteurs non configurée');
+			throw new BadRequestException('Two-factor authentication is not configured');
 		}
 
 		const isValidTOTP = speakeasy.totp.verify({
@@ -87,17 +87,17 @@ export class TwoFactorAuthenticationService {
 		const user = await this.userAuthService.findById(userId);
 
 		if (!user) {
-			throw new BadRequestException('Utilisateur non trouvé');
+			throw new BadRequestException('User not found');
 		}
 
 		if (!user.twoFactorEnabled) {
-			throw new BadRequestException("L'authentification à deux facteurs n'est pas activée");
+			throw new BadRequestException('Two-factor authentication is not enabled');
 		}
 
 		const isValid = await this.verifyTwoFactor(userId, token);
 
 		if (!isValid) {
-			throw new UnauthorizedException('Code de vérification invalide');
+			throw new UnauthorizedException('Invalid verification code');
 		}
 
 		user.twoFactorSecret = '';
@@ -111,13 +111,13 @@ export class TwoFactorAuthenticationService {
 		const user = await this.userAuthService.findById(userId);
 
 		if (!user || !user.twoFactorEnabled) {
-			throw new BadRequestException('Authentification à deux facteurs non configurée');
+			throw new BadRequestException('Two-factor authentication is not configured');
 		}
 
 		const isValid = await this.verifyTwoFactor(userId, token);
 
 		if (!isValid) {
-			throw new UnauthorizedException('Code de vérification invalide');
+			throw new UnauthorizedException('Invalid verification code');
 		}
 
 		return this.backupCodesService.generateBackupCodes(userId);
