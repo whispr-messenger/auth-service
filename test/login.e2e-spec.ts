@@ -260,7 +260,7 @@ describe('Login Flow (e2e)', () => {
 			expect(mockPreKeyRepository.replacePreKeys).toHaveBeenCalledTimes(2);
 		});
 
-		it('should return 400 when user is not found', async () => {
+		it('should return 400 with explicit error message when user is not found', async () => {
 			mockUserAuthRepository.findOne.mockResolvedValueOnce(null);
 
 			const response = await request(app.getHttpServer())
@@ -269,6 +269,110 @@ describe('Login Flow (e2e)', () => {
 				.set('User-Agent', 'Test Agent');
 
 			expect(response.status).toBe(400);
+			expect(response.body).toHaveProperty('message');
+			expect(response.body.message).toBe('User not found');
+		});
+
+		it('should return 200 without signalKeyBundle (web session path)', async () => {
+			const response = await request(app.getHttpServer())
+				.post('/auth/v1/login')
+				.send({
+					verificationId: VERIFICATION_ID,
+					deviceName: 'Test Device',
+					deviceType: 'mobile',
+				})
+				.set('User-Agent', 'Test Agent')
+				.expect(200);
+
+			expect(response.body).toHaveProperty('accessToken');
+			expect(response.body).toHaveProperty('refreshToken');
+		});
+
+		it('should return 400 when signalKeyBundle is malformed (missing identityKey)', async () => {
+			const response = await request(app.getHttpServer())
+				.post('/auth/v1/login')
+				.send({
+					verificationId: VERIFICATION_ID,
+					deviceName: 'Test Device',
+					deviceType: 'mobile',
+					signalKeyBundle: {
+						signedPreKey: { keyId: 1, publicKey: 'base64-spk', signature: 'base64-sig' },
+						preKeys: [{ keyId: 1, publicKey: 'base64-pk1' }],
+					},
+				})
+				.set('User-Agent', 'Test Agent');
+
+			expect(response.status).toBe(400);
+			expect(response.body).toHaveProperty('message');
+		});
+
+		it('should return 400 when signalKeyBundle is malformed (missing preKeys)', async () => {
+			const response = await request(app.getHttpServer())
+				.post('/auth/v1/login')
+				.send({
+					verificationId: VERIFICATION_ID,
+					deviceName: 'Test Device',
+					deviceType: 'mobile',
+					signalKeyBundle: {
+						identityKey: 'base64-identity-key',
+						signedPreKey: { keyId: 1, publicKey: 'base64-spk', signature: 'base64-sig' },
+					},
+				})
+				.set('User-Agent', 'Test Agent');
+
+			expect(response.status).toBe(400);
+			expect(response.body).toHaveProperty('message');
+		});
+
+		it('should return 400 when verificationId is expired or not found', async () => {
+			mockCacheService.get.mockResolvedValue(null);
+
+			const response = await request(app.getHttpServer())
+				.post('/auth/v1/login')
+				.send({ verificationId: VERIFICATION_ID })
+				.set('User-Agent', 'Test Agent');
+
+			expect(response.status).toBe(400);
+			expect(response.body).toHaveProperty('message');
+			expect(response.body.message).toMatch(/invalid|expired/i);
+		});
+
+		it('should return 400 when verificationId has not been confirmed yet', async () => {
+			setupVerificationCache(false);
+
+			const response = await request(app.getHttpServer())
+				.post('/auth/v1/login')
+				.send({ verificationId: VERIFICATION_ID })
+				.set('User-Agent', 'Test Agent');
+
+			expect(response.status).toBe(400);
+			expect(response.body).toHaveProperty('message');
+			expect(response.body.message).toMatch(/not been confirmed/i);
+		});
+
+		it('should return 400 with invalid verificationId format', async () => {
+			const response = await request(app.getHttpServer())
+				.post('/auth/v1/login')
+				.send({ verificationId: 'not-a-valid-uuid' })
+				.set('User-Agent', 'Test Agent');
+
+			expect(response.status).toBe(400);
+			expect(response.body).toHaveProperty('message');
+		});
+
+		it('should return 200 without User-Agent header', async () => {
+			const response = await request(app.getHttpServer())
+				.post('/auth/v1/login')
+				.send({
+					verificationId: VERIFICATION_ID,
+					deviceName: 'Test Device',
+					deviceType: 'mobile',
+					signalKeyBundle: SIGNAL_KEY_BUNDLE,
+				})
+				.expect(200);
+
+			expect(response.body).toHaveProperty('accessToken');
+			expect(response.body).toHaveProperty('refreshToken');
 		});
 	});
 });
