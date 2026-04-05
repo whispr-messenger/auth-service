@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis, { RedisOptions } from 'ioredis';
@@ -29,7 +30,7 @@ export function buildRedisOptions(configService: ConfigService): RedisOptions {
 	const username = configService.get<string>('REDIS_USERNAME');
 	const passwordFile = configService.get<string>('REDIS_PASSWORD_FILE');
 	const password = passwordFile
-		? readPasswordFile(passwordFile)
+		? (readPasswordFile(passwordFile) ?? configService.get<string>('REDIS_PASSWORD'))
 		: configService.get<string>('REDIS_PASSWORD');
 
 	const reconnectOnError = (err: Error) => err.message.includes('NOAUTH');
@@ -84,11 +85,13 @@ export class RedisConfig {
 	private readonly logger = new Logger(RedisConfig.name);
 	private readonly _health: RedisHealthStatus = { isHealthy: true, lastError: null };
 	private credentialWatcher: fs.FSWatcher | null = null;
+	private readonly redisUsername: string | undefined;
 
 	constructor(private readonly configService: ConfigService) {
 		const mode = this.configService.get<string>('REDIS_MODE', 'direct');
 		const options = buildRedisOptions(this.configService);
 
+		this.redisUsername = this.configService.get<string>('REDIS_USERNAME');
 		this.client = new Redis(options);
 
 		this.client.on('error', (err: Error) => {
@@ -135,8 +138,11 @@ export class RedisConfig {
 	private reloadCredential(filePath: string): void {
 		try {
 			const newPassword = fs.readFileSync(filePath, 'utf8').trim();
-			this.client
-				.auth(newPassword)
+			const authPromise = this.redisUsername
+				? this.client.auth(this.redisUsername, newPassword)
+				: this.client.auth(newPassword);
+
+			authPromise
 				.then(() => {
 					this.logger.log('Redis credentials refreshed successfully');
 				})
@@ -157,19 +163,22 @@ export class RedisConfig {
 
 		this.logger.log(`Watching Redis credential file: ${filePath}`);
 
-		// Watch the parent directory to catch atomic symlink swaps (Kubernetes secret rotation)
-		// which emit 'rename' on the file rather than 'change'.
-		const dir = filePath.substring(0, filePath.lastIndexOf('/')) || '.';
-		const filename = filePath.substring(filePath.lastIndexOf('/') + 1);
+		const dir = path.dirname(filePath);
+		const filename = path.basename(filePath);
 
-		this.credentialWatcher = fs.watch(dir, { persistent: false }, (event, changedFile) => {
-			if (changedFile !== filename) return;
-			this.reloadCredential(filePath);
-		});
+		try {
+			this.credentialWatcher = fs.watch(dir, { persistent: false }, (event, changedFile) => {
+				if (changedFile !== filename) return;
+				this.reloadCredential(filePath);
+			});
 
-		this.credentialWatcher.on('error', (err: Error) => {
-			this.logger.error('Credential file watcher error', err.stack);
-		});
+			this.credentialWatcher.on('error', (err: Error) => {
+				this.logger.error('Credential file watcher error', err.stack);
+			});
+		} catch (err) {
+			const stack = err instanceof Error ? err.stack : String(err);
+			this.logger.error(`Failed to watch Redis credential file at ${filePath}`, stack);
+		}
 	}
 
 	async onModuleDestroy() {

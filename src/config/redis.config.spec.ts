@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import { ConfigService } from '@nestjs/config';
 import { RedisConfig, buildRedisOptions, parseSentinels, readPasswordFile } from './redis.config';
 
@@ -13,6 +14,7 @@ jest.mock('ioredis', () => ({
 }));
 
 jest.mock('fs');
+jest.mock('path', () => jest.requireActual('path'));
 
 describe('parseSentinels', () => {
 	it('parses a single sentinel', () => {
@@ -86,6 +88,16 @@ describe('buildRedisOptions', () => {
 		const opts = buildRedisOptions(makeConfig({ REDIS_PASSWORD_FILE: '/secrets/redis/password' }));
 		expect(opts.password).toBe('filepassword');
 	});
+
+	it('falls back to REDIS_PASSWORD when REDIS_PASSWORD_FILE is unreadable', () => {
+		jest.spyOn(fs, 'readFileSync').mockImplementation(() => {
+			throw new Error('ENOENT');
+		});
+		const opts = buildRedisOptions(
+			makeConfig({ REDIS_PASSWORD_FILE: '/secrets/redis/password', REDIS_PASSWORD: 'envpassword' })
+		);
+		expect(opts.password).toBe('envpassword');
+	});
 });
 
 describe('RedisConfig', () => {
@@ -143,7 +155,7 @@ describe('RedisConfig', () => {
 			new RedisConfig(makeConfigService({ REDIS_PASSWORD_FILE: '/secrets/redis/password' }));
 
 			expect(watchSpy).toHaveBeenCalledWith(
-				'/secrets/redis',
+				path.dirname('/secrets/redis/password'),
 				{ persistent: false },
 				expect.any(Function)
 			);
@@ -152,7 +164,6 @@ describe('RedisConfig', () => {
 		it('calls redis.auth() with the new password when the credential file changes', async () => {
 			jest.spyOn(fs, 'existsSync').mockReturnValue(true);
 			jest.spyOn(fs, 'readFileSync')
-				.mockReturnValue('initialpassword\n')
 				.mockReturnValueOnce('initialpassword\n')
 				.mockReturnValue('newpassword\n');
 
@@ -175,6 +186,35 @@ describe('RedisConfig', () => {
 			expect(mockAuth).toHaveBeenCalledWith('newpassword');
 		});
 
+		it('passes username and password when REDIS_USERNAME is set', async () => {
+			jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+			jest.spyOn(fs, 'readFileSync')
+				.mockReturnValueOnce('initialpassword\n')
+				.mockReturnValue('newpassword\n');
+
+			let capturedCallback: ((event: string, filename: string | null) => void) | null = null;
+			const mockWatcher = { on: jest.fn(), close: jest.fn() } as unknown as fs.FSWatcher;
+			(
+				jest.spyOn(fs, 'watch') as unknown as jest.MockInstance<fs.FSWatcher, unknown[]>
+			).mockImplementation((_path: unknown, _opts: unknown, cb: unknown) => {
+				capturedCallback = cb as (event: string, filename: string | null) => void;
+				return mockWatcher;
+			});
+
+			new RedisConfig(
+				makeConfigService({
+					REDIS_PASSWORD_FILE: '/secrets/redis/password',
+					REDIS_USERNAME: 'myuser',
+				})
+			);
+
+			capturedCallback!('change', 'password');
+
+			await Promise.resolve();
+
+			expect(mockAuth).toHaveBeenCalledWith('myuser', 'newpassword');
+		});
+
 		it('ignores events for other files in the same directory', async () => {
 			jest.spyOn(fs, 'existsSync').mockReturnValue(true);
 			jest.spyOn(fs, 'readFileSync').mockReturnValue('initialpassword\n');
@@ -195,6 +235,18 @@ describe('RedisConfig', () => {
 			await Promise.resolve();
 
 			expect(mockAuth).not.toHaveBeenCalled();
+		});
+
+		it('logs an error and does not throw when fs.watch throws during setup', () => {
+			jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+			jest.spyOn(fs, 'readFileSync').mockReturnValue('initialpassword\n');
+			jest.spyOn(fs, 'watch').mockImplementation(() => {
+				throw new Error('EMFILE: too many open files');
+			});
+
+			expect(() => {
+				new RedisConfig(makeConfigService({ REDIS_PASSWORD_FILE: '/secrets/redis/password' }));
+			}).not.toThrow();
 		});
 
 		it('closes the watcher on module destroy', async () => {
