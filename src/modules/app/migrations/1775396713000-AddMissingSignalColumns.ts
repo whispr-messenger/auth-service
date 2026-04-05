@@ -24,6 +24,17 @@ export class AddMissingSignalColumns1775396713000 implements MigrationInterface 
       ALTER COLUMN "expires_at" SET NOT NULL
     `);
 
+		// --- signed_prekeys: deduplicate before adding unique constraint ---
+		// Keep the most recently created row per (user_id, device_id, key_id) tuple.
+		await queryRunner.query(`
+      DELETE FROM "auth"."signed_prekeys" spk1
+      USING "auth"."signed_prekeys" spk2
+      WHERE spk1.user_id  = spk2.user_id
+        AND spk1.device_id = spk2.device_id
+        AND spk1.key_id    = spk2.key_id
+        AND spk1.created_at < spk2.created_at
+    `);
+
 		// --- signed_prekeys: add unique constraint (user_id, device_id, key_id) ---
 		await queryRunner.query(`
       DO $$
@@ -52,6 +63,17 @@ export class AddMissingSignalColumns1775396713000 implements MigrationInterface 
       ALTER TABLE "auth"."prekeys"
       ADD COLUMN IF NOT EXISTS "is_one_time" BOOLEAN NOT NULL DEFAULT true,
       ADD COLUMN IF NOT EXISTS "is_used" BOOLEAN NOT NULL DEFAULT false
+    `);
+
+		// --- prekeys: deduplicate before adding unique constraint ---
+		// Keep the most recently created row per (user_id, device_id, key_id) tuple.
+		await queryRunner.query(`
+      DELETE FROM "auth"."prekeys" pk1
+      USING "auth"."prekeys" pk2
+      WHERE pk1.user_id   = pk2.user_id
+        AND pk1.device_id  = pk2.device_id
+        AND pk1.key_id     = pk2.key_id
+        AND pk1.created_at < pk2.created_at
     `);
 
 		// --- prekeys: add unique constraint (user_id, device_id, key_id) ---
