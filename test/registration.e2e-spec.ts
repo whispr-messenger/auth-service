@@ -18,6 +18,7 @@ import { PreKeyRepository } from '../src/modules/signal/repositories/prekey.repo
 import { SignedPreKeyRepository } from '../src/modules/signal/repositories/signed-prekey.repository';
 import { IdentityKeyRepository } from '../src/modules/signal/repositories/identity-key.repository';
 import { createTestApp } from './helpers/create-test-app';
+import { HASHED_VERIFICATION_CODE, VERIFICATION_CODE } from './fixtures/phone-verification';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const request = require('supertest');
@@ -76,10 +77,9 @@ describe('Registration Flow (e2e)', () => {
 
 	beforeEach(async () => {
 		// Configuration du cache pour la vérification du téléphone
-		const hashedCode = '$2b$04$hNEZ6JtFsapGYT98FOxCHu1gK/saVIYrB5Y1kcTTu1in9xurqRD.G'; // bcrypt hash of '123456'
 		const verificationData = {
 			phoneNumber: '+33612345678',
-			hashedCode: hashedCode,
+			hashedCode: HASHED_VERIFICATION_CODE,
 			attempts: 0,
 			purpose: 'registration',
 			verified: false,
@@ -164,8 +164,7 @@ describe('Registration Flow (e2e)', () => {
 
 	describe('Complete Registration Flow', () => {
 		const phoneNumber = '+33612345678';
-		const verificationCode = '123456';
-		const hashedCode = '$2b$04$hNEZ6JtFsapGYT98FOxCHu1gK/saVIYrB5Y1kcTTu1in9xurqRD.G';
+		const verificationCode = VERIFICATION_CODE;
 		let verificationId: string;
 
 		it('should complete the full registration flow successfully', async () => {
@@ -186,7 +185,7 @@ describe('Registration Flow (e2e)', () => {
 			// Mock pour l'étape de confirmation
 			mockCacheService.get.mockResolvedValueOnce({
 				phoneNumber,
-				hashedCode,
+				hashedCode: HASHED_VERIFICATION_CODE,
 				attempts: 0,
 				purpose: 'registration',
 				verified: false,
@@ -207,7 +206,7 @@ describe('Registration Flow (e2e)', () => {
 			// Mock pour l'étape d'inscription
 			mockCacheService.get.mockResolvedValueOnce({
 				phoneNumber,
-				hashedCode,
+				hashedCode: HASHED_VERIFICATION_CODE,
 				attempts: 0,
 				purpose: 'registration',
 				verified: true,
@@ -306,11 +305,10 @@ describe('Registration Flow (e2e)', () => {
 		});
 
 		it('should handle registration without optional device information', async () => {
-			const hashedCode = '$2b$04$hNEZ6JtFsapGYT98FOxCHu1gK/saVIYrB5Y1kcTTu1in9xurqRD.G';
 			// Configuration pour le scénario sans device
 			mockCacheService.get.mockResolvedValueOnce({
 				phoneNumber: '+33612345678',
-				hashedCode: hashedCode,
+				hashedCode: HASHED_VERIFICATION_CODE,
 				attempts: 0,
 				purpose: 'registration',
 				verified: true,
@@ -336,7 +334,6 @@ describe('Registration Flow (e2e)', () => {
 		});
 
 		it('should prevent duplicate registration with same phone number', async () => {
-			const hashedCode = '$2b$04$hNEZ6JtFsapGYT98FOxCHu1gK/saVIYrB5Y1kcTTu1in9xurqRD.G';
 			// Simuler qu'un utilisateur existe déjà
 			mockUserAuthRepository.findOne.mockResolvedValueOnce({
 				id: 'existing-user-id',
@@ -346,7 +343,7 @@ describe('Registration Flow (e2e)', () => {
 
 			mockCacheService.get.mockResolvedValueOnce({
 				phoneNumber: '+33612345678',
-				hashedCode: hashedCode,
+				hashedCode: HASHED_VERIFICATION_CODE,
 				attempts: 0,
 				purpose: 'registration',
 				verified: true,
@@ -405,10 +402,9 @@ describe('Registration Flow (e2e)', () => {
 		const validVerificationId = '550e8400-e29b-41d4-a716-446655440000';
 
 		beforeEach(() => {
-			const hashedCode = '$2b$04$hNEZ6JtFsapGYT98FOxCHu1gK/saVIYrB5Y1kcTTu1in9xurqRD.G';
 			mockCacheService.get.mockResolvedValue({
 				phoneNumber: '+33612345678',
-				hashedCode: hashedCode,
+				hashedCode: HASHED_VERIFICATION_CODE,
 				attempts: 0,
 				purpose: 'registration',
 				verified: true,
