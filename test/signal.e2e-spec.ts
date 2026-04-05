@@ -136,9 +136,7 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 		});
 
 		it('returns a body with the expected health status shape', async () => {
-			const { body } = await request(app.getHttpServer())
-				.get('/auth/v1/signal/health')
-				.expect(200);
+			const { body } = await request(app.getHttpServer()).get('/auth/v1/signal/health').expect(200);
 
 			expect(body).toHaveProperty('status');
 			expect(body).toHaveProperty('timestamp');
@@ -148,9 +146,7 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 		});
 
 		it('reports "healthy" when scheduler is healthy and prekeys are sufficient', async () => {
-			const { body } = await request(app.getHttpServer())
-				.get('/auth/v1/signal/health')
-				.expect(200);
+			const { body } = await request(app.getHttpServer()).get('/auth/v1/signal/health').expect(200);
 
 			expect(body.status).toBe('healthy');
 			expect(body.issues).toEqual([]);
@@ -164,9 +160,7 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 				isHealthy: false,
 			});
 
-			const { body } = await request(app.getHttpServer())
-				.get('/auth/v1/signal/health')
-				.expect(200);
+			const { body } = await request(app.getHttpServer()).get('/auth/v1/signal/health').expect(200);
 
 			expect(body.status).toBe('unhealthy');
 			expect(body.issues.length).toBeGreaterThan(0);
@@ -179,14 +173,10 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 				where: jest.fn().mockReturnThis(),
 				groupBy: jest.fn().mockReturnThis(),
 				addGroupBy: jest.fn().mockReturnThis(),
-				getRawMany: jest.fn().mockResolvedValue([
-					{ userId: 'u1', deviceId: 'd1', count: '0' },
-				]),
+				getRawMany: jest.fn().mockResolvedValue([{ userId: 'u1', deviceId: 'd1', count: '0' }]),
 			});
 
-			const { body } = await request(app.getHttpServer())
-				.get('/auth/v1/signal/health')
-				.expect(200);
+			const { body } = await request(app.getHttpServer()).get('/auth/v1/signal/health').expect(200);
 
 			expect(body.status).toBe('unhealthy');
 		});
@@ -194,30 +184,20 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 		it('reports "degraded" when system-wide prekey count is low', async () => {
 			mockPreKeyRepo.count.mockResolvedValue(500);
 
-			const { body } = await request(app.getHttpServer())
-				.get('/auth/v1/signal/health')
-				.expect(200);
+			const { body } = await request(app.getHttpServer()).get('/auth/v1/signal/health').expect(200);
 
 			expect(body.status).toBe('degraded');
-			expect(body.issues).toEqual(
-				expect.arrayContaining([expect.stringContaining('low')])
-			);
+			expect(body.issues).toEqual(expect.arrayContaining([expect.stringContaining('low')]));
 		});
 
 		it('includes scheduler stats in the response', async () => {
-			const { body } = await request(app.getHttpServer())
-				.get('/auth/v1/signal/health')
-				.expect(200);
+			const { body } = await request(app.getHttpServer()).get('/auth/v1/signal/health').expect(200);
 
-			expect(body.scheduler).toEqual(
-				expect.objectContaining({ isHealthy: true })
-			);
+			expect(body.scheduler).toEqual(expect.objectContaining({ isHealthy: true }));
 		});
 
 		it('includes prekey stats in the response', async () => {
-			const { body } = await request(app.getHttpServer())
-				.get('/auth/v1/signal/health')
-				.expect(200);
+			const { body } = await request(app.getHttpServer()).get('/auth/v1/signal/health').expect(200);
 
 			expect(body.prekeys).toEqual(
 				expect.objectContaining({
@@ -234,9 +214,7 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 	// ---------------------------------------------------------------
 	describe('POST /auth/v1/signal/health/cleanup', () => {
 		it('returns 200 without any Authorization header (public endpoint)', async () => {
-			await request(app.getHttpServer())
-				.post('/auth/v1/signal/health/cleanup')
-				.expect(200);
+			await request(app.getHttpServer()).post('/auth/v1/signal/health/cleanup').expect(200);
 		});
 
 		it('returns the cleanup result with expected shape', async () => {
@@ -260,21 +238,15 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 		});
 
 		it('calls manualCleanup on the scheduler service exactly once', async () => {
-			await request(app.getHttpServer())
-				.post('/auth/v1/signal/health/cleanup')
-				.expect(200);
+			await request(app.getHttpServer()).post('/auth/v1/signal/health/cleanup').expect(200);
 
 			expect(mockSchedulerService.manualCleanup).toHaveBeenCalledTimes(1);
 		});
 
 		it('returns 500 when cleanup throws an error', async () => {
-			mockSchedulerService.manualCleanup.mockRejectedValue(
-				new Error('database unavailable')
-			);
+			mockSchedulerService.manualCleanup.mockRejectedValue(new Error('database unavailable'));
 
-			await request(app.getHttpServer())
-				.post('/auth/v1/signal/health/cleanup')
-				.expect(500);
+			await request(app.getHttpServer()).post('/auth/v1/signal/health/cleanup').expect(500);
 		});
 	});
 });
