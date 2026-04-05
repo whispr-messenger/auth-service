@@ -1,12 +1,13 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddMissingSignalColumns1743940800000 implements MigrationInterface {
-	name = 'AddMissingSignalColumns1743940800000';
+export class AddMissingSignalColumns1775396713000 implements MigrationInterface {
+	name = 'AddMissingSignalColumns1775396713000';
 
 	public async up(queryRunner: QueryRunner): Promise<void> {
 		// --- signed_prekeys: add expires_at ---
 		// Add as nullable first so the column can be created on a non-empty table,
-		// then backfill existing rows and enforce NOT NULL.
+		// then backfill existing rows with created_at + 7 days (the standard key
+		// lifetime used by the application), and enforce NOT NULL.
 		await queryRunner.query(`
       ALTER TABLE "auth"."signed_prekeys"
       ADD COLUMN IF NOT EXISTS "expires_at" TIMESTAMP
@@ -14,7 +15,7 @@ export class AddMissingSignalColumns1743940800000 implements MigrationInterface 
 
 		await queryRunner.query(`
       UPDATE "auth"."signed_prekeys"
-      SET "expires_at" = COALESCE("created_at", NOW())
+      SET "expires_at" = COALESCE("created_at", NOW()) + INTERVAL '7 days'
       WHERE "expires_at" IS NULL
     `);
 
@@ -92,7 +93,7 @@ export class AddMissingSignalColumns1743940800000 implements MigrationInterface 
 
 	public async down(_queryRunner: QueryRunner): Promise<void> {
 		throw new Error(
-			'Irreversible migration: AddMissingSignalColumns1743940800000 uses IF NOT EXISTS guards in up(), so rollback cannot safely determine whether columns, constraints, or indexes existed before this migration.'
+			'Irreversible migration: AddMissingSignalColumns1775396713000 uses IF NOT EXISTS guards in up(), so rollback cannot safely determine whether columns, constraints, or indexes existed before this migration.'
 		);
 	}
 }
