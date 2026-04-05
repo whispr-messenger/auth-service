@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis, { RedisOptions } from 'ioredis';
@@ -14,11 +16,24 @@ export function parseSentinels(sentinelsStr: string): Array<{ host: string; port
 	});
 }
 
+export function readPasswordFile(filePath: string): string | undefined {
+	try {
+		return fs.readFileSync(filePath, 'utf8').trim();
+	} catch {
+		return undefined;
+	}
+}
+
 export function buildRedisOptions(configService: ConfigService): RedisOptions {
 	const mode = configService.get<string>('REDIS_MODE', 'direct');
 	const db = Number.parseInt(configService.get<string>('REDIS_DB', '0'), 10);
 	const username = configService.get<string>('REDIS_USERNAME');
-	const password = configService.get<string>('REDIS_PASSWORD');
+	const passwordFile = configService.get<string>('REDIS_PASSWORD_FILE');
+	const password = passwordFile
+		? (readPasswordFile(passwordFile) ?? configService.get<string>('REDIS_PASSWORD'))
+		: configService.get<string>('REDIS_PASSWORD');
+
+	const reconnectOnError = (err: Error) => err.message.includes('NOAUTH');
 
 	if (mode === 'sentinel') {
 		const sentinelsStr = configService.get<string>('REDIS_SENTINELS');
@@ -44,6 +59,7 @@ export function buildRedisOptions(configService: ConfigService): RedisOptions {
 			sentinelPassword,
 			enableReadyCheck: true,
 			maxRetriesPerRequest: 3,
+			reconnectOnError,
 		};
 	}
 
@@ -59,6 +75,7 @@ export function buildRedisOptions(configService: ConfigService): RedisOptions {
 		password,
 		maxRetriesPerRequest: 3,
 		lazyConnect: true,
+		reconnectOnError,
 	};
 }
 
@@ -67,15 +84,18 @@ export class RedisConfig {
 	private readonly client: Redis;
 	private readonly logger = new Logger(RedisConfig.name);
 	private readonly _health: RedisHealthStatus = { isHealthy: true, lastError: null };
+	private credentialWatcher: fs.FSWatcher | null = null;
+	private readonly redisUsername: string | undefined;
 
 	constructor(private readonly configService: ConfigService) {
 		const mode = this.configService.get<string>('REDIS_MODE', 'direct');
 		const options = buildRedisOptions(this.configService);
 
+		this.redisUsername = this.configService.get<string>('REDIS_USERNAME');
 		this.client = new Redis(options);
 
-		this.client.on('error', (err) => {
-			this.logger.error('Redis connection error', err);
+		this.client.on('error', (err: Error) => {
+			this.logger.error('Redis connection error', err.stack);
 			this._health.isHealthy = false;
 			this._health.lastError = err;
 		});
@@ -100,6 +120,11 @@ export class RedisConfig {
 		} else {
 			this.logger.log(`Redis mode: direct (${options.host}:${options.port}/${options.db})`);
 		}
+
+		const passwordFile = this.configService.get<string>('REDIS_PASSWORD_FILE');
+		if (passwordFile) {
+			this.watchCredentialFile(passwordFile);
+		}
 	}
 
 	get health(): RedisHealthStatus {
@@ -110,7 +135,54 @@ export class RedisConfig {
 		return this.client;
 	}
 
+	private reloadCredential(filePath: string): void {
+		try {
+			const newPassword = fs.readFileSync(filePath, 'utf8').trim();
+			const authPromise = this.redisUsername
+				? this.client.auth(this.redisUsername, newPassword)
+				: this.client.auth(newPassword);
+
+			authPromise
+				.then(() => {
+					this.logger.log('Redis credentials refreshed successfully');
+				})
+				.catch((err: Error) => {
+					this.logger.error('Redis credential refresh failed', err.stack);
+				});
+		} catch (err) {
+			const stack = err instanceof Error ? err.stack : String(err);
+			this.logger.error('Failed to read Redis credential file', stack);
+		}
+	}
+
+	private watchCredentialFile(filePath: string): void {
+		if (!fs.existsSync(filePath)) {
+			this.logger.warn(`REDIS_PASSWORD_FILE not found at ${filePath}, skipping credential watch`);
+			return;
+		}
+
+		this.logger.log(`Watching Redis credential file: ${filePath}`);
+
+		const dir = path.dirname(filePath);
+		const filename = path.basename(filePath);
+
+		try {
+			this.credentialWatcher = fs.watch(dir, { persistent: false }, (event, changedFile) => {
+				if (changedFile !== filename) return;
+				this.reloadCredential(filePath);
+			});
+
+			this.credentialWatcher.on('error', (err: Error) => {
+				this.logger.error('Credential file watcher error', err.stack);
+			});
+		} catch (err) {
+			const stack = err instanceof Error ? err.stack : String(err);
+			this.logger.error(`Failed to watch Redis credential file at ${filePath}`, stack);
+		}
+	}
+
 	async onModuleDestroy() {
+		this.credentialWatcher?.close();
 		await this.client.quit();
 	}
 }
