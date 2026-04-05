@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BackupCodesService } from './backup-codes.service';
 import { BackupCode } from '../entities/backup-code.entity';
@@ -91,10 +91,12 @@ describe('BackupCodesService', () => {
 			expect(result).toBe(false);
 		});
 
-		it('should throw NotFoundException when no unused codes exist', async () => {
+		it('should throw UnauthorizedException when no unused codes exist', async () => {
 			mockBackupCodeRepository.find.mockResolvedValue([]);
 
-			await expect(service.verifyBackupCode('user-id', 'ABCD-1234')).rejects.toThrow(NotFoundException);
+			await expect(service.verifyBackupCode('user-id', 'ABCD-1234')).rejects.toThrow(
+				UnauthorizedException
+			);
 		});
 	});
 

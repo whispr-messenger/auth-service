@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BackupCode } from '../entities/backup-code.entity';
@@ -50,7 +50,7 @@ export class BackupCodesService {
 		});
 
 		if (backupCodes.length === 0) {
-			throw new NotFoundException('No backup codes available');
+			throw new UnauthorizedException('Invalid backup code');
 		}
 
 		for (const backupCode of backupCodes) {
