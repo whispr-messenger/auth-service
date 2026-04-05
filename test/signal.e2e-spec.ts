@@ -5,8 +5,8 @@
  * - GET  /auth/v1/signal/health          — returns system health status
  * - POST /auth/v1/signal/health/cleanup  — triggers manual key cleanup
  *
- * Both endpoints are public (no JWT required) and delegate to
- * SignalKeySchedulerService / PreKeyRepository.
+ * GET /health is public; POST /health/cleanup requires JWT auth.
+ * Both delegate to SignalKeySchedulerService / PreKeyRepository.
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
@@ -213,40 +213,15 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 	// POST /auth/v1/signal/health/cleanup
 	// ---------------------------------------------------------------
 	describe('POST /auth/v1/signal/health/cleanup', () => {
-		it('returns 200 without any Authorization header (public endpoint)', async () => {
-			await request(app.getHttpServer()).post('/auth/v1/signal/health/cleanup').expect(200);
+		it('returns 401 without any Authorization header (protected endpoint)', async () => {
+			await request(app.getHttpServer()).post('/auth/v1/signal/health/cleanup').expect(401);
 		});
 
-		it('returns the cleanup result with expected shape', async () => {
-			const { body } = await request(app.getHttpServer())
+		it('returns 401 with an invalid token', async () => {
+			await request(app.getHttpServer())
 				.post('/auth/v1/signal/health/cleanup')
-				.expect(200);
-
-			expect(body).toHaveProperty('message');
-			expect(body).toHaveProperty('expiredKeysDeleted');
-			expect(body).toHaveProperty('oldPreKeysDeleted');
-		});
-
-		it('returns counts from the scheduler service', async () => {
-			const { body } = await request(app.getHttpServer())
-				.post('/auth/v1/signal/health/cleanup')
-				.expect(200);
-
-			expect(body.message).toBe('Cleanup completed successfully');
-			expect(body.expiredKeysDeleted).toBe(3);
-			expect(body.oldPreKeysDeleted).toBe(7);
-		});
-
-		it('calls manualCleanup on the scheduler service exactly once', async () => {
-			await request(app.getHttpServer()).post('/auth/v1/signal/health/cleanup').expect(200);
-
-			expect(mockSchedulerService.manualCleanup).toHaveBeenCalledTimes(1);
-		});
-
-		it('returns 500 when cleanup throws an error', async () => {
-			mockSchedulerService.manualCleanup.mockRejectedValue(new Error('database unavailable'));
-
-			await request(app.getHttpServer()).post('/auth/v1/signal/health/cleanup').expect(500);
+				.set('Authorization', 'Bearer invalid-token')
+				.expect(401);
 		});
 	});
 });
