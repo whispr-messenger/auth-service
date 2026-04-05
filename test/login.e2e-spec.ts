@@ -19,12 +19,13 @@ import { SignedPreKeyRepository } from '../src/modules/signal/repositories/signe
 import { IdentityKeyRepository } from '../src/modules/signal/repositories/identity-key.repository';
 import { DeviceRegistrationService } from '../src/modules/devices/services/device-registration/device-registration.service';
 import { createTestApp } from './helpers/create-test-app';
+import { HASHED_VERIFICATION_CODE } from './fixtures/phone-verification';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const request = require('supertest');
 
 const PHONE_NUMBER = '+33612345678';
-const HASHED_CODE = '$2b$04$hNEZ6JtFsapGYT98FOxCHu1gK/saVIYrB5Y1kcTTu1in9xurqRD.G'; // bcrypt of '123456'
+const HASHED_CODE = HASHED_VERIFICATION_CODE;
 const VERIFICATION_ID = '550e8400-e29b-41d4-a716-446655440000';
 
 const EXISTING_USER = {
