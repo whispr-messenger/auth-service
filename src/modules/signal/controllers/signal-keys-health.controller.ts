@@ -1,5 +1,6 @@
-import { Controller, Get, Post, HttpCode, HttpStatus, Logger } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get, Post, HttpCode, HttpStatus, Logger, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../tokens/guards/jwt-auth.guard';
 import { SignalKeySchedulerService } from '../services/signal-key-scheduler.service';
 import { PreKeyRepository } from '../repositories';
 import {
@@ -122,6 +123,8 @@ export class SignalKeysHealthController {
 	 * Manually trigger cleanup operations (for admin use)
 	 */
 	@Post('cleanup')
+	@UseGuards(JwtAuthGuard)
+	@ApiBearerAuth()
 	@HttpCode(HttpStatus.OK)
 	@ApiOperation({
 		summary: 'Manually trigger cleanup',
@@ -135,6 +138,7 @@ export class SignalKeysHealthController {
 		schema: CLEANUP_RESULT_SCHEMA,
 		examples: CLEANUP_RESULT_EXAMPLES,
 	})
+	@ApiResponse({ status: 401, description: 'Unauthorized — valid JWT required' })
 	async triggerManualCleanup(): Promise<CleanupResultDto> {
 		this.logger.log('Manual cleanup triggered via API');
 
