@@ -5,9 +5,22 @@ export class AddMissingSignalColumns1743940800000 implements MigrationInterface 
 
 	public async up(queryRunner: QueryRunner): Promise<void> {
 		// --- signed_prekeys: add expires_at ---
+		// Add as nullable first so the column can be created on a non-empty table,
+		// then backfill existing rows and enforce NOT NULL.
 		await queryRunner.query(`
       ALTER TABLE "auth"."signed_prekeys"
       ADD COLUMN IF NOT EXISTS "expires_at" TIMESTAMP
+    `);
+
+		await queryRunner.query(`
+      UPDATE "auth"."signed_prekeys"
+      SET "expires_at" = COALESCE("created_at", NOW())
+      WHERE "expires_at" IS NULL
+    `);
+
+		await queryRunner.query(`
+      ALTER TABLE "auth"."signed_prekeys"
+      ALTER COLUMN "expires_at" SET NOT NULL
     `);
 
 		// --- signed_prekeys: add unique constraint (user_id, device_id, key_id) ---
@@ -77,35 +90,9 @@ export class AddMissingSignalColumns1743940800000 implements MigrationInterface 
     `);
 	}
 
-	public async down(queryRunner: QueryRunner): Promise<void> {
-		// identity_keys
-		await queryRunner.query(`
-      ALTER TABLE "auth"."identity_keys"
-      DROP COLUMN IF EXISTS "updated_at"
-    `);
-
-		// prekeys
-		await queryRunner.query(`DROP INDEX IF EXISTS "auth"."IDX_prekeys_user_device_unused"`);
-		await queryRunner.query(`DROP INDEX IF EXISTS "auth"."IDX_prekeys_user_id_device_id"`);
-		await queryRunner.query(`
-      ALTER TABLE "auth"."prekeys"
-      DROP CONSTRAINT IF EXISTS "UQ_prekeys_user_device_key"
-    `);
-		await queryRunner.query(`
-      ALTER TABLE "auth"."prekeys"
-      DROP COLUMN IF EXISTS "is_used",
-      DROP COLUMN IF EXISTS "is_one_time"
-    `);
-
-		// signed_prekeys
-		await queryRunner.query(`DROP INDEX IF EXISTS "auth"."IDX_signed_prekeys_user_id_device_id"`);
-		await queryRunner.query(`
-      ALTER TABLE "auth"."signed_prekeys"
-      DROP CONSTRAINT IF EXISTS "UQ_signed_prekeys_user_device_key"
-    `);
-		await queryRunner.query(`
-      ALTER TABLE "auth"."signed_prekeys"
-      DROP COLUMN IF EXISTS "expires_at"
-    `);
+	public async down(_queryRunner: QueryRunner): Promise<void> {
+		throw new Error(
+			'Irreversible migration: AddMissingSignalColumns1743940800000 uses IF NOT EXISTS guards in up(), so rollback cannot safely determine whether columns, constraints, or indexes existed before this migration.'
+		);
 	}
 }
