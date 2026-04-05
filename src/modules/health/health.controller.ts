@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DataSource } from 'typeorm';
 import { CacheService } from '../cache/cache.service';
 import { RedisConfig } from '../../config/redis.config';
+import { TwilioHealthIndicator } from './twilio-health.indicator';
 
 @ApiTags('Health')
 @Controller('health')
@@ -10,7 +11,8 @@ export class HealthController {
 	constructor(
 		private readonly dataSource: DataSource,
 		private readonly cacheService: CacheService,
-		private readonly redisConfig: RedisConfig
+		private readonly redisConfig: RedisConfig,
+		private readonly twilioHealth: TwilioHealthIndicator
 	) {}
 
 	private logger = new Logger(HealthController.name);
@@ -82,7 +84,6 @@ export class HealthController {
 		try {
 			await this.dataSource.query('SELECT 1');
 			await this.checkCacheHealth();
-			return { status: 'ready' };
 		} catch (error) {
 			this.logger.error('Readiness check failed:', error.message);
 			throw new ServiceUnavailableException({
@@ -90,6 +91,16 @@ export class HealthController {
 				error: error.message,
 			});
 		}
+
+		const twilio = await this.twilioHealth.check();
+		if (twilio.status === 'unhealthy') {
+			throw new ServiceUnavailableException({
+				status: 'not ready',
+				error: twilio.message,
+			});
+		}
+
+		return { status: 'ready', twilio: twilio.status };
 	}
 
 	private async checkCacheHealth() {
