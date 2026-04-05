@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PhoneVerificationService } from '../src/modules/phone-verification/services/phone-verification/phone-verification.service';
 import { TwoFactorAuthenticationService } from '../src/modules/two-factor-authentication/services/two-factor-authentication.service';
 import { DevicesService } from '../src/modules/devices/services/devices.service';
+import { DataSource } from 'typeorm';
 import { createTestModule } from './helpers/create-test-module';
 import { createTestApp } from './helpers/create-test-app';
 
@@ -51,6 +52,10 @@ describe('AuthController (e2e)', () => {
 		decode: jest.fn(),
 	};
 
+	const mockDataSource = {
+		query: jest.fn().mockResolvedValue([{ '?column?': 1 }]),
+	};
+
 	beforeEach(async () => {
 		try {
 			const moduleFixture = await createTestModule({
@@ -61,6 +66,7 @@ describe('AuthController (e2e)', () => {
 					{ provide: TwoFactorAuthenticationService, useValue: mockTwoFactorService },
 					{ provide: DevicesService, useValue: mockDeviceService },
 					{ provide: JwtService, useValue: mockJwtService },
+					{ provide: DataSource, useValue: mockDataSource },
 					{
 						provide: CacheService,
 						useValue: {
@@ -87,24 +93,54 @@ describe('AuthController (e2e)', () => {
 	});
 
 	describe('Application Bootstrap', () => {
-		it('should bootstrap the application successfully', () => {
-			expect(app).toBeDefined();
-			expect(app.getHttpServer()).toBeDefined();
-		});
-
-		it('should have the correct environment setup', () => {
-			expect(process.env.NODE_ENV).toBe('test');
+		it('should respond to HTTP requests after bootstrap', async () => {
+			const response = await request(app.getHttpServer()).get('/auth/v1/health/live');
+			expect(response.status).toBe(200);
+			expect(response.body.status).toBe('alive');
 		});
 	});
 
-	describe('Health Check', () => {
-		it('should return application info', async () => {
+	describe('GET /auth/v1/health', () => {
+		it('should return ok with healthy services when database and cache are up', async () => {
 			const response = await request(app.getHttpServer()).get('/auth/v1/health').expect(200);
-			expect(response).toBeDefined();
-			expect(response.body).toBeDefined();
-			expect(response.body.status).toBeDefined();
-			expect(response.body.timestamp).toBeDefined();
-			expect(response.body.services).toBeDefined();
+
+			expect(response.body.status).toBe('ok');
+			expect(response.body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+			expect(typeof response.body.uptime).toBe('number');
+			expect(response.body.uptime).toBeGreaterThan(0);
+			expect(response.body.version).toMatch(/^\d+\.\d+\.\d+$/);
+			expect(response.body.memory).toEqual(
+				expect.objectContaining({
+					rss: expect.any(Number),
+					heapTotal: expect.any(Number),
+					heapUsed: expect.any(Number),
+				})
+			);
+			expect(response.body.services).toEqual({
+				database: 'healthy',
+				cache: 'healthy',
+			});
+		});
+
+		it('should return 503 when database is unhealthy', async () => {
+			mockDataSource.query.mockRejectedValueOnce(new Error('Connection refused'));
+
+			const response = await request(app.getHttpServer()).get('/auth/v1/health').expect(503);
+
+			expect(response.body.status).toBe('error');
+			expect(response.body.services.database).toBe('unhealthy');
+		});
+	});
+
+	describe('GET /auth/v1/health/live', () => {
+		it('should return alive status without checking dependencies', async () => {
+			const response = await request(app.getHttpServer()).get('/auth/v1/health/live').expect(200);
+
+			expect(response.body.status).toBe('alive');
+			expect(response.body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+			expect(typeof response.body.uptime).toBe('number');
+			expect(response.body.version).toMatch(/^\d+\.\d+\.\d+$/);
+			expect(response.body).not.toHaveProperty('services');
 		});
 	});
 });
