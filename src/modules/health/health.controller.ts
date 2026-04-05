@@ -124,7 +124,8 @@ export class HealthController {
 	@Get('live')
 	@ApiOperation({
 		summary: 'Check service liveness',
-		description: 'Returns whether the service is alive and responding',
+		description:
+			'Returns whether the process is alive. This is a lightweight probe that does not check external dependencies — use /health/ready for dependency checks.',
 	})
 	@ApiResponse({ status: 200, description: 'Service is alive' })
 	alive() {
@@ -132,7 +133,6 @@ export class HealthController {
 			status: 'alive',
 			timestamp: new Date().toISOString(),
 			uptime: process.uptime(),
-			memory: process.memoryUsage(),
 			version: process.env.npm_package_version || '1.0.0',
 		};
 	}
