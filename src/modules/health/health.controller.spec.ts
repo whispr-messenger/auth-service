@@ -44,84 +44,27 @@ describe('HealthController', () => {
 	});
 
 	describe('alive (liveness probe)', () => {
-		it('should return 200 with status alive when database and cache are healthy', async () => {
-			mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
-			mockCacheService.set.mockResolvedValue(undefined);
-			mockCacheService.get.mockResolvedValue('ok');
-
-			const result = await controller.alive();
+		it('should return 200 with status alive without checking dependencies', () => {
+			const result = controller.alive();
 
 			expect(result.status).toBe('alive');
-			expect(result.services.database).toBe('healthy');
-			expect(result.services.cache).toBe('healthy');
-		});
-
-		it('should throw ServiceUnavailableException (503) when database is down', async () => {
-			mockDataSource.query.mockRejectedValue(new Error('Connection refused'));
-			mockCacheService.set.mockResolvedValue(undefined);
-			mockCacheService.get.mockResolvedValue('ok');
-
-			await expect(controller.alive()).rejects.toThrow(ServiceUnavailableException);
-		});
-
-		it('should throw ServiceUnavailableException (503) when cache is down', async () => {
-			mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
-			mockRedisConfig.health = { isHealthy: false, lastError: new Error('Redis down') };
-
-			await expect(controller.alive()).rejects.toThrow(ServiceUnavailableException);
-		});
-
-		it('should throw ServiceUnavailableException (503) when both database and cache are down', async () => {
-			mockDataSource.query.mockRejectedValue(new Error('Connection refused'));
-			mockRedisConfig.health = { isHealthy: false, lastError: new Error('Redis down') };
-
-			await expect(controller.alive()).rejects.toThrow(ServiceUnavailableException);
-		});
-
-		it('should include service statuses in the error response when deps are down', async () => {
-			mockDataSource.query.mockRejectedValue(new Error('Connection refused'));
-			mockCacheService.set.mockResolvedValue(undefined);
-			mockCacheService.get.mockResolvedValue('ok');
-
-			const error = await controller.alive().catch((e) => e);
-
-			expect(error).toBeInstanceOf(ServiceUnavailableException);
-			const response = (error as ServiceUnavailableException).getResponse();
-			expect(response).toEqual(
-				expect.objectContaining({
-					status: 'dead',
-					services: expect.objectContaining({
-						database: 'unhealthy',
-					}),
-				})
-			);
-		});
-
-		it('should throw ServiceUnavailableException when cache set/get fails', async () => {
-			mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
-			mockCacheService.set.mockRejectedValue(new Error('ECONNREFUSED'));
-
-			await expect(controller.alive()).rejects.toThrow(ServiceUnavailableException);
-		});
-
-		it('should throw ServiceUnavailableException when cache returns unexpected result', async () => {
-			mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
-			mockCacheService.set.mockResolvedValue(undefined);
-			mockCacheService.get.mockResolvedValue(null);
-
-			await expect(controller.alive()).rejects.toThrow(ServiceUnavailableException);
-		});
-
-		it('should include timestamp and uptime in response', async () => {
-			mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
-			mockCacheService.set.mockResolvedValue(undefined);
-			mockCacheService.get.mockResolvedValue('ok');
-
-			const result = await controller.alive();
-
 			expect(result.timestamp).toBeDefined();
 			expect(result.uptime).toBeGreaterThanOrEqual(0);
 			expect(result.version).toBeDefined();
+		});
+
+		it('should not check database or cache', () => {
+			controller.alive();
+
+			expect(mockDataSource.query).not.toHaveBeenCalled();
+			expect(mockCacheService.set).not.toHaveBeenCalled();
+			expect(mockCacheService.get).not.toHaveBeenCalled();
+		});
+
+		it('should not include services field in response', () => {
+			const result = controller.alive();
+
+			expect(result).not.toHaveProperty('services');
 		});
 	});
 

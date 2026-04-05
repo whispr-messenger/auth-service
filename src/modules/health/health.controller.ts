@@ -125,50 +125,15 @@ export class HealthController {
 	@ApiOperation({
 		summary: 'Check service liveness',
 		description:
-			'Returns whether the service is alive. Checks critical dependencies (database and cache) and returns 503 when any are unavailable.',
+			'Returns whether the process is alive. This is a lightweight probe that does not check external dependencies — use /health/ready for dependency checks.',
 	})
 	@ApiResponse({ status: 200, description: 'Service is alive' })
-	@ApiResponse({ status: 503, description: 'One or more critical dependencies are down' })
-	async alive() {
-		const result = {
-			status: 'alive' as 'alive' | 'dead',
+	alive() {
+		return {
+			status: 'alive',
 			timestamp: new Date().toISOString(),
 			uptime: process.uptime(),
 			version: process.env.npm_package_version || '1.0.0',
-			services: {
-				database: 'unknown' as string,
-				cache: 'unknown' as string,
-			},
 		};
-
-		// Check database connection
-		try {
-			await this.dataSource.query('SELECT 1');
-			result.services.database = 'healthy';
-		} catch (error) {
-			if (process.env.NODE_ENV !== 'test') {
-				this.logger.error('Liveness: database check failed:', error.message);
-			}
-			result.services.database = 'unhealthy';
-			result.status = 'dead';
-		}
-
-		// Check cache connection
-		try {
-			await this.checkCacheHealth();
-			result.services.cache = 'healthy';
-		} catch (error) {
-			if (process.env.NODE_ENV !== 'test') {
-				this.logger.error('Liveness: cache check failed:', error.message);
-			}
-			result.services.cache = 'unhealthy';
-			result.status = 'dead';
-		}
-
-		if (result.status !== 'alive') {
-			throw new ServiceUnavailableException(result);
-		}
-
-		return result;
 	}
 }
