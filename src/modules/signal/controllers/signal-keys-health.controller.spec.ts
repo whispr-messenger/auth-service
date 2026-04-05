@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SignalKeysHealthController } from './signal-keys-health.controller';
 import { SignalKeySchedulerService } from '../services/signal-key-scheduler.service';
 import { PreKeyRepository } from '../repositories';
+import { TokensService } from '../../tokens/services/tokens.service';
 
 describe('SignalKeysHealthController', () => {
 	let controller: SignalKeysHealthController;
@@ -22,6 +23,14 @@ describe('SignalKeysHealthController', () => {
 							lastOldPreKeyCleanupTime: null,
 						}),
 						manualCleanup: jest.fn(),
+					},
+				},
+				{
+					provide: TokensService,
+					useValue: {
+						validateToken: jest.fn(),
+						isDeviceRevoked: jest.fn(),
+						isTokenRevoked: jest.fn(),
 					},
 				},
 				{
