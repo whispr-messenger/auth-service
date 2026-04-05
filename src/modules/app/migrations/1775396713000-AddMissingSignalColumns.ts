@@ -25,24 +25,42 @@ export class AddMissingSignalColumns1775396713000 implements MigrationInterface 
     `);
 
 		// --- signed_prekeys: deduplicate before adding unique constraint ---
-		// Keep the most recently created row per (user_id, device_id, key_id) tuple.
+		// Use ROW_NUMBER with (created_at DESC, id DESC) as a deterministic tie-breaker
+		// to handle duplicates that share the same created_at timestamp.
 		await queryRunner.query(`
-      DELETE FROM "auth"."signed_prekeys" spk1
-      USING "auth"."signed_prekeys" spk2
-      WHERE spk1.user_id  = spk2.user_id
-        AND spk1.device_id = spk2.device_id
-        AND spk1.key_id    = spk2.key_id
-        AND spk1.created_at < spk2.created_at
+      WITH ranked AS (
+        SELECT
+          id,
+          ROW_NUMBER() OVER (
+            PARTITION BY user_id, device_id, key_id
+            ORDER BY created_at DESC, id DESC
+          ) AS row_num
+        FROM "auth"."signed_prekeys"
+      )
+      DELETE FROM "auth"."signed_prekeys"
+      WHERE id IN (SELECT id FROM ranked WHERE row_num > 1)
     `);
 
 		// --- signed_prekeys: add unique constraint (user_id, device_id, key_id) ---
+		// Guard by column set rather than constraint name to avoid creating a
+		// duplicate constraint if one already exists under a different name.
 		await queryRunner.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (
-          SELECT 1 FROM pg_constraint
-          WHERE conname = 'UQ_signed_prekeys_user_device_key'
-            AND conrelid = '"auth"."signed_prekeys"'::regclass
+          SELECT 1
+          FROM pg_index i
+          JOIN pg_class c ON c.oid = i.indrelid
+          JOIN pg_namespace n ON n.oid = c.relnamespace
+          WHERE n.nspname = 'auth'
+            AND c.relname = 'signed_prekeys'
+            AND i.indisunique = true
+            AND (
+              SELECT array_agg(a.attname ORDER BY a.attnum)
+              FROM pg_attribute a
+              WHERE a.attrelid = i.indrelid
+                AND a.attnum = ANY(i.indkey)
+            ) = ARRAY['user_id', 'device_id', 'key_id']
         ) THEN
           ALTER TABLE "auth"."signed_prekeys"
           ADD CONSTRAINT "UQ_signed_prekeys_user_device_key"
@@ -66,24 +84,40 @@ export class AddMissingSignalColumns1775396713000 implements MigrationInterface 
     `);
 
 		// --- prekeys: deduplicate before adding unique constraint ---
-		// Keep the most recently created row per (user_id, device_id, key_id) tuple.
+		// Use ROW_NUMBER with (created_at DESC, id DESC) as a deterministic tie-breaker.
 		await queryRunner.query(`
-      DELETE FROM "auth"."prekeys" pk1
-      USING "auth"."prekeys" pk2
-      WHERE pk1.user_id   = pk2.user_id
-        AND pk1.device_id  = pk2.device_id
-        AND pk1.key_id     = pk2.key_id
-        AND pk1.created_at < pk2.created_at
+      WITH ranked AS (
+        SELECT
+          id,
+          ROW_NUMBER() OVER (
+            PARTITION BY user_id, device_id, key_id
+            ORDER BY created_at DESC, id DESC
+          ) AS row_num
+        FROM "auth"."prekeys"
+      )
+      DELETE FROM "auth"."prekeys"
+      WHERE id IN (SELECT id FROM ranked WHERE row_num > 1)
     `);
 
 		// --- prekeys: add unique constraint (user_id, device_id, key_id) ---
+		// Guard by column set rather than constraint name.
 		await queryRunner.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (
-          SELECT 1 FROM pg_constraint
-          WHERE conname = 'UQ_prekeys_user_device_key'
-            AND conrelid = '"auth"."prekeys"'::regclass
+          SELECT 1
+          FROM pg_index i
+          JOIN pg_class c ON c.oid = i.indrelid
+          JOIN pg_namespace n ON n.oid = c.relnamespace
+          WHERE n.nspname = 'auth'
+            AND c.relname = 'prekeys'
+            AND i.indisunique = true
+            AND (
+              SELECT array_agg(a.attname ORDER BY a.attnum)
+              FROM pg_attribute a
+              WHERE a.attrelid = i.indrelid
+                AND a.attnum = ANY(i.indkey)
+            ) = ARRAY['user_id', 'device_id', 'key_id']
         ) THEN
           ALTER TABLE "auth"."prekeys"
           ADD CONSTRAINT "UQ_prekeys_user_device_key"
