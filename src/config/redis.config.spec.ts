@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import { ConfigService } from '@nestjs/config';
-import { RedisConfig, buildRedisOptions, parseSentinels } from './redis.config';
+import { RedisConfig, buildRedisOptions, parseSentinels, readPasswordFile } from './redis.config';
 
 const mockQuit = jest.fn().mockResolvedValue('OK');
 const mockOn = jest.fn();
@@ -27,11 +27,29 @@ describe('parseSentinels', () => {
 	});
 });
 
+describe('readPasswordFile', () => {
+	afterEach(() => jest.restoreAllMocks());
+
+	it('returns trimmed file contents', () => {
+		jest.spyOn(fs, 'readFileSync').mockReturnValue('mypassword\n');
+		expect(readPasswordFile('/secrets/redis/password')).toBe('mypassword');
+	});
+
+	it('returns undefined when file cannot be read', () => {
+		jest.spyOn(fs, 'readFileSync').mockImplementation(() => {
+			throw new Error('ENOENT');
+		});
+		expect(readPasswordFile('/missing')).toBeUndefined();
+	});
+});
+
 describe('buildRedisOptions', () => {
 	const makeConfig = (overrides: Record<string, string> = {}) =>
 		({
 			get: jest.fn((key: string, defaultValue?: string) => overrides[key] ?? defaultValue),
 		}) as unknown as ConfigService;
+
+	afterEach(() => jest.restoreAllMocks());
 
 	it('returns direct options by default', () => {
 		const opts = buildRedisOptions(makeConfig());
@@ -62,6 +80,12 @@ describe('buildRedisOptions', () => {
 		expect(opts.reconnectOnError!(new Error('NOAUTH Authentication required'))).toBe(true);
 		expect(opts.reconnectOnError!(new Error('ERR unknown command'))).toBe(false);
 	});
+
+	it('reads password from REDIS_PASSWORD_FILE when set', () => {
+		jest.spyOn(fs, 'readFileSync').mockReturnValue('filepassword\n');
+		const opts = buildRedisOptions(makeConfig({ REDIS_PASSWORD_FILE: '/secrets/redis/password' }));
+		expect(opts.password).toBe('filepassword');
+	});
 });
 
 describe('RedisConfig', () => {
@@ -73,6 +97,8 @@ describe('RedisConfig', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 	});
+
+	afterEach(() => jest.restoreAllMocks());
 
 	it('calls client.quit() on module destroy', async () => {
 		jest.spyOn(fs, 'existsSync').mockReturnValue(false);
@@ -108,44 +134,72 @@ describe('RedisConfig', () => {
 			expect(watchSpy).not.toHaveBeenCalled();
 		});
 
-		it('starts a watcher when REDIS_PASSWORD_FILE exists', () => {
+		it('watches the parent directory when REDIS_PASSWORD_FILE exists', () => {
 			jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+			jest.spyOn(fs, 'readFileSync').mockReturnValue('initialpassword\n');
 			const mockWatcher = { on: jest.fn(), close: jest.fn() } as unknown as fs.FSWatcher;
 			const watchSpy = jest.spyOn(fs, 'watch').mockReturnValue(mockWatcher);
 
 			new RedisConfig(makeConfigService({ REDIS_PASSWORD_FILE: '/secrets/redis/password' }));
 
 			expect(watchSpy).toHaveBeenCalledWith(
-				'/secrets/redis/password',
+				'/secrets/redis',
 				{ persistent: false },
 				expect.any(Function)
 			);
 		});
 
-		it('calls redis.auth() with the new password on file change', async () => {
+		it('calls redis.auth() with the new password when the credential file changes', async () => {
 			jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-			jest.spyOn(fs, 'readFileSync').mockReturnValue('newpassword\n');
+			jest.spyOn(fs, 'readFileSync')
+				.mockReturnValue('initialpassword\n')
+				.mockReturnValueOnce('initialpassword\n')
+				.mockReturnValue('newpassword\n');
 
-			let capturedCallback: ((event: string) => void) | null = null;
+			let capturedCallback: ((event: string, filename: string | null) => void) | null = null;
 			const mockWatcher = { on: jest.fn(), close: jest.fn() } as unknown as fs.FSWatcher;
-
-			(fs as any).watch = jest.fn((_path: unknown, _opts: unknown, cb: unknown) => {
-				capturedCallback = cb as (event: string) => void;
+			(
+				jest.spyOn(fs, 'watch') as unknown as jest.MockInstance<fs.FSWatcher, unknown[]>
+			).mockImplementation((_path: unknown, _opts: unknown, cb: unknown) => {
+				capturedCallback = cb as (event: string, filename: string | null) => void;
 				return mockWatcher;
 			});
 
 			new RedisConfig(makeConfigService({ REDIS_PASSWORD_FILE: '/secrets/redis/password' }));
 
 			expect(capturedCallback).not.toBeNull();
-			capturedCallback!('change');
+			capturedCallback!('change', 'password');
 
 			await Promise.resolve();
 
 			expect(mockAuth).toHaveBeenCalledWith('newpassword');
 		});
 
+		it('ignores events for other files in the same directory', async () => {
+			jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+			jest.spyOn(fs, 'readFileSync').mockReturnValue('initialpassword\n');
+
+			let capturedCallback: ((event: string, filename: string | null) => void) | null = null;
+			const mockWatcher = { on: jest.fn(), close: jest.fn() } as unknown as fs.FSWatcher;
+			(
+				jest.spyOn(fs, 'watch') as unknown as jest.MockInstance<fs.FSWatcher, unknown[]>
+			).mockImplementation((_path: unknown, _opts: unknown, cb: unknown) => {
+				capturedCallback = cb as (event: string, filename: string | null) => void;
+				return mockWatcher;
+			});
+
+			new RedisConfig(makeConfigService({ REDIS_PASSWORD_FILE: '/secrets/redis/password' }));
+
+			capturedCallback!('change', 'other-file');
+
+			await Promise.resolve();
+
+			expect(mockAuth).not.toHaveBeenCalled();
+		});
+
 		it('closes the watcher on module destroy', async () => {
 			jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+			jest.spyOn(fs, 'readFileSync').mockReturnValue('initialpassword\n');
 			const mockWatcher = { on: jest.fn(), close: jest.fn() } as unknown as fs.FSWatcher;
 			jest.spyOn(fs, 'watch').mockReturnValue(mockWatcher);
 

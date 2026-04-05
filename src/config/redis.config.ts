@@ -15,11 +15,22 @@ export function parseSentinels(sentinelsStr: string): Array<{ host: string; port
 	});
 }
 
+export function readPasswordFile(filePath: string): string | undefined {
+	try {
+		return fs.readFileSync(filePath, 'utf8').trim();
+	} catch {
+		return undefined;
+	}
+}
+
 export function buildRedisOptions(configService: ConfigService): RedisOptions {
 	const mode = configService.get<string>('REDIS_MODE', 'direct');
 	const db = Number.parseInt(configService.get<string>('REDIS_DB', '0'), 10);
 	const username = configService.get<string>('REDIS_USERNAME');
-	const password = configService.get<string>('REDIS_PASSWORD');
+	const passwordFile = configService.get<string>('REDIS_PASSWORD_FILE');
+	const password = passwordFile
+		? readPasswordFile(passwordFile)
+		: configService.get<string>('REDIS_PASSWORD');
 
 	const reconnectOnError = (err: Error) => err.message.includes('NOAUTH');
 
@@ -80,8 +91,8 @@ export class RedisConfig {
 
 		this.client = new Redis(options);
 
-		this.client.on('error', (err) => {
-			this.logger.error('Redis connection error', err);
+		this.client.on('error', (err: Error) => {
+			this.logger.error('Redis connection error', err.stack);
 			this._health.isHealthy = false;
 			this._health.lastError = err;
 		});
@@ -121,6 +132,23 @@ export class RedisConfig {
 		return this.client;
 	}
 
+	private reloadCredential(filePath: string): void {
+		try {
+			const newPassword = fs.readFileSync(filePath, 'utf8').trim();
+			this.client
+				.auth(newPassword)
+				.then(() => {
+					this.logger.log('Redis credentials refreshed successfully');
+				})
+				.catch((err: Error) => {
+					this.logger.error('Redis credential refresh failed', err.stack);
+				});
+		} catch (err) {
+			const stack = err instanceof Error ? err.stack : String(err);
+			this.logger.error('Failed to read Redis credential file', stack);
+		}
+	}
+
 	private watchCredentialFile(filePath: string): void {
 		if (!fs.existsSync(filePath)) {
 			this.logger.warn(`REDIS_PASSWORD_FILE not found at ${filePath}, skipping credential watch`);
@@ -129,26 +157,18 @@ export class RedisConfig {
 
 		this.logger.log(`Watching Redis credential file: ${filePath}`);
 
-		this.credentialWatcher = fs.watch(filePath, { persistent: false }, (event) => {
-			if (event !== 'change') return;
+		// Watch the parent directory to catch atomic symlink swaps (Kubernetes secret rotation)
+		// which emit 'rename' on the file rather than 'change'.
+		const dir = filePath.substring(0, filePath.lastIndexOf('/')) || '.';
+		const filename = filePath.substring(filePath.lastIndexOf('/') + 1);
 
-			try {
-				const newPassword = fs.readFileSync(filePath, 'utf8').trim();
-				this.client
-					.auth(newPassword)
-					.then(() => {
-						this.logger.log('Redis credentials refreshed successfully');
-					})
-					.catch((err: Error) => {
-						this.logger.error('Redis credential refresh failed', err);
-					});
-			} catch (err) {
-				this.logger.error('Failed to read Redis credential file', err);
-			}
+		this.credentialWatcher = fs.watch(dir, { persistent: false }, (event, changedFile) => {
+			if (changedFile !== filename) return;
+			this.reloadCredential(filePath);
 		});
 
-		this.credentialWatcher.on('error', (err) => {
-			this.logger.error('Credential file watcher error', err);
+		this.credentialWatcher.on('error', (err: Error) => {
+			this.logger.error('Credential file watcher error', err.stack);
 		});
 	}
 
