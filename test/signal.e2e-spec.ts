@@ -26,6 +26,8 @@ import { PreKeyRepository } from '../src/modules/signal/repositories/prekey.repo
 import { SignedPreKeyRepository } from '../src/modules/signal/repositories/signed-prekey.repository';
 import { IdentityKeyRepository } from '../src/modules/signal/repositories/identity-key.repository';
 import { SignalKeySchedulerService } from '../src/modules/signal/services/signal-key-scheduler.service';
+import { TokensService } from '../src/modules/tokens/services/tokens.service';
+import { JwtPayload } from '../src/modules/tokens/types/jwt-payload.interface';
 import { createTestApp } from './helpers/create-test-app';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -50,6 +52,27 @@ const mockCacheService = {
 	get: jest.fn().mockResolvedValue(null),
 	set: jest.fn().mockResolvedValue(undefined),
 	del: jest.fn().mockResolvedValue(undefined),
+};
+
+const validPayload: JwtPayload = {
+	sub: 'user-id',
+	jti: 'access-token-jti-uuid',
+	iat: Math.floor(Date.now() / 1000),
+	exp: Math.floor(Date.now() / 1000) + 3600,
+	deviceId: 'device-id',
+	scope: 'user',
+	fingerprint: 'abc123',
+};
+
+const mockTokensService = {
+	validateToken: jest.fn().mockImplementation((token: string) => {
+		if (token === 'invalid-token') {
+			throw new Error('invalid signature');
+		}
+		return validPayload;
+	}),
+	isTokenRevoked: jest.fn().mockResolvedValue(false),
+	isDeviceRevoked: jest.fn().mockResolvedValue(false),
 };
 
 describe('Signal health & cleanup endpoints (e2e)', () => {
@@ -117,6 +140,8 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 			.useValue(mockRepository)
 			.overrideProvider(SignalKeySchedulerService)
 			.useValue(mockSchedulerService)
+			.overrideProvider(TokensService)
+			.useValue(mockTokensService)
 			.compile();
 
 		app = await createTestApp(moduleFixture);
@@ -222,6 +247,20 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 				.post('/auth/v1/signal/health/cleanup')
 				.set('Authorization', 'Bearer invalid-token')
 				.expect(401);
+		});
+
+		it('returns 200 with a valid JWT and the cleanup result', async () => {
+			const { body } = await request(app.getHttpServer())
+				.post('/auth/v1/signal/health/cleanup')
+				.set('Authorization', 'Bearer valid.access.token')
+				.expect(200);
+
+			expect(body).toEqual({
+				message: 'Cleanup completed successfully',
+				expiredKeysDeleted: 3,
+				oldPreKeysDeleted: 7,
+			});
+			expect(mockSchedulerService.manualCleanup).toHaveBeenCalled();
 		});
 	});
 });
