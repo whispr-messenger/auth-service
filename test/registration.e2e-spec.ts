@@ -238,7 +238,10 @@ describe('Registration Flow (e2e)', () => {
 				})
 			);
 			expect(mockUserAuthRepository.save).toHaveBeenCalledWith(
-				expect.objectContaining({ phoneNumber, twoFactorEnabled: false })
+				expect.objectContaining({
+					phoneNumber,
+					twoFactorEnabled: false,
+				})
 			);
 		});
 
@@ -330,7 +333,12 @@ describe('Registration Flow (e2e)', () => {
 			expect(response.body).toHaveProperty('refreshToken');
 
 			// Vérifier que l'utilisateur a été créé même sans device
-			expect(mockUserAuthRepository.save).toHaveBeenCalled();
+			expect(mockUserAuthRepository.save).toHaveBeenCalledWith(
+				expect.objectContaining({
+					phoneNumber: '+33612345678',
+					twoFactorEnabled: false,
+				})
+			);
 		});
 
 		it('should prevent duplicate registration with same phone number', async () => {
