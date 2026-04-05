@@ -6,35 +6,17 @@ export class AddMissingDeviceColumns1743854400000 implements MigrationInterface 
 	public async up(queryRunner: QueryRunner): Promise<void> {
 		await queryRunner.query(`
       ALTER TABLE "auth"."devices"
-      ADD COLUMN IF NOT EXISTS "model" VARCHAR(100)
-    `);
-
-		await queryRunner.query(`
-      ALTER TABLE "auth"."devices"
-      ADD COLUMN IF NOT EXISTS "os_version" VARCHAR(50)
-    `);
-
-		await queryRunner.query(`
-      ALTER TABLE "auth"."devices"
-      ADD COLUMN IF NOT EXISTS "app_version" VARCHAR(20)
-    `);
-
-		await queryRunner.query(`
-      ALTER TABLE "auth"."devices"
-      ADD COLUMN IF NOT EXISTS "apns_token" VARCHAR(255)
-    `);
-
-		await queryRunner.query(`
-      ALTER TABLE "auth"."devices"
+      ADD COLUMN IF NOT EXISTS "model" VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS "os_version" VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS "app_version" VARCHAR(20),
+      ADD COLUMN IF NOT EXISTS "apns_token" VARCHAR(255),
       ADD COLUMN IF NOT EXISTS "is_active" BOOLEAN NOT NULL DEFAULT true
     `);
 	}
 
-	public async down(queryRunner: QueryRunner): Promise<void> {
-		await queryRunner.query(`ALTER TABLE "auth"."devices" DROP COLUMN IF EXISTS "is_active"`);
-		await queryRunner.query(`ALTER TABLE "auth"."devices" DROP COLUMN IF EXISTS "apns_token"`);
-		await queryRunner.query(`ALTER TABLE "auth"."devices" DROP COLUMN IF EXISTS "app_version"`);
-		await queryRunner.query(`ALTER TABLE "auth"."devices" DROP COLUMN IF EXISTS "os_version"`);
-		await queryRunner.query(`ALTER TABLE "auth"."devices" DROP COLUMN IF EXISTS "model"`);
+	public async down(_queryRunner: QueryRunner): Promise<void> {
+		throw new Error(
+			'Migration AddMissingDeviceColumns1743854400000 is irreversible: the added columns may have existed before this migration ran, so rolling back could drop pre-existing columns and data.'
+		);
 	}
 }
