@@ -238,10 +238,9 @@ describe('Registration Flow (e2e)', () => {
 					twoFactorEnabled: false,
 				})
 			);
-			expect(mockUserAuthRepository.save).toHaveBeenCalled();
-
-			// Vérifier que l'utilisateur a été créé avec succès
-			expect(mockUserAuthRepository.save).toHaveBeenCalled();
+			expect(mockUserAuthRepository.save).toHaveBeenCalledWith(
+				expect.objectContaining({ phoneNumber, twoFactorEnabled: false })
+			);
 		});
 
 		it('should fail registration request with invalid phone number', async () => {
