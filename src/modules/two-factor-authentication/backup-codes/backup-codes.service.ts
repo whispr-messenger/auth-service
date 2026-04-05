@@ -50,7 +50,7 @@ export class BackupCodesService {
 		});
 
 		if (backupCodes.length === 0) {
-			throw new NotFoundException('Aucun code de sauvegarde disponible');
+			throw new NotFoundException('No backup codes available');
 		}
 
 		for (const backupCode of backupCodes) {
