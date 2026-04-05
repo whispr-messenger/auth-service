@@ -8,51 +8,15 @@
  * The existing `GET /devices` endpoint is used as a representative protected
  * route because it is guarded by JwtAuthGuard.
  */
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { AppModule } from '../src/modules/app/app.module';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { UserAuth } from '../src/modules/common/entities/user-auth.entity';
-import { Device } from '../src/modules/devices/entities/device.entity';
-import { PreKey } from '../src/modules/signal/entities/prekey.entity';
-import { SignedPreKey } from '../src/modules/signal/entities/signed-prekey.entity';
-import { IdentityKey } from '../src/modules/signal/entities/identity-key.entity';
-import { BackupCode } from '../src/modules/two-factor-authentication/entities/backup-code.entity';
-import { LoginHistory } from '../src/modules/phone-auth/entities/login-history.entity';
-import { CacheService } from '../src/modules/cache';
-import { RedisConfig } from '../src/config/redis.config';
 import { TokensService } from '../src/modules/tokens/services/tokens.service';
 import { DevicesService } from '../src/modules/devices/services/devices.service';
-import { DeviceRepository } from '../src/modules/devices/repositories/device.repository';
-import { PreKeyRepository } from '../src/modules/signal/repositories/prekey.repository';
-import { SignedPreKeyRepository } from '../src/modules/signal/repositories/signed-prekey.repository';
-import { IdentityKeyRepository } from '../src/modules/signal/repositories/identity-key.repository';
 import { JwtPayload } from '../src/modules/tokens/types/jwt-payload.interface';
 import { createTestApp } from './helpers/create-test-app';
+import { createTestModule } from './helpers/create-test-module';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const request = require('supertest');
-
-const mockRepository = {
-	find: jest.fn(),
-	findOne: jest.fn(),
-	save: jest.fn(),
-	create: jest.fn(),
-	delete: jest.fn(),
-	update: jest.fn(),
-};
-
-const mockRedisConfig = {
-	health: { isHealthy: true, lastError: null },
-	getClient: jest.fn(),
-	onModuleDestroy: jest.fn(),
-};
-
-const mockCacheService = {
-	get: jest.fn().mockResolvedValue(null),
-	set: jest.fn().mockResolvedValue(undefined),
-	del: jest.fn().mockResolvedValue(undefined),
-};
 
 const validPayload: JwtPayload = {
 	sub: 'user-id',
@@ -71,40 +35,12 @@ describe('Token revocation (e2e)', () => {
 	>;
 
 	const buildApp = async () => {
-		const moduleFixture: TestingModule = await Test.createTestingModule({
-			imports: [AppModule],
-		})
-			.overrideProvider(getRepositoryToken(UserAuth))
-			.useValue(mockRepository)
-			.overrideProvider(getRepositoryToken(Device))
-			.useValue(mockRepository)
-			.overrideProvider(getRepositoryToken(PreKey))
-			.useValue(mockRepository)
-			.overrideProvider(getRepositoryToken(SignedPreKey))
-			.useValue(mockRepository)
-			.overrideProvider(getRepositoryToken(IdentityKey))
-			.useValue(mockRepository)
-			.overrideProvider(getRepositoryToken(BackupCode))
-			.useValue(mockRepository)
-			.overrideProvider(getRepositoryToken(LoginHistory))
-			.useValue(mockRepository)
-			.overrideProvider(RedisConfig)
-			.useValue(mockRedisConfig)
-			.overrideProvider(CacheService)
-			.useValue(mockCacheService)
-			.overrideProvider(TokensService)
-			.useValue(tokensService)
-			.overrideProvider(DevicesService)
-			.useValue({ getUserDevices: jest.fn().mockResolvedValue([]) })
-			.overrideProvider(DeviceRepository)
-			.useValue(mockRepository)
-			.overrideProvider(PreKeyRepository)
-			.useValue(mockRepository)
-			.overrideProvider(SignedPreKeyRepository)
-			.useValue(mockRepository)
-			.overrideProvider(IdentityKeyRepository)
-			.useValue(mockRepository)
-			.compile();
+		const moduleFixture = await createTestModule({
+			providers: [
+				{ provide: TokensService, useValue: tokensService },
+				{ provide: DevicesService, useValue: { getUserDevices: jest.fn().mockResolvedValue([]) } },
+			],
+		});
 
 		const application = await createTestApp(moduleFixture);
 		return application;

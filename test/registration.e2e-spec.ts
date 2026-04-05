@@ -1,22 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { AppModule } from '../src/modules/app/app.module';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserAuth } from '../src/modules/common/entities/user-auth.entity';
 import { Device } from '../src/modules/devices/entities/device.entity';
-import { PreKey } from '../src/modules/signal/entities/prekey.entity';
-import { SignedPreKey } from '../src/modules/signal/entities/signed-prekey.entity';
-import { IdentityKey } from '../src/modules/signal/entities/identity-key.entity';
-import { BackupCode } from '../src/modules/two-factor-authentication/entities/backup-code.entity';
-import { LoginHistory } from '../src/modules/phone-auth/entities/login-history.entity';
 import { CacheService } from '../src/modules/cache';
-import { RedisConfig } from '../src/config/redis.config';
 import { JwtAuthGuard } from '../src/modules/tokens/guards/jwt-auth.guard';
 import { TokensService } from '../src/modules/tokens/services/tokens.service';
 import { DeviceRepository } from '../src/modules/devices/repositories/device.repository';
-import { PreKeyRepository } from '../src/modules/signal/repositories/prekey.repository';
-import { SignedPreKeyRepository } from '../src/modules/signal/repositories/signed-prekey.repository';
-import { IdentityKeyRepository } from '../src/modules/signal/repositories/identity-key.repository';
+import { createTestModule, makeMockCacheService } from './helpers/create-test-module';
 import { createTestApp } from './helpers/create-test-app';
 import { HASHED_VERIFICATION_CODE, VERIFICATION_CODE } from './fixtures/phone-verification';
 
@@ -47,26 +37,7 @@ describe('Registration Flow (e2e)', () => {
 		update: jest.fn(),
 	};
 
-	const mockGenericRepository = {
-		find: jest.fn(),
-		findOne: jest.fn(),
-		save: jest.fn(),
-		create: jest.fn(),
-		delete: jest.fn(),
-		update: jest.fn(),
-	};
-
-	const mockCacheService = {
-		get: jest.fn(),
-		set: jest.fn(),
-		del: jest.fn(),
-	};
-
-	const mockRedisConfig = {
-		health: { isHealthy: true, lastError: null },
-		getClient: jest.fn(),
-		onModuleDestroy: jest.fn(),
-	};
+	const mockCacheService = makeMockCacheService();
 
 	const mockTokensService = {
 		generateTokenPair: jest.fn().mockResolvedValue({
@@ -117,40 +88,16 @@ describe('Registration Flow (e2e)', () => {
 			})
 		);
 
-		const moduleFixture: TestingModule = await Test.createTestingModule({
-			imports: [AppModule],
-		})
-			.overrideProvider(getRepositoryToken(UserAuth))
-			.useValue(mockUserAuthRepository)
-			.overrideProvider(getRepositoryToken(Device))
-			.useValue(mockDeviceRepository)
-			.overrideProvider(getRepositoryToken(PreKey))
-			.useValue(mockGenericRepository)
-			.overrideProvider(getRepositoryToken(SignedPreKey))
-			.useValue(mockGenericRepository)
-			.overrideProvider(getRepositoryToken(IdentityKey))
-			.useValue(mockGenericRepository)
-			.overrideProvider(getRepositoryToken(BackupCode))
-			.useValue(mockGenericRepository)
-			.overrideProvider(getRepositoryToken(LoginHistory))
-			.useValue(mockGenericRepository)
-			.overrideProvider(RedisConfig)
-			.useValue(mockRedisConfig)
-			.overrideProvider(CacheService)
-			.useValue(mockCacheService)
-			.overrideProvider(TokensService)
-			.useValue(mockTokensService)
-			.overrideProvider(DeviceRepository)
-			.useValue(mockDeviceRepository)
-			.overrideProvider(PreKeyRepository)
-			.useValue(mockGenericRepository)
-			.overrideProvider(SignedPreKeyRepository)
-			.useValue(mockGenericRepository)
-			.overrideProvider(IdentityKeyRepository)
-			.useValue(mockGenericRepository)
-			.overrideGuard(JwtAuthGuard)
-			.useValue({ canActivate: () => true })
-			.compile();
+		const moduleFixture = await createTestModule({
+			providers: [
+				{ provide: getRepositoryToken(UserAuth), useValue: mockUserAuthRepository },
+				{ provide: getRepositoryToken(Device), useValue: mockDeviceRepository },
+				{ provide: DeviceRepository, useValue: mockDeviceRepository },
+				{ provide: CacheService, useValue: mockCacheService },
+				{ provide: TokensService, useValue: mockTokensService },
+			],
+			guards: [{ guard: JwtAuthGuard, useValue: { canActivate: () => true } }],
+		});
 
 		app = await createTestApp(moduleFixture);
 	});

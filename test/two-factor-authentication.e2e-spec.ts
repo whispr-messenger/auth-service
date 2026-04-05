@@ -13,24 +13,12 @@
  * deterministic user id so tests exercise the real service logic against
  * mocked repositories.
  */
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { AppModule } from '../src/modules/app/app.module';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserAuth } from '../src/modules/common/entities/user-auth.entity';
-import { Device } from '../src/modules/devices/entities/device.entity';
-import { PreKey } from '../src/modules/signal/entities/prekey.entity';
-import { SignedPreKey } from '../src/modules/signal/entities/signed-prekey.entity';
-import { IdentityKey } from '../src/modules/signal/entities/identity-key.entity';
 import { BackupCode } from '../src/modules/two-factor-authentication/entities/backup-code.entity';
-import { LoginHistory } from '../src/modules/phone-auth/entities/login-history.entity';
-import { CacheService } from '../src/modules/cache';
-import { RedisConfig } from '../src/config/redis.config';
 import { JwtAuthGuard } from '../src/modules/tokens/guards/jwt-auth.guard';
-import { DeviceRepository } from '../src/modules/devices/repositories/device.repository';
-import { PreKeyRepository } from '../src/modules/signal/repositories/prekey.repository';
-import { SignedPreKeyRepository } from '../src/modules/signal/repositories/signed-prekey.repository';
-import { IdentityKeyRepository } from '../src/modules/signal/repositories/identity-key.repository';
+import { createTestModule, makeMockRepository } from './helpers/create-test-module';
 import { createTestApp } from './helpers/create-test-app';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -52,31 +40,6 @@ const baseUser: UserAuth = {
 	updatedAt: new Date(),
 };
 
-/** Returns a fresh generic TypeORM repository mock. */
-function makeMockRepository() {
-	return {
-		find: jest.fn().mockResolvedValue([]),
-		findOne: jest.fn().mockResolvedValue(null),
-		save: jest.fn().mockImplementation((entity: any) => Promise.resolve(entity)),
-		create: jest.fn().mockImplementation((data: any) => data),
-		delete: jest.fn().mockResolvedValue({ affected: 0 }),
-		update: jest.fn().mockResolvedValue({ affected: 0 }),
-		count: jest.fn().mockResolvedValue(0),
-	};
-}
-
-const mockRedisConfig = {
-	health: { isHealthy: true, lastError: null },
-	getClient: jest.fn(),
-	onModuleDestroy: jest.fn(),
-};
-
-const mockCacheService = {
-	get: jest.fn().mockResolvedValue(null),
-	set: jest.fn().mockResolvedValue(undefined),
-	del: jest.fn().mockResolvedValue(undefined),
-};
-
 /* ------------------------------------------------------------------ */
 /* Test suite                                                          */
 /* ------------------------------------------------------------------ */
@@ -90,46 +53,24 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 		userAuthRepo = makeMockRepository();
 		backupCodeRepo = makeMockRepository();
 
-		const genericRepo = makeMockRepository();
-
-		const moduleFixture: TestingModule = await Test.createTestingModule({
-			imports: [AppModule],
-		})
-			.overrideProvider(getRepositoryToken(UserAuth))
-			.useValue(userAuthRepo)
-			.overrideProvider(getRepositoryToken(Device))
-			.useValue(genericRepo)
-			.overrideProvider(getRepositoryToken(PreKey))
-			.useValue(genericRepo)
-			.overrideProvider(getRepositoryToken(SignedPreKey))
-			.useValue(genericRepo)
-			.overrideProvider(getRepositoryToken(IdentityKey))
-			.useValue(genericRepo)
-			.overrideProvider(getRepositoryToken(BackupCode))
-			.useValue(backupCodeRepo)
-			.overrideProvider(getRepositoryToken(LoginHistory))
-			.useValue(genericRepo)
-			.overrideProvider(RedisConfig)
-			.useValue(mockRedisConfig)
-			.overrideProvider(CacheService)
-			.useValue(mockCacheService)
-			.overrideProvider(DeviceRepository)
-			.useValue(genericRepo)
-			.overrideProvider(PreKeyRepository)
-			.useValue(genericRepo)
-			.overrideProvider(SignedPreKeyRepository)
-			.useValue(genericRepo)
-			.overrideProvider(IdentityKeyRepository)
-			.useValue(genericRepo)
-			.overrideGuard(JwtAuthGuard)
-			.useValue({
-				canActivate: (ctx: any) => {
-					const req = ctx.switchToHttp().getRequest();
-					req.user = { sub: TEST_USER_ID, deviceId: 'test-device' };
-					return true;
+		const moduleFixture = await createTestModule({
+			providers: [
+				{ provide: getRepositoryToken(UserAuth), useValue: userAuthRepo },
+				{ provide: getRepositoryToken(BackupCode), useValue: backupCodeRepo },
+			],
+			guards: [
+				{
+					guard: JwtAuthGuard,
+					useValue: {
+						canActivate: (ctx: any) => {
+							const req = ctx.switchToHttp().getRequest();
+							req.user = { sub: TEST_USER_ID, deviceId: 'test-device' };
+							return true;
+						},
+					},
 				},
-			})
-			.compile();
+			],
+		});
 
 		return createTestApp(moduleFixture);
 	}
