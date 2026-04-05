@@ -56,7 +56,7 @@ export class AddMissingSignalColumns1775396713000 implements MigrationInterface 
             AND c.relname = 'signed_prekeys'
             AND i.indisunique = true
             AND (
-              SELECT array_agg(a.attname ORDER BY a.attnum)
+              SELECT array_agg(a.attname::text ORDER BY a.attnum)
               FROM pg_attribute a
               WHERE a.attrelid = i.indrelid
                 AND a.attnum = ANY(i.indkey)
@@ -113,7 +113,7 @@ export class AddMissingSignalColumns1775396713000 implements MigrationInterface 
             AND c.relname = 'prekeys'
             AND i.indisunique = true
             AND (
-              SELECT array_agg(a.attname ORDER BY a.attnum)
+              SELECT array_agg(a.attname::text ORDER BY a.attnum)
               FROM pg_attribute a
               WHERE a.attrelid = i.indrelid
                 AND a.attnum = ANY(i.indkey)
