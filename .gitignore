@@ -70,3 +70,4 @@ docker/prod/secrets/
 
 # Claude Code local overrides (machine-specific, never commit)
 CLAUDE.local.md
+.mcp.json
