@@ -45,4 +45,4 @@ jobs:
           embed-thumbnail-url: ${{ github.event.pull_request.user.avatar_url }}
           embed-footer-text: "auth-service • whispr-messenger"
           embed-footer-icon-url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
-          embed-timestamp: ${{ github.event.pull_request.created_at }}
+          embed-timestamp: ${{ github.event.pull_request.merged_at }}
