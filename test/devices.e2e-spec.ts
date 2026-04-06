@@ -40,11 +40,27 @@ const mockTokensService = {
 
 const mockDevicesService = {
 	getUserDevices: jest.fn().mockResolvedValue([
-		{ id: 'device-1', name: 'iPhone 15', platform: 'ios', lastActiveAt: new Date().toISOString() },
-		{ id: 'device-2', name: 'MacBook Pro', platform: 'macos', lastActiveAt: new Date().toISOString() },
+		{
+			id: 'device-1',
+			deviceName: 'iPhone 15',
+			deviceType: 'mobile',
+			lastActive: new Date().toISOString(),
+			isVerified: true,
+			isActive: true,
+			createdAt: new Date().toISOString(),
+		},
+		{
+			id: 'device-2',
+			deviceName: 'MacBook Pro',
+			deviceType: 'desktop',
+			lastActive: new Date().toISOString(),
+			isVerified: true,
+			isActive: true,
+			createdAt: new Date().toISOString(),
+		},
 	]),
 	revokeDevice: jest.fn().mockResolvedValue(undefined),
-	getDevice: jest.fn().mockResolvedValue({ id: 'device-1', name: 'iPhone 15' }),
+	getDevice: jest.fn().mockResolvedValue({ id: 'device-1', deviceName: 'iPhone 15', deviceType: 'mobile' }),
 };
 
 describe('Devices endpoints (e2e)', () => {
@@ -78,8 +94,16 @@ describe('Devices endpoints (e2e)', () => {
 
 			expect(body).toEqual(
 				expect.arrayContaining([
-					expect.objectContaining({ id: 'device-1', name: 'iPhone 15', platform: 'ios' }),
-					expect.objectContaining({ id: 'device-2', name: 'MacBook Pro', platform: 'macos' }),
+					expect.objectContaining({
+						id: 'device-1',
+						deviceName: 'iPhone 15',
+						deviceType: 'mobile',
+					}),
+					expect.objectContaining({
+						id: 'device-2',
+						deviceName: 'MacBook Pro',
+						deviceType: 'desktop',
+					}),
 				])
 			);
 			expect(mockDevicesService.getUserDevices).toHaveBeenCalledWith(validPayload.sub);

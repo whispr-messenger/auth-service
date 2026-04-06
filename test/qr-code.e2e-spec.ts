@@ -11,6 +11,7 @@
  */
 import { BadRequestException, INestApplication } from '@nestjs/common';
 import { QuickResponseCodeService } from '../src/modules/devices/quick-response-code/services/quick-response-code.service';
+import { DeviceFingerprintService } from '../src/modules/devices/services/device-fingerprint/device-fingerprint.service';
 import { TokensService } from '../src/modules/tokens/services/tokens.service';
 import { JwtPayload } from '../src/modules/tokens/types/jwt-payload.interface';
 import { createTestApp } from './helpers/create-test-app';
@@ -40,15 +41,24 @@ const mockTokensService = {
 	isDeviceRevoked: jest.fn().mockResolvedValue(false),
 };
 
+const mockFingerprint = {
+	userAgent: 'test-agent',
+	ipAddress: '127.0.0.1',
+	deviceType: 'desktop',
+	timestamp: Date.now(),
+};
+
+const mockFingerprintService = {
+	extractFingerprint: jest.fn().mockReturnValue(mockFingerprint),
+};
+
 const mockQrCodeService = {
-	generateQRChallenge: jest.fn().mockResolvedValue({
-		challenge: 'signed-jwt-challenge-string',
-		expiresIn: 300,
-	}),
+	generateQRChallenge: jest.fn().mockResolvedValue('signed-jwt-challenge-string'),
 	scanLogin: jest.fn().mockResolvedValue({
 		accessToken: 'mock-access-token',
 		refreshToken: 'mock-refresh-token',
-		expiresIn: 3600,
+		userId: 'user-id',
+		deviceId: 'device-id',
 	}),
 };
 
@@ -59,6 +69,7 @@ describe('QR code authentication endpoints (e2e)', () => {
 		const moduleFixture = await createTestModule({
 			providers: [
 				{ provide: QuickResponseCodeService, useValue: mockQrCodeService },
+				{ provide: DeviceFingerprintService, useValue: mockFingerprintService },
 				{ provide: TokensService, useValue: mockTokensService },
 			],
 		});
@@ -75,16 +86,13 @@ describe('QR code authentication endpoints (e2e)', () => {
 	// POST /auth/v1/qr-code/challenge/:deviceId
 	// ---------------------------------------------------------------
 	describe('POST /auth/v1/qr-code/challenge/:deviceId', () => {
-		it('returns 201 with challenge when authenticated', async () => {
-			const { body } = await request(app.getHttpServer())
+		it('returns 201 with challenge string when authenticated', async () => {
+			const { text } = await request(app.getHttpServer())
 				.post('/auth/v1/qr-code/challenge/device-id')
 				.set('Authorization', 'Bearer valid.access.token')
 				.expect(201);
 
-			expect(body).toEqual({
-				challenge: 'signed-jwt-challenge-string',
-				expiresIn: 300,
-			});
+			expect(text).toBe('signed-jwt-challenge-string');
 			expect(mockQrCodeService.generateQRChallenge).toHaveBeenCalledWith('device-id');
 		});
 
@@ -109,9 +117,17 @@ describe('QR code authentication endpoints (e2e)', () => {
 			expect(body).toEqual({
 				accessToken: 'mock-access-token',
 				refreshToken: 'mock-refresh-token',
-				expiresIn: 3600,
+				userId: 'user-id',
+				deviceId: 'device-id',
 			});
-			expect(mockQrCodeService.scanLogin).toHaveBeenCalled();
+			expect(mockFingerprintService.extractFingerprint).toHaveBeenCalled();
+			expect(mockQrCodeService.scanLogin).toHaveBeenCalledWith(
+				expect.objectContaining({
+					challenge: 'valid-challenge-jwt',
+					authenticatedDeviceId: '550e8400-e29b-41d4-a716-446655440000',
+				}),
+				mockFingerprint
+			);
 		});
 
 		it('returns 400 when challenge is invalid or expired', async () => {
