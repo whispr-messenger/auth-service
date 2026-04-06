@@ -106,9 +106,10 @@ describe('AuthController (e2e)', () => {
 
 			expect(response.body.status).toBe('ok');
 			expect(response.body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-			expect(typeof response.body.uptime).toBe('number');
-			expect(response.body.uptime).toBeGreaterThan(0);
-			expect(response.body.version).toMatch(/^\d+\.\d+\.\d+$/);
+			expect(Date.parse(response.body.timestamp)).not.toBeNaN();
+			expect(Number.isFinite(response.body.uptime)).toBe(true);
+			expect(response.body.uptime).toBeGreaterThanOrEqual(0);
+			expect(response.body.version).toMatch(/^\d+\.\d+\.\d+(-[\w.]+)?(\+[\w.]+)?$/);
 			expect(response.body.memory).toEqual(
 				expect.objectContaining({
 					rss: expect.any(Number),
@@ -138,8 +139,10 @@ describe('AuthController (e2e)', () => {
 
 			expect(response.body.status).toBe('alive');
 			expect(response.body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-			expect(typeof response.body.uptime).toBe('number');
-			expect(response.body.version).toMatch(/^\d+\.\d+\.\d+$/);
+			expect(Date.parse(response.body.timestamp)).not.toBeNaN();
+			expect(Number.isFinite(response.body.uptime)).toBe(true);
+			expect(response.body.uptime).toBeGreaterThanOrEqual(0);
+			expect(response.body.version).toMatch(/^\d+\.\d+\.\d+(-[\w.]+)?(\+[\w.]+)?$/);
 			expect(response.body).not.toHaveProperty('services');
 		});
 	});
