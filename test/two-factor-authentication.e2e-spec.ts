@@ -121,18 +121,24 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 		});
 
 		it('returns 201 with the same qrCodeUrl on a second call before enable (save called exactly once)', async () => {
-			const PENDING_SECRET = 'JBSWY3DPEHPK3PXP';
-
-			// First call: no pending secret yet — generates and persists one
+			// First call: no pending secret yet — generates and persists a new secret
 			userAuthRepo.findOne.mockResolvedValueOnce({ ...baseUser, twoFactorPendingSecret: null });
-			userAuthRepo.save.mockResolvedValue(undefined);
+			let capturedSecret: string | null = null;
+			userAuthRepo.save.mockImplementation(
+				(user: typeof baseUser & { twoFactorPendingSecret: string | null }) => {
+					capturedSecret = user.twoFactorPendingSecret;
+					return Promise.resolve(undefined);
+				}
+			);
 
-			const { status: status1 } = await request(app.getHttpServer()).post('/auth/v1/2fa/setup');
+			const { status: status1, body: body1 } = await request(app.getHttpServer()).post(
+				'/auth/v1/2fa/setup'
+			);
 
-			// Second call: pending secret already set — reuse it without saving
+			// Second call: pending secret already set to whatever was persisted
 			userAuthRepo.findOne.mockResolvedValueOnce({
 				...baseUser,
-				twoFactorPendingSecret: PENDING_SECRET,
+				twoFactorPendingSecret: capturedSecret,
 			});
 
 			const { status: status2, body: body2 } = await request(app.getHttpServer()).post(
@@ -141,8 +147,8 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 
 			expect(status1).toBe(201);
 			expect(status2).toBe(201);
-			// The second response must carry a valid QR code
-			expect(body2).toHaveProperty('qrCodeUrl');
+			// Both calls must produce the same QR code — the secret was not rotated
+			expect(body1.qrCodeUrl).toBe(body2.qrCodeUrl);
 			// save must have been called exactly once (only during the first call)
 			expect(userAuthRepo.save).toHaveBeenCalledTimes(1);
 		});

@@ -38,13 +38,14 @@ export class TwoFactorAuthenticationService {
 				encoding: 'base32',
 			});
 		} else {
-			const secret = speakeasy.generateSecret({
-				name: `Whispr (${user.phoneNumber})`,
-				issuer: 'Whispr',
-				length: 32,
-			});
+			const secret = speakeasy.generateSecret({ length: 32 });
 			secretBase32 = secret.base32;
-			otpauthUrl = secret.otpauth_url!;
+			otpauthUrl = speakeasy.otpauthURL({
+				secret: secretBase32,
+				label: `Whispr (${user.phoneNumber})`,
+				issuer: 'Whispr',
+				encoding: 'base32',
+			});
 			user.twoFactorPendingSecret = secretBase32;
 			await this.userAuthService.saveUser(user);
 		}
