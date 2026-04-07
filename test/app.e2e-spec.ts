@@ -100,9 +100,9 @@ describe('AuthController (e2e)', () => {
 		});
 	});
 
-	describe('GET /auth/v1/health', () => {
+	describe('GET /auth/health', () => {
 		it('should return ok with healthy services when database and cache are up', async () => {
-			const response = await request(app.getHttpServer()).get('/auth/v1/health').expect(200);
+			const response = await request(app.getHttpServer()).get('/auth/health').expect(200);
 
 			expect(response.body.status).toBe('ok');
 			expect(response.body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
@@ -126,16 +126,16 @@ describe('AuthController (e2e)', () => {
 		it('should return 503 when database is unhealthy', async () => {
 			mockDataSource.query.mockRejectedValueOnce(new Error('Connection refused'));
 
-			const response = await request(app.getHttpServer()).get('/auth/v1/health').expect(503);
+			const response = await request(app.getHttpServer()).get('/auth/health').expect(503);
 
 			expect(response.body.status).toBe('error');
 			expect(response.body.services.database).toBe('unhealthy');
 		});
 	});
 
-	describe('GET /auth/v1/health/live', () => {
+	describe('GET /auth/health/live', () => {
 		it('should return alive status without checking dependencies', async () => {
-			const response = await request(app.getHttpServer()).get('/auth/v1/health/live').expect(200);
+			const response = await request(app.getHttpServer()).get('/auth/health/live').expect(200);
 
 			expect(response.body.status).toBe('alive');
 			expect(response.body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
