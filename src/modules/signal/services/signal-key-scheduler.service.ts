@@ -70,8 +70,12 @@ export class SignalKeySchedulerService {
 			this.lastPreKeyCheckTime = new Date();
 
 			if (devicesWithLowPrekeys.length > 0) {
+				const deviceSummary = devicesWithLowPrekeys
+					.map((d) => `${d.userId}:${d.deviceId}(${d.count})`)
+					.join(', ');
+
 				this.logger.warn(
-					`Found ${devicesWithLowPrekeys.length} devices with low prekeys: ${devicesWithLowPrekeys.map((d) => `${d.userId}:${d.deviceId}(${d.count})`).join(', ')}`
+					`Found ${devicesWithLowPrekeys.length} devices with low prekeys: ${deviceSummary}`
 				);
 
 				// In production, emit events here for notification service
@@ -155,7 +159,7 @@ export class SignalKeySchedulerService {
 		return result.map((r) => ({
 			userId: r.userId,
 			deviceId: r.deviceId,
-			count: parseInt(r.count, 10),
+			count: Number.parseInt(r.count, 10),
 		}));
 	}
 

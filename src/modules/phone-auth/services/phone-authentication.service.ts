@@ -6,7 +6,7 @@ import {
 	Logger,
 	NotFoundException,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { UserAuthService } from '../../common/services/user-auth.service';

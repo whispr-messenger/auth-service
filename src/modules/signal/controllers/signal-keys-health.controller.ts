@@ -68,9 +68,9 @@ export class SignalKeysHealthController {
 			.addGroupBy('prekey.deviceId')
 			.getRawMany();
 
-		const devicesWithLowPrekeys = devicesGrouped.filter((d) => parseInt(d.count, 10) < 20).length;
+		const devicesWithLowPrekeys = devicesGrouped.filter((d) => Number.parseInt(d.count, 10) < 20).length;
 
-		const devicesWithNoPrekeys = devicesGrouped.filter((d) => parseInt(d.count, 10) === 0).length;
+		const devicesWithNoPrekeys = devicesGrouped.filter((d) => Number.parseInt(d.count, 10) === 0).length;
 
 		// Determine overall health status
 		const issues: string[] = [];
