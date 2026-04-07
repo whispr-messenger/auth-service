@@ -76,6 +76,24 @@ describe('TwoFactorAuthenticationService', () => {
 
 			await expect(service.setupTwoFactor('user-id')).rejects.toThrow(BadRequestException);
 		});
+
+		it('should reuse existing pending secret and not call saveUser when twoFactorPendingSecret is already set', async () => {
+			const user = { ...mockUser, twoFactorPendingSecret: 'EXISTING_SECRET' };
+			mockUserAuthService.findById.mockResolvedValue(user);
+			(speakeasy.otpauthURL as jest.Mock).mockReturnValue(
+				'otpauth://totp/Whispr?secret=EXISTING_SECRET'
+			);
+			(QRCode.toDataURL as jest.Mock).mockResolvedValue('data:image/png;base64,existing');
+
+			const result = await service.setupTwoFactor('user-id');
+
+			expect(result).toEqual({ qrCodeUrl: 'data:image/png;base64,existing' });
+			expect(speakeasy.generateSecret).not.toHaveBeenCalled();
+			expect(speakeasy.otpauthURL).toHaveBeenCalledWith(
+				expect.objectContaining({ secret: 'EXISTING_SECRET', encoding: 'base32' })
+			);
+			expect(mockUserAuthService.saveUser).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('enableTwoFactor', () => {

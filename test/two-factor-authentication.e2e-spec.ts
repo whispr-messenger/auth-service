@@ -119,6 +119,25 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 			expect(body).not.toHaveProperty('secret');
 			expect(body).not.toHaveProperty('backupCodes');
 		});
+
+		it('returns 201 with a qrCodeUrl based on the existing pending secret when called a second time', async () => {
+			userAuthRepo.findOne.mockResolvedValue({
+				...baseUser,
+				twoFactorPendingSecret: 'JBSWY3DPEHPK3PXP',
+			});
+
+			const { status: status1, body: body1 } = await request(app.getHttpServer()).post(
+				'/auth/v1/2fa/setup'
+			);
+			const { status: status2, body: body2 } = await request(app.getHttpServer()).post(
+				'/auth/v1/2fa/setup'
+			);
+
+			expect(status1).toBe(201);
+			expect(status2).toBe(201);
+			expect(body1.qrCodeUrl).toBe(body2.qrCodeUrl);
+			expect(userAuthRepo.save).not.toHaveBeenCalled();
+		});
 	});
 
 	// ---------------------------------------------------------------
