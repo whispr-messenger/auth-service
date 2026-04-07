@@ -26,16 +26,31 @@ export class TwoFactorAuthenticationService {
 			throw new BadRequestException('Two-factor authentication is already enabled');
 		}
 
-		const secret = speakeasy.generateSecret({
-			name: `Whispr (${user.phoneNumber})`,
-			issuer: 'Whispr',
-			length: 32,
-		});
+		let secretBase32: string;
+		let otpauthUrl: string;
 
-		const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url!);
+		if (user.twoFactorPendingSecret) {
+			secretBase32 = user.twoFactorPendingSecret;
+			otpauthUrl = speakeasy.otpauthURL({
+				secret: secretBase32,
+				label: `Whispr (${user.phoneNumber})`,
+				issuer: 'Whispr',
+				encoding: 'base32',
+			});
+		} else {
+			const secret = speakeasy.generateSecret({ length: 32 });
+			secretBase32 = secret.base32;
+			otpauthUrl = speakeasy.otpauthURL({
+				secret: secretBase32,
+				label: `Whispr (${user.phoneNumber})`,
+				issuer: 'Whispr',
+				encoding: 'base32',
+			});
+			user.twoFactorPendingSecret = secretBase32;
+			await this.userAuthService.saveUser(user);
+		}
 
-		user.twoFactorPendingSecret = secret.base32;
-		await this.userAuthService.saveUser(user);
+		const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
 
 		return { qrCodeUrl };
 	}

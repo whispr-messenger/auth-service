@@ -49,16 +49,18 @@ describe('TwoFactorAuthenticationService', () => {
 		it('should persist pending secret and return qrCodeUrl without generating backup codes', async () => {
 			const user = { ...mockUser };
 			mockUserAuthService.findById.mockResolvedValue(user);
-			(speakeasy.generateSecret as jest.Mock).mockReturnValue({
-				base32: 'BASE32SECRET',
-				otpauth_url: 'otpauth://totp/Whispr?secret=BASE32SECRET',
-			});
+			(speakeasy.generateSecret as jest.Mock).mockReturnValue({ base32: 'BASE32SECRET' });
+			(speakeasy.otpauthURL as jest.Mock).mockReturnValue('otpauth://totp/Whispr?secret=BASE32SECRET');
 			(QRCode.toDataURL as jest.Mock).mockResolvedValue('data:image/png;base64,abc');
 			mockUserAuthService.saveUser.mockResolvedValue(undefined);
 
 			const result = await service.setupTwoFactor('user-id');
 
 			expect(result).toEqual({ qrCodeUrl: 'data:image/png;base64,abc' });
+			expect(speakeasy.otpauthURL).toHaveBeenCalledWith(
+				expect.objectContaining({ secret: 'BASE32SECRET', encoding: 'base32' })
+			);
+			expect(QRCode.toDataURL).toHaveBeenCalledWith('otpauth://totp/Whispr?secret=BASE32SECRET');
 			expect(mockUserAuthService.saveUser).toHaveBeenCalledWith(
 				expect.objectContaining({ twoFactorPendingSecret: 'BASE32SECRET' })
 			);
@@ -75,6 +77,25 @@ describe('TwoFactorAuthenticationService', () => {
 			mockUserAuthService.findById.mockResolvedValue({ ...mockUser, twoFactorEnabled: true });
 
 			await expect(service.setupTwoFactor('user-id')).rejects.toThrow(BadRequestException);
+		});
+
+		it('should reuse existing pending secret and not call saveUser when twoFactorPendingSecret is already set', async () => {
+			const user = { ...mockUser, twoFactorPendingSecret: 'EXISTING_SECRET' };
+			mockUserAuthService.findById.mockResolvedValue(user);
+			(speakeasy.otpauthURL as jest.Mock).mockReturnValue(
+				'otpauth://totp/Whispr?secret=EXISTING_SECRET'
+			);
+			(QRCode.toDataURL as jest.Mock).mockResolvedValue('data:image/png;base64,existing');
+
+			const result = await service.setupTwoFactor('user-id');
+
+			expect(result).toEqual({ qrCodeUrl: 'data:image/png;base64,existing' });
+			expect(speakeasy.generateSecret).not.toHaveBeenCalled();
+			expect(speakeasy.otpauthURL).toHaveBeenCalledWith(
+				expect.objectContaining({ secret: 'EXISTING_SECRET', encoding: 'base32' })
+			);
+			expect(QRCode.toDataURL).toHaveBeenCalledWith('otpauth://totp/Whispr?secret=EXISTING_SECRET');
+			expect(mockUserAuthService.saveUser).not.toHaveBeenCalled();
 		});
 	});
 
