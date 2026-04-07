@@ -49,6 +49,7 @@ describe('QuickResponseCodeService', () => {
 		id: 'user-456',
 		phoneNumber: '+33612345678',
 		twoFactorSecret: null as any,
+		twoFactorPendingSecret: null,
 		twoFactorEnabled: false,
 		lastAuthenticatedAt: new Date('2026-01-08T10:00:00Z'),
 		createdAt: new Date('2026-01-01T00:00:00Z'),

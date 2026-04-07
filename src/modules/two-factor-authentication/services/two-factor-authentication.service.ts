@@ -5,7 +5,6 @@ import * as QRCode from 'qrcode';
 import { BackupCodesService } from '../backup-codes/backup-codes.service';
 
 interface TwoFactorSetup {
-	secret: string;
 	qrCodeUrl: string;
 }
 
@@ -35,25 +34,35 @@ export class TwoFactorAuthenticationService {
 
 		const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url!);
 
-		return {
-			secret: secret.base32,
-			qrCodeUrl,
-		};
+		user.twoFactorPendingSecret = secret.base32;
+		await this.userAuthService.saveUser(user);
+
+		return { qrCodeUrl };
 	}
 
-	async enableTwoFactor(userId: string, secret: string, token: string): Promise<string[]> {
+	async enableTwoFactor(userId: string, token: string): Promise<string[]> {
 		const user = await this.userAuthService.findById(userId);
 		if (!user) {
 			throw new BadRequestException('User not found');
 		}
 
-		const isValid = speakeasy.totp.verify({ secret, encoding: 'base32', token, window: 2 });
+		if (!user.twoFactorPendingSecret) {
+			throw new BadRequestException('2FA setup not initiated');
+		}
+
+		const isValid = speakeasy.totp.verify({
+			secret: user.twoFactorPendingSecret,
+			encoding: 'base32',
+			token,
+			window: 2,
+		});
 
 		if (!isValid) {
 			throw new BadRequestException('Invalid verification code');
 		}
 
-		user.twoFactorSecret = secret;
+		user.twoFactorSecret = user.twoFactorPendingSecret;
+		user.twoFactorPendingSecret = null;
 		user.twoFactorEnabled = true;
 
 		await this.userAuthService.saveUser(user);
