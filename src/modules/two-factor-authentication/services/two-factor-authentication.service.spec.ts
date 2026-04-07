@@ -45,23 +45,21 @@ describe('TwoFactorAuthenticationService', () => {
 	});
 
 	describe('setupTwoFactor', () => {
-		it('should return secret, qrCodeUrl, and backupCodes', async () => {
+		it('should return secret and qrCodeUrl without generating backup codes', async () => {
 			mockUserAuthService.findById.mockResolvedValue(mockUser);
 			(speakeasy.generateSecret as jest.Mock).mockReturnValue({
 				base32: 'BASE32SECRET',
 				otpauth_url: 'otpauth://totp/Whispr?secret=BASE32SECRET',
 			});
 			(QRCode.toDataURL as jest.Mock).mockResolvedValue('data:image/png;base64,abc');
-			mockBackupCodesService.generateBackupCodes.mockResolvedValue(['CODE1', 'CODE2']);
 
 			const result = await service.setupTwoFactor('user-id');
 
 			expect(result).toEqual({
 				secret: 'BASE32SECRET',
 				qrCodeUrl: 'data:image/png;base64,abc',
-				backupCodes: ['CODE1', 'CODE2'],
 			});
-			expect(mockBackupCodesService.generateBackupCodes).toHaveBeenCalledWith('user-id');
+			expect(mockBackupCodesService.generateBackupCodes).not.toHaveBeenCalled();
 		});
 
 		it('should throw BadRequestException when user not found', async () => {
@@ -78,16 +76,19 @@ describe('TwoFactorAuthenticationService', () => {
 	});
 
 	describe('enableTwoFactor', () => {
-		it('should save user with 2FA enabled when token is valid', async () => {
+		it('should save user with 2FA enabled and return backup codes when token is valid', async () => {
 			mockUserAuthService.findById.mockResolvedValue({ ...mockUser });
 			(speakeasy.totp.verify as jest.Mock).mockReturnValue(true);
 			mockUserAuthService.saveUser.mockResolvedValue(undefined);
+			mockBackupCodesService.generateBackupCodes.mockResolvedValue(['CODE1', 'CODE2']);
 
-			await service.enableTwoFactor('user-id', 'SECRET', '123456');
+			const result = await service.enableTwoFactor('user-id', 'SECRET', '123456');
 
 			expect(mockUserAuthService.saveUser).toHaveBeenCalledWith(
 				expect.objectContaining({ twoFactorSecret: 'SECRET', twoFactorEnabled: true })
 			);
+			expect(mockBackupCodesService.generateBackupCodes).toHaveBeenCalledWith('user-id');
+			expect(result).toEqual(['CODE1', 'CODE2']);
 		});
 
 		it('should throw BadRequestException when user not found', async () => {

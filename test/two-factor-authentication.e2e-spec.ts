@@ -20,6 +20,7 @@ import { BackupCode } from '../src/modules/two-factor-authentication/entities/ba
 import { JwtAuthGuard } from '../src/modules/tokens/guards/jwt-auth.guard';
 import { createTestModule, makeMockRepository } from './helpers/create-test-module';
 import { createTestApp } from './helpers/create-test-app';
+import * as speakeasy from 'speakeasy';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const request = require('supertest');
@@ -106,17 +107,15 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 			expect(body.message).toBe('Two-factor authentication is already enabled');
 		});
 
-		it('returns 201 with secret, qrCodeUrl and backupCodes on success', async () => {
+		it('returns 201 with secret and qrCodeUrl on success (no backup codes yet)', async () => {
 			userAuthRepo.findOne.mockResolvedValue({ ...baseUser });
-			backupCodeRepo.delete.mockResolvedValue({ affected: 0 });
 
 			const { status, body } = await request(app.getHttpServer()).post('/auth/v1/2fa/setup');
 
 			expect(status).toBe(201);
 			expect(body).toHaveProperty('secret');
 			expect(body).toHaveProperty('qrCodeUrl');
-			expect(body).toHaveProperty('backupCodes');
-			expect(Array.isArray(body.backupCodes)).toBe(true);
+			expect(body).not.toHaveProperty('backupCodes');
 		});
 	});
 
@@ -144,6 +143,27 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 
 			expect(status).toBe(400);
 			expect(body.message).toBe('Invalid verification code');
+		});
+
+		it('returns 200 with backupCodes on success', async () => {
+			userAuthRepo.findOne.mockResolvedValue({ ...baseUser });
+			userAuthRepo.save.mockResolvedValue(undefined);
+			backupCodeRepo.delete.mockResolvedValue({ affected: 0 });
+			backupCodeRepo.create.mockImplementation((data: any) => data);
+			backupCodeRepo.save.mockResolvedValue(undefined);
+
+			// Use a real TOTP secret + matching token so speakeasy validates correctly
+			const secret = speakeasy.generateSecret({ length: 20 });
+			const token: string = speakeasy.totp({ secret: secret.base32, encoding: 'base32' });
+
+			const { status, body } = await request(app.getHttpServer())
+				.post('/auth/v1/2fa/enable')
+				.send({ secret: secret.base32, token });
+
+			expect(status).toBe(200);
+			expect(body).toHaveProperty('backupCodes');
+			expect(Array.isArray(body.backupCodes)).toBe(true);
+			expect(body.backupCodes.length).toBe(10);
 		});
 	});
 
