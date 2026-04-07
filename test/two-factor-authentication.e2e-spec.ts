@@ -115,8 +115,9 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 			const { status, body } = await request(app.getHttpServer()).post('/auth/v1/2fa/setup');
 
 			expect(status).toBe(201);
+			expect(body).toHaveProperty('secret');
+			expect(body).toHaveProperty('otpauthUri');
 			expect(body).toHaveProperty('qrCodeUrl');
-			expect(body).not.toHaveProperty('secret');
 			expect(body).not.toHaveProperty('backupCodes');
 		});
 
