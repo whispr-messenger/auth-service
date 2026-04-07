@@ -7,7 +7,6 @@ import { BackupCodesService } from '../backup-codes/backup-codes.service';
 interface TwoFactorSetup {
 	secret: string;
 	qrCodeUrl: string;
-	backupCodes: string[];
 }
 
 @Injectable()
@@ -35,16 +34,14 @@ export class TwoFactorAuthenticationService {
 		});
 
 		const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url!);
-		const backupCodes = await this.backupCodesService.generateBackupCodes(userId);
 
 		return {
 			secret: secret.base32,
 			qrCodeUrl,
-			backupCodes,
 		};
 	}
 
-	async enableTwoFactor(userId: string, secret: string, token: string): Promise<void> {
+	async enableTwoFactor(userId: string, secret: string, token: string): Promise<string[]> {
 		const user = await this.userAuthService.findById(userId);
 		if (!user) {
 			throw new BadRequestException('User not found');
@@ -60,6 +57,8 @@ export class TwoFactorAuthenticationService {
 		user.twoFactorEnabled = true;
 
 		await this.userAuthService.saveUser(user);
+
+		return this.backupCodesService.generateBackupCodes(userId);
 	}
 
 	async verifyTwoFactor(userId: string, token: string): Promise<boolean> {
