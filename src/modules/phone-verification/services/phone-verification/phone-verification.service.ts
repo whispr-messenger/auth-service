@@ -71,7 +71,9 @@ export class PhoneVerificationService {
 	): Promise<VerificationRequestResponseDto> {
 		const normalizedPhone = this.phoneService.normalize(phoneNumber);
 
-		await this.checkRateLimit(normalizedPhone);
+		if (!this.isDemoMode && !this.otpBypassCode) {
+			await this.checkRateLimit(normalizedPhone);
+		}
 
 		const { verificationId, code, verificationData } = await this.createVerificationData(
 			normalizedPhone,
@@ -80,7 +82,9 @@ export class PhoneVerificationService {
 
 		await this.verificationRepo.save(verificationId, verificationData, this.VERIFICATION_TTL * 1000);
 
-		await this.incrementRateLimit(normalizedPhone);
+		if (!this.isDemoMode && !this.otpBypassCode) {
+			await this.incrementRateLimit(normalizedPhone);
+		}
 
 		await this.sendVerificationCode(normalizedPhone, code, purpose);
 
