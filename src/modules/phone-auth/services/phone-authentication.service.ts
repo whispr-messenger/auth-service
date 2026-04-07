@@ -3,6 +3,7 @@ import {
 	BadRequestException,
 	ConflictException,
 	Inject,
+	Logger,
 	NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
@@ -24,6 +25,8 @@ import { SignalKeyStorageService } from '../../signal/services/signal-key-storag
 
 @Injectable()
 export class PhoneAuthenticationService {
+	private readonly logger = new Logger(PhoneAuthenticationService.name);
+
 	constructor(
 		private readonly deviceRegistrationService: DeviceRegistrationService,
 		private readonly deviceActivityService: DeviceActivityService,
@@ -141,7 +144,16 @@ export class PhoneAuthenticationService {
 			phoneNumber: savedUser.phoneNumber,
 			timestamp: new Date(),
 		};
-		this.redisClient.emit(USER_REGISTERED_PATTERN, event);
+
+		this.logger.log(`Emitting user.registered for userId=${savedUser.id}`);
+		try {
+			this.redisClient.emit(USER_REGISTERED_PATTERN, event);
+			this.logger.log(`user.registered emitted successfully for userId=${savedUser.id}`);
+		} catch (error) {
+			this.logger.error(
+				`Failed to emit user.registered for userId=${savedUser.id}: ${error instanceof Error ? error.message : String(error)}`
+			);
+		}
 
 		return this.createAuthSession(savedUser, deviceId, fingerprint, dto.verificationId);
 	}

@@ -262,5 +262,33 @@ describe('PhoneAuthenticationService', () => {
 				ConflictException
 			);
 		});
+
+		it('should log before and after emitting user.registered event', async () => {
+			const savedUser = { id: 'user-123', phoneNumber: '+33600000001' };
+			mockPhoneVerificationService.getConfirmedVerification.mockResolvedValue({
+				phoneNumber: '+33600000001',
+				purpose: 'registration',
+			});
+			mockUserAuthService.findByPhoneNumber.mockResolvedValue(null);
+			mockUserAuthService.createUser.mockReturnValue(savedUser);
+			mockUserAuthService.saveUser.mockResolvedValue(savedUser);
+			mockDeviceRegistrationService.registerDevice.mockResolvedValue({ id: 'device-1' });
+			mockTokensService.generateTokenPair.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' });
+
+			const logSpy = jest.spyOn(service['logger'], 'log');
+
+			await service.register({ verificationId: 'ver-1' } as any, fingerprint);
+
+			expect(logSpy).toHaveBeenCalledWith(
+				expect.stringContaining('Emitting user.registered for userId=user-123')
+			);
+			expect(logSpy).toHaveBeenCalledWith(
+				expect.stringContaining('user.registered emitted successfully for userId=user-123')
+			);
+			expect(mockRedisClient.emit).toHaveBeenCalledWith(
+				'user.registered',
+				expect.objectContaining({ userId: 'user-123' })
+			);
+		});
 	});
 });
