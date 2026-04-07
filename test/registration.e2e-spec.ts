@@ -117,7 +117,7 @@ describe('Registration Flow (e2e)', () => {
 		it('should complete the full registration flow successfully', async () => {
 			// Étape 1: Demande de code de vérification
 			const requestResponse = await request(app.getHttpServer())
-				.post('/auth/v1/verify/register/request')
+				.post('/auth/verify/register/request')
 				.send({ phoneNumber })
 				.expect(200);
 
@@ -141,7 +141,7 @@ describe('Registration Flow (e2e)', () => {
 
 			// Étape 2: Confirmation du code de vérification
 			const confirmResponse = await request(app.getHttpServer())
-				.post('/auth/v1/verify/register/confirm')
+				.post('/auth/verify/register/confirm')
 				.send({
 					verificationId,
 					code: verificationCode,
@@ -162,7 +162,7 @@ describe('Registration Flow (e2e)', () => {
 
 			// Étape 3: Inscription finale avec les informations utilisateur
 			const registerResponse = await request(app.getHttpServer())
-				.post('/auth/v1/register')
+				.post('/auth/register')
 				.send({
 					verificationId,
 					deviceName: 'Test Device',
@@ -194,7 +194,7 @@ describe('Registration Flow (e2e)', () => {
 
 		it('should fail registration request with invalid phone number', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/v1/verify/register/request')
+				.post('/auth/verify/register/request')
 				.send({ phoneNumber: 'invalid-phone' })
 				.expect(400);
 
@@ -206,7 +206,7 @@ describe('Registration Flow (e2e)', () => {
 
 		it('should fail registration confirmation with invalid verification ID', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/v1/verify/register/confirm')
+				.post('/auth/verify/register/confirm')
 				.send({
 					verificationId: 'invalid-uuid',
 					code: '123456',
@@ -218,7 +218,7 @@ describe('Registration Flow (e2e)', () => {
 
 		it('should fail registration confirmation with invalid code format', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/v1/verify/register/confirm')
+				.post('/auth/verify/register/confirm')
 				.send({
 					verificationId: '550e8400-e29b-41d4-a716-446655440000',
 					code: '12345', // Seulement 5 chiffres au lieu de 6
@@ -234,7 +234,7 @@ describe('Registration Flow (e2e)', () => {
 
 		it('should fail final registration with missing required fields', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/v1/register')
+				.post('/auth/register')
 				.send({
 					verificationId: '550e8400-e29b-41d4-a716-446655440000',
 				})
@@ -245,7 +245,7 @@ describe('Registration Flow (e2e)', () => {
 
 		it('should fail final registration with invalid verification ID', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/v1/register')
+				.post('/auth/register')
 				.send({
 					verificationId: 'not-a-uuid',
 				})
@@ -268,7 +268,7 @@ describe('Registration Flow (e2e)', () => {
 			const verificationId = '550e8400-e29b-41d4-a716-446655440000';
 
 			const response = await request(app.getHttpServer())
-				.post('/auth/v1/register')
+				.post('/auth/register')
 				.send({
 					verificationId,
 					// Pas de deviceName, deviceType, ni publicKey
@@ -306,7 +306,7 @@ describe('Registration Flow (e2e)', () => {
 			});
 
 			const response = await request(app.getHttpServer())
-				.post('/auth/v1/register')
+				.post('/auth/register')
 				.send({
 					verificationId: '550e8400-e29b-41d4-a716-446655440000',
 				})
@@ -320,7 +320,7 @@ describe('Registration Flow (e2e)', () => {
 	describe('Registration Request Validation', () => {
 		it('should reject empty phone number', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/v1/verify/register/request')
+				.post('/auth/verify/register/request')
 				.send({ phoneNumber: '' })
 				.expect(400);
 
@@ -329,7 +329,7 @@ describe('Registration Flow (e2e)', () => {
 
 		it('should reject missing phone number', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/v1/verify/register/request')
+				.post('/auth/verify/register/request')
 				.send({})
 				.expect(400);
 
@@ -344,7 +344,7 @@ describe('Registration Flow (e2e)', () => {
 				mockUserAuthRepository.findOne.mockResolvedValueOnce(null);
 
 				const response = await request(app.getHttpServer())
-					.post('/auth/v1/verify/register/request')
+					.post('/auth/verify/register/request')
 					.send({ phoneNumber })
 					.expect(200);
 
@@ -368,7 +368,7 @@ describe('Registration Flow (e2e)', () => {
 		});
 		it('should validate deviceName is a string', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/v1/register')
+				.post('/auth/register')
 				.send({
 					verificationId: validVerificationId,
 					deviceName: 123, // Number instead of string
@@ -380,7 +380,7 @@ describe('Registration Flow (e2e)', () => {
 
 		it('should validate deviceType is a string', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/v1/register')
+				.post('/auth/register')
 				.send({
 					verificationId: validVerificationId,
 					deviceType: ['mobile'], // Array instead of string
@@ -392,7 +392,7 @@ describe('Registration Flow (e2e)', () => {
 
 		it('should accept optional deviceType field', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/v1/register')
+				.post('/auth/register')
 				.send({
 					verificationId: validVerificationId,
 					deviceType: 'desktop',
@@ -404,7 +404,7 @@ describe('Registration Flow (e2e)', () => {
 
 		it('should accept optional deviceName field', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/v1/register')
+				.post('/auth/register')
 				.send({
 					verificationId: validVerificationId,
 					deviceName: 'My Laptop',
@@ -416,7 +416,7 @@ describe('Registration Flow (e2e)', () => {
 
 		it('should accept registration with only verificationId', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/v1/register')
+				.post('/auth/register')
 				.send({
 					verificationId: validVerificationId,
 				})
