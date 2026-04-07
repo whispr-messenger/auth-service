@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { Logger, VersioningType } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './modules/app/app.module';
@@ -14,12 +14,6 @@ async function bootstrap() {
 	const globalPrefix = 'auth';
 
 	app.setGlobalPrefix(globalPrefix);
-
-	app.enableVersioning({
-		type: VersioningType.URI,
-		defaultVersion: '1',
-		prefix: 'v',
-	});
 
 	createSwaggerDocumentation(app, port, configService, globalPrefix);
 
