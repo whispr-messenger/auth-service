@@ -29,7 +29,7 @@ export class TwoFactorAuthenticationController {
 	@ApiResponse({ status: 400, description: 'Invalid token or secret' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
 	async enableTwoFactor(@Request() req: any, @Body() dto: TwoFactorSetupDto) {
-		const backupCodes = await this.twoFactorService.enableTwoFactor(req.user.sub, dto.secret, dto.token);
+		const backupCodes = await this.twoFactorService.enableTwoFactor(req.user.sub, dto.token);
 		return { backupCodes };
 	}
 
