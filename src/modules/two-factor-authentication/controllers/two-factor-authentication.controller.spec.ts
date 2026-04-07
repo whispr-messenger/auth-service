@@ -44,15 +44,15 @@ describe('TwoFactorAuthenticationController', () => {
 	});
 
 	describe('enableTwoFactor', () => {
-		it('should enable 2FA and return undefined', async () => {
-			mockTwoFactorService.enableTwoFactor.mockResolvedValue(undefined);
+		it('should enable 2FA and return backup codes', async () => {
+			mockTwoFactorService.enableTwoFactor.mockResolvedValue(['CODE1', 'CODE2']);
 
 			const result = await controller.enableTwoFactor(mockRequest, {
 				secret: 'SECRET',
 				token: '123456',
 			});
 
-			expect(result).toBeUndefined();
+			expect(result).toEqual({ backupCodes: ['CODE1', 'CODE2'] });
 			expect(mockTwoFactorService.enableTwoFactor).toHaveBeenCalledWith('user-id', 'SECRET', '123456');
 		});
 	});
