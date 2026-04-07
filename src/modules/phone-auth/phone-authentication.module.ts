@@ -32,6 +32,9 @@ const throttlerModuleOptions: ThrottlerModuleOptions = [
 					options: {
 						host: configService.get<string>('REDIS_HOST', 'localhost'),
 						port: configService.get<number>('REDIS_PORT', 6379),
+						username: configService.get<string>('REDIS_USERNAME'),
+						password: configService.get<string>('REDIS_PASSWORD'),
+						db: configService.get<number>('REDIS_DB', 0),
 					},
 				}),
 				inject: [ConfigService],
