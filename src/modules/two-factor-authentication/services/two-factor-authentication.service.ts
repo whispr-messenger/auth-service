@@ -5,6 +5,8 @@ import * as QRCode from 'qrcode';
 import { BackupCodesService } from '../backup-codes/backup-codes.service';
 
 interface TwoFactorSetup {
+	secret: string;
+	otpauthUri: string;
 	qrCodeUrl: string;
 }
 
@@ -52,7 +54,7 @@ export class TwoFactorAuthenticationService {
 
 		const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
 
-		return { qrCodeUrl };
+		return { secret: secretBase32, otpauthUri: otpauthUrl, qrCodeUrl };
 	}
 
 	async enableTwoFactor(userId: string, token: string): Promise<string[]> {

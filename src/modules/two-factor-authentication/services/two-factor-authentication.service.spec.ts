@@ -56,7 +56,11 @@ describe('TwoFactorAuthenticationService', () => {
 
 			const result = await service.setupTwoFactor('user-id');
 
-			expect(result).toEqual({ qrCodeUrl: 'data:image/png;base64,abc' });
+			expect(result).toEqual({
+				secret: 'BASE32SECRET',
+				otpauthUri: 'otpauth://totp/Whispr?secret=BASE32SECRET',
+				qrCodeUrl: 'data:image/png;base64,abc',
+			});
 			expect(speakeasy.otpauthURL).toHaveBeenCalledWith(
 				expect.objectContaining({ secret: 'BASE32SECRET', encoding: 'base32' })
 			);
@@ -89,7 +93,11 @@ describe('TwoFactorAuthenticationService', () => {
 
 			const result = await service.setupTwoFactor('user-id');
 
-			expect(result).toEqual({ qrCodeUrl: 'data:image/png;base64,existing' });
+			expect(result).toEqual({
+				secret: 'EXISTING_SECRET',
+				otpauthUri: 'otpauth://totp/Whispr?secret=EXISTING_SECRET',
+				qrCodeUrl: 'data:image/png;base64,existing',
+			});
 			expect(speakeasy.generateSecret).not.toHaveBeenCalled();
 			expect(speakeasy.otpauthURL).toHaveBeenCalledWith(
 				expect.objectContaining({ secret: 'EXISTING_SECRET', encoding: 'base32' })
