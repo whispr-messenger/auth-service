@@ -3,11 +3,17 @@ import {
 	ApiBearerAuth,
 	ApiBody,
 	ApiCreatedResponse,
+	ApiOkResponse,
 	ApiOperation,
 	ApiResponse,
 	ApiTags,
 } from '@nestjs/swagger';
-import { TwoFactorSetupDto, TwoFactorSetupResponseDto, TwoFactorVerifyDto } from '../dto';
+import {
+	TwoFactorBackupCodesResponseDto,
+	TwoFactorSetupDto,
+	TwoFactorSetupResponseDto,
+	TwoFactorVerifyDto,
+} from '../dto';
 import { TwoFactorAuthenticationService } from '../services/two-factor-authentication.service';
 import { JwtAuthGuard } from '../../tokens/guards';
 
@@ -35,7 +41,10 @@ export class TwoFactorAuthenticationController {
 	@ApiBearerAuth()
 	@ApiOperation({ summary: 'Enable two-factor authentication' })
 	@ApiBody({ type: TwoFactorSetupDto })
-	@ApiResponse({ status: 200, description: '2FA enabled successfully with backup codes' })
+	@ApiOkResponse({
+		type: TwoFactorBackupCodesResponseDto,
+		description: '2FA enabled successfully; returns backup codes',
+	})
 	@ApiResponse({ status: 400, description: 'Invalid token or 2FA setup not initiated' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
 	async enableTwoFactor(@Request() req: any, @Body() dto: TwoFactorSetupDto) {
@@ -72,10 +81,11 @@ export class TwoFactorAuthenticationController {
 
 	@Post('backup-codes')
 	@UseGuards(JwtAuthGuard)
+	@HttpCode(HttpStatus.OK)
 	@ApiBearerAuth()
 	@ApiOperation({ summary: 'Generate new 2FA backup codes' })
 	@ApiBody({ type: TwoFactorVerifyDto })
-	@ApiResponse({ status: 200, description: 'New backup codes generated' })
+	@ApiOkResponse({ type: TwoFactorBackupCodesResponseDto, description: 'New backup codes generated' })
 	@ApiResponse({ status: 400, description: 'Invalid token' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
 	async generateBackupCodes(@Request() req: any, @Body() dto: TwoFactorVerifyDto) {
