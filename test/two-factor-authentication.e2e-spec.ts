@@ -2,7 +2,7 @@
  * E2E tests for the Two-Factor Authentication (2FA) endpoints.
  *
  * Verifies the externally visible HTTP behaviour of:
- * - POST /auth/v1/2fa/setup          — set up 2FA (QR + secret + backup codes)
+ * - POST /auth/v1/2fa/setup          — set up 2FA (returns qrCodeUrl, secret, otpauthUri)
  * - POST /auth/v1/2fa/enable         — enable 2FA with TOTP verification
  * - POST /auth/v1/2fa/verify         — verify a TOTP / backup code
  * - POST /auth/v1/2fa/disable        — disable 2FA
@@ -108,7 +108,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 			expect(body.message).toBe('Two-factor authentication is already enabled');
 		});
 
-		it('returns 201 with qrCodeUrl only (secret stored server-side, not exposed)', async () => {
+		it('returns 201 with qrCodeUrl, secret, and otpauthUri', async () => {
 			userAuthRepo.findOne.mockResolvedValue({ ...baseUser });
 			userAuthRepo.save.mockResolvedValue(undefined);
 

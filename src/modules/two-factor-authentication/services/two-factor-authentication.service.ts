@@ -35,7 +35,7 @@ export class TwoFactorAuthenticationService {
 			secretBase32 = user.twoFactorPendingSecret;
 			otpauthUrl = speakeasy.otpauthURL({
 				secret: secretBase32,
-				label: `Whispr (${user.phoneNumber})`,
+				label: 'Whispr',
 				issuer: 'Whispr',
 				encoding: 'base32',
 			});
@@ -44,7 +44,7 @@ export class TwoFactorAuthenticationService {
 			secretBase32 = secret.base32;
 			otpauthUrl = speakeasy.otpauthURL({
 				secret: secretBase32,
-				label: `Whispr (${user.phoneNumber})`,
+				label: 'Whispr',
 				issuer: 'Whispr',
 				encoding: 'base32',
 			});
