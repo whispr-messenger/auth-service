@@ -25,7 +25,7 @@ export class RateLimitService {
 	): Promise<void> {
 		const count = await this.cacheManager.get<string>(key);
 
-		if (count && parseInt(count) >= maxRequests) {
+		if (count && Number.parseInt(count, 10) >= maxRequests) {
 			throw new HttpException(errorMessage, HttpStatus.TOO_MANY_REQUESTS);
 		}
 	}

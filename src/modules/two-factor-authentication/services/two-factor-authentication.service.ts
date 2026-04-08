@@ -150,6 +150,6 @@ export class TwoFactorAuthenticationService {
 
 	async isTwoFactorEnabled(userId: string): Promise<boolean> {
 		const user = await this.userAuthService.findById(userId);
-		return user?.twoFactorEnabled || false;
+		return user?.twoFactorEnabled ?? false;
 	}
 }

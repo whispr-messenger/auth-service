@@ -51,15 +51,14 @@ export class SignalPreKeyBundleService {
 		// Retrieve an unused prekey (optional - may not be available)
 		const preKey = await this.keyStorage.getUnusedPreKey(userId, deviceId);
 
-		// Log warning if no prekeys are available
-		if (!preKey) {
-			this.logger.warn(
-				`No unused prekeys available for user ${userId}, device ${deviceId}. Sessions can still be established but without forward secrecy guarantee.`
-			);
-		} else {
+		if (preKey) {
 			// Mark the prekey as used immediately
 			await this.keyStorage.markPreKeyAsUsed(preKey.id);
 			this.logger.debug(`Marked prekey ${preKey.keyId} as used for user ${userId}, device ${deviceId}`);
+		} else {
+			this.logger.warn(
+				`No unused prekeys available for user ${userId}, device ${deviceId}. Sessions can still be established but without forward secrecy guarantee.`
+			);
 		}
 
 		// Build and return the bundle

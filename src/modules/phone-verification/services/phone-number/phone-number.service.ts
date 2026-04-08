@@ -33,7 +33,7 @@ export class PhoneNumberService {
 	public validate(phoneNumber: string): boolean {
 		try {
 			const parsed = parsePhoneNumberWithError(phoneNumber);
-			return parsed ? parsed.isValid() : false;
+			return parsed?.isValid() ?? false;
 		} catch {
 			return false;
 		}

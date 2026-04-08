@@ -35,6 +35,7 @@ export class TwilioHealthIndicator {
 
 		const controller = new AbortController();
 		const timeoutId = globalThis.setTimeout(() => controller.abort(), TWILIO_HEALTH_TIMEOUT_MS);
+		const authorizationHeader = Buffer.from(`${this.accountSid}:${this.authToken}`).toString('base64');
 
 		try {
 			const response = await fetch(
@@ -42,7 +43,7 @@ export class TwilioHealthIndicator {
 				{
 					method: 'GET',
 					headers: {
-						Authorization: `Basic ${Buffer.from(`${this.accountSid}:${this.authToken}`).toString('base64')}`,
+						Authorization: `Basic ${authorizationHeader}`,
 					},
 					signal: controller.signal,
 				}
