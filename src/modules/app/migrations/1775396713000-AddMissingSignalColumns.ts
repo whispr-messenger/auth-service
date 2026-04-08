@@ -60,7 +60,7 @@ export class AddMissingSignalColumns1775396713000 implements MigrationInterface 
               FROM pg_attribute a
               WHERE a.attrelid = i.indrelid
                 AND a.attnum = ANY(i.indkey)
-            ) = ARRAY['user_id', 'device_id', 'key_id']::name[]
+            ) = ARRAY['user_id', 'device_id', 'key_id']::text[]
         ) THEN
           ALTER TABLE "auth"."signed_prekeys"
           ADD CONSTRAINT "UQ_signed_prekeys_user_device_key"
@@ -117,7 +117,7 @@ export class AddMissingSignalColumns1775396713000 implements MigrationInterface 
               FROM pg_attribute a
               WHERE a.attrelid = i.indrelid
                 AND a.attnum = ANY(i.indkey)
-            ) = ARRAY['user_id', 'device_id', 'key_id']::name[]
+            ) = ARRAY['user_id', 'device_id', 'key_id']::text[]
         ) THEN
           ALTER TABLE "auth"."prekeys"
           ADD CONSTRAINT "UQ_prekeys_user_device_key"

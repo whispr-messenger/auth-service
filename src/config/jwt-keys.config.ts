@@ -1,5 +1,5 @@
-import * as crypto from 'crypto';
-import * as fs from 'fs';
+import * as crypto from 'node:crypto';
+import * as fs from 'node:fs';
 
 export interface JwtKeysConfig {
 	jwtPrivateKey: string;

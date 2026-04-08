@@ -15,7 +15,7 @@ export class HealthController {
 		private readonly twilioHealth: TwilioHealthIndicator
 	) {}
 
-	private logger = new Logger(HealthController.name);
+	private readonly logger = new Logger(HealthController.name);
 
 	@Get()
 	@ApiOperation({

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import * as http from 'http';
+import * as http from 'node:http';
 
 interface RequestOptions {
 	hostname: string;
