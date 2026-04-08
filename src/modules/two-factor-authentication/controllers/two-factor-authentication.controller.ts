@@ -9,7 +9,7 @@ import {
 	ApiTags,
 } from '@nestjs/swagger';
 import {
-	TwoFactorEnableResponseDto,
+	TwoFactorBackupCodesResponseDto,
 	TwoFactorSetupDto,
 	TwoFactorSetupResponseDto,
 	TwoFactorVerifyDto,
@@ -41,7 +41,10 @@ export class TwoFactorAuthenticationController {
 	@ApiBearerAuth()
 	@ApiOperation({ summary: 'Enable two-factor authentication' })
 	@ApiBody({ type: TwoFactorSetupDto })
-	@ApiOkResponse({ type: TwoFactorEnableResponseDto, description: '2FA enabled successfully' })
+	@ApiOkResponse({
+		type: TwoFactorBackupCodesResponseDto,
+		description: '2FA enabled successfully; returns backup codes',
+	})
 	@ApiResponse({ status: 400, description: 'Invalid token or 2FA setup not initiated' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
 	async enableTwoFactor(@Request() req: any, @Body() dto: TwoFactorSetupDto) {
@@ -82,7 +85,7 @@ export class TwoFactorAuthenticationController {
 	@ApiBearerAuth()
 	@ApiOperation({ summary: 'Generate new 2FA backup codes' })
 	@ApiBody({ type: TwoFactorVerifyDto })
-	@ApiOkResponse({ type: TwoFactorEnableResponseDto, description: 'New backup codes generated' })
+	@ApiOkResponse({ type: TwoFactorBackupCodesResponseDto, description: 'New backup codes generated' })
 	@ApiResponse({ status: 400, description: 'Invalid token' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
 	async generateBackupCodes(@Request() req: any, @Body() dto: TwoFactorVerifyDto) {

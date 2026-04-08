@@ -1,9 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class TwoFactorEnableResponseDto {
+export class TwoFactorBackupCodesResponseDto {
 	@ApiProperty({
 		description: 'One-time backup codes to use if the TOTP device is unavailable',
-		example: ['a1b2c3d4', 'e5f6g7h8'],
+		example: ['ABCD-1234', 'WXYZ-5678'],
 		type: [String],
 	})
 	backupCodes: string[];
