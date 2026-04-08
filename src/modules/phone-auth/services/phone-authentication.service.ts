@@ -3,10 +3,12 @@ import {
 	BadRequestException,
 	ConflictException,
 	Inject,
+	Logger,
 	NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 import { UserAuthService } from '../../common/services/user-auth.service';
 import { UserAuth } from '../../common/entities/user-auth.entity';
 import { DeviceRegistrationService } from '../../devices/services/device-registration/device-registration.service';
@@ -24,6 +26,8 @@ import { SignalKeyStorageService } from '../../signal/services/signal-key-storag
 
 @Injectable()
 export class PhoneAuthenticationService {
+	private readonly logger = new Logger(PhoneAuthenticationService.name);
+
 	constructor(
 		private readonly deviceRegistrationService: DeviceRegistrationService,
 		private readonly deviceActivityService: DeviceActivityService,
@@ -141,7 +145,23 @@ export class PhoneAuthenticationService {
 			phoneNumber: savedUser.phoneNumber,
 			timestamp: new Date(),
 		};
-		this.redisClient.emit(USER_REGISTERED_PATTERN, event);
+
+		this.logger.log(`Emitting user.registered for userId=${savedUser.id}`);
+		try {
+			await lastValueFrom(this.redisClient.emit(USER_REGISTERED_PATTERN, event));
+			this.logger.log(`user.registered emitted successfully for userId=${savedUser.id}`);
+		} catch (error) {
+			if (error instanceof Error) {
+				this.logger.error(
+					`Failed to emit user.registered for userId=${savedUser.id}: ${error.message}`,
+					error.stack
+				);
+			} else {
+				this.logger.error(
+					`Failed to emit user.registered for userId=${savedUser.id}: ${String(error)}`
+				);
+			}
+		}
 
 		return this.createAuthSession(savedUser, deviceId, fingerprint, dto.verificationId);
 	}
