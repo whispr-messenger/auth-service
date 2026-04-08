@@ -46,7 +46,7 @@ describe('TwoFactorAuthenticationService', () => {
 	});
 
 	describe('setupTwoFactor', () => {
-		it('should persist pending secret and return qrCodeUrl without generating backup codes', async () => {
+		it('should persist pending secret and return secret, otpauthUri, qrCodeUrl without generating backup codes', async () => {
 			const user = { ...mockUser };
 			mockUserAuthService.findById.mockResolvedValue(user);
 			(speakeasy.generateSecret as jest.Mock).mockReturnValue({ base32: 'BASE32SECRET' });

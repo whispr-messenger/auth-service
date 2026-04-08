@@ -9,7 +9,7 @@ export class TwoFactorSetupResponseDto {
 
 	@ApiProperty({
 		description: 'otpauth:// URI for generating a QR code client-side',
-		example: 'otpauth://totp/Whispr%20(%2B33612345678)?secret=JBSWY3DPEHPK3PXP&issuer=Whispr',
+		example: 'otpauth://totp/Whispr?secret=JBSWY3DPEHPK3PXP&issuer=Whispr',
 	})
 	otpauthUri: string;
 
