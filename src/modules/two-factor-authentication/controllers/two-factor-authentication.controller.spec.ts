@@ -32,8 +32,12 @@ describe('TwoFactorAuthenticationController', () => {
 	});
 
 	describe('setupTwoFactor', () => {
-		it('should return setup data without secret', async () => {
-			const setup = { qrCodeUrl: 'data:image/png;base64,abc' };
+		it('should return setup data with secret, otpauthUri and qrCodeUrl', async () => {
+			const setup = {
+				secret: 'BASE32SECRET',
+				otpauthUri: 'otpauth://totp/Whispr?secret=BASE32SECRET',
+				qrCodeUrl: 'data:image/png;base64,abc',
+			};
 			mockTwoFactorService.setupTwoFactor.mockResolvedValue(setup);
 
 			const result = await controller.setupTwoFactor(mockRequest);
