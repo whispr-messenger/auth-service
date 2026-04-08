@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 import { UserAuthService } from '../../common/services/user-auth.service';
 import { UserAuth } from '../../common/entities/user-auth.entity';
 import { DeviceRegistrationService } from '../../devices/services/device-registration/device-registration.service';
@@ -147,12 +148,19 @@ export class PhoneAuthenticationService {
 
 		this.logger.log(`Emitting user.registered for userId=${savedUser.id}`);
 		try {
-			this.redisClient.emit(USER_REGISTERED_PATTERN, event);
+			await lastValueFrom(this.redisClient.emit(USER_REGISTERED_PATTERN, event));
 			this.logger.log(`user.registered emitted successfully for userId=${savedUser.id}`);
 		} catch (error) {
-			this.logger.error(
-				`Failed to emit user.registered for userId=${savedUser.id}: ${error instanceof Error ? error.message : String(error)}`
-			);
+			if (error instanceof Error) {
+				this.logger.error(
+					`Failed to emit user.registered for userId=${savedUser.id}: ${error.message}`,
+					error.stack
+				);
+			} else {
+				this.logger.error(
+					`Failed to emit user.registered for userId=${savedUser.id}: ${String(error)}`
+				);
+			}
 		}
 
 		return this.createAuthSession(savedUser, deviceId, fingerprint, dto.verificationId);
