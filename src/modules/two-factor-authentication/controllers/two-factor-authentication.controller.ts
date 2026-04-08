@@ -1,5 +1,12 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Request, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+	ApiBearerAuth,
+	ApiBody,
+	ApiCreatedResponse,
+	ApiOperation,
+	ApiResponse,
+	ApiTags,
+} from '@nestjs/swagger';
 import { TwoFactorSetupDto, TwoFactorSetupResponseDto, TwoFactorVerifyDto } from '../dto';
 import { TwoFactorAuthenticationService } from '../services/two-factor-authentication.service';
 import { JwtAuthGuard } from '../../tokens/guards';
@@ -13,9 +20,8 @@ export class TwoFactorAuthenticationController {
 	@UseGuards(JwtAuthGuard)
 	@ApiBearerAuth()
 	@ApiOperation({ summary: 'Setup two-factor authentication (2FA)' })
-	@ApiResponse({
-		status: 200,
-		description: 'Returns QR code and secret for 2FA setup',
+	@ApiCreatedResponse({
+		description: 'Returns QR code URL, secret, and otpauthUri for 2FA setup',
 		type: TwoFactorSetupResponseDto,
 	})
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
