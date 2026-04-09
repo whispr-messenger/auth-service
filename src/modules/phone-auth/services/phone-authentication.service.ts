@@ -21,6 +21,7 @@ import { VerificationPurpose } from '../../phone-verification/types/verification
 import { DeviceInfo } from '../interfaces/device-info.interface';
 import { USER_REGISTERED_PATTERN, UserRegisteredEvent } from '../../../shared/events';
 import { SignalKeyStorageService } from '../../signal/services/signal-key-storage.service';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class PhoneAuthenticationService {
@@ -141,7 +142,17 @@ export class PhoneAuthenticationService {
 			phoneNumber: savedUser.phoneNumber,
 			timestamp: new Date(),
 		};
-		this.redisClient.emit(USER_REGISTERED_PATTERN, event);
+		await firstValueFrom(this.redisClient.emit(USER_REGISTERED_PATTERN, event));
+		const userServiceUrl = process.env.USER_SERVICE_URL;
+		if (userServiceUrl) {
+			const base = userServiceUrl.replace(/\/+$/, '');
+			await fetch(`${base}/user/v1/account/bootstrap`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ userId: savedUser.id, phoneNumber: savedUser.phoneNumber }),
+				signal: AbortSignal.timeout(3_000),
+			}).catch(() => undefined);
+		}
 
 		return this.createAuthSession(savedUser, deviceId, fingerprint, dto.verificationId);
 	}

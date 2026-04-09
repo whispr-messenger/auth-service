@@ -19,10 +19,14 @@ export class TokensController {
 		description: 'Invalid or expired refresh token',
 	})
 	async refreshToken(@Body() dto: RefreshTokenDto, @Request() req: any) {
+		const deviceTypeHeader =
+			(typeof req.headers['x-device-type'] === 'string' && req.headers['x-device-type'].trim()) ||
+			undefined;
+
 		const fingerprint: DeviceFingerprint = {
 			userAgent: req.headers['user-agent'],
 			ipAddress: req.ip,
-			deviceType: 'unknown',
+			deviceType: deviceTypeHeader ?? 'unknown',
 			timestamp: Date.now(),
 		};
 
