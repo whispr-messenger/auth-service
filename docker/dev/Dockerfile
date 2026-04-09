@@ -10,7 +10,7 @@ EXPOSE 3000 9229
 WORKDIR /workspace
 
 COPY package.json package-lock.json ./
-RUN npm install --include=dev
+RUN npm ci --include=dev
 
 COPY . .
 

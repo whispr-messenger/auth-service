@@ -1,6 +1,5 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { SkipThrottle } from '@nestjs/throttler';
 import {
 	VerificationConfirmDto,
 	VerificationConfirmResponseDto,
@@ -19,7 +18,6 @@ export class PhoneVerificationController {
 	constructor(private readonly phoneVerificationService: PhoneVerificationService) {}
 
 	@Post('register/request')
-	@SkipThrottle()
 	@HttpCode(HttpStatus.OK)
 	@ApiOperation({ summary: 'Request registration verification code' })
 	@ApiBody({ type: VerificationRequestDto, examples: VERIFICATION_REQUEST_EXAMPLES })
@@ -33,7 +31,6 @@ export class PhoneVerificationController {
 	}
 
 	@Post('register/confirm')
-	@SkipThrottle()
 	@HttpCode(HttpStatus.OK)
 	@ApiOperation({ summary: 'Confirm registration verification code' })
 	@ApiBody({ type: VerificationConfirmDto, examples: VERIFICATION_CONFIRM_EXAMPLES })
@@ -46,7 +43,6 @@ export class PhoneVerificationController {
 	}
 
 	@Post('login/request')
-	@SkipThrottle()
 	@HttpCode(HttpStatus.OK)
 	@ApiOperation({ summary: 'Request login verification code' })
 	@ApiBody({ type: VerificationRequestDto, examples: VERIFICATION_REQUEST_EXAMPLES })
@@ -60,7 +56,6 @@ export class PhoneVerificationController {
 	}
 
 	@Post('login/confirm')
-	@SkipThrottle()
 	@HttpCode(HttpStatus.OK)
 	@ApiOperation({ summary: 'Confirm login verification code' })
 	@ApiBody({ type: VerificationConfirmDto, examples: VERIFICATION_CONFIRM_EXAMPLES })
