@@ -2,12 +2,12 @@
  * E2E tests for the Two-Factor Authentication (2FA) endpoints.
  *
  * Verifies the externally visible HTTP behaviour of:
- * - POST /auth/v1/2fa/setup          — set up 2FA (returns qrCodeUrl, secret, otpauthUri)
- * - POST /auth/v1/2fa/enable         — enable 2FA with TOTP verification
- * - POST /auth/v1/2fa/verify         — verify a TOTP / backup code
- * - POST /auth/v1/2fa/disable        — disable 2FA
- * - POST /auth/v1/2fa/backup-codes   — regenerate backup codes
- * - GET  /auth/v1/2fa/status         — check whether 2FA is enabled
+ * - POST /auth/2fa/setup          — set up 2FA (returns qrCodeUrl, secret, otpauthUri)
+ * - POST /auth/2fa/enable         — enable 2FA with TOTP verification
+ * - POST /auth/2fa/verify         — verify a TOTP / backup code
+ * - POST /auth/2fa/disable        — disable 2FA
+ * - POST /auth/2fa/backup-codes   — regenerate backup codes
+ * - GET  /auth/2fa/status         — check whether 2FA is enabled
  *
  * All endpoints require JWT auth. The guard is overridden to inject a
  * deterministic user id so tests exercise the real service logic against
@@ -87,13 +87,13 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 	});
 
 	// ---------------------------------------------------------------
-	// POST /auth/v1/2fa/setup
+	// POST /auth/2fa/setup
 	// ---------------------------------------------------------------
-	describe('POST /auth/v1/2fa/setup', () => {
+	describe('POST /auth/2fa/setup', () => {
 		it('returns 400 when user is not found', async () => {
 			userAuthRepo.findOne.mockResolvedValue(null);
 
-			const { status, body } = await request(app.getHttpServer()).post('/auth/v1/2fa/setup');
+			const { status, body } = await request(app.getHttpServer()).post('/auth/2fa/setup');
 
 			expect(status).toBe(400);
 			expect(body.message).toBe('User not found');
@@ -102,7 +102,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 		it('returns 400 when 2FA is already enabled', async () => {
 			userAuthRepo.findOne.mockResolvedValue({ ...baseUser, twoFactorEnabled: true });
 
-			const { status, body } = await request(app.getHttpServer()).post('/auth/v1/2fa/setup');
+			const { status, body } = await request(app.getHttpServer()).post('/auth/2fa/setup');
 
 			expect(status).toBe(400);
 			expect(body.message).toBe('Two-factor authentication is already enabled');
@@ -112,7 +112,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 			userAuthRepo.findOne.mockResolvedValue({ ...baseUser });
 			userAuthRepo.save.mockResolvedValue(undefined);
 
-			const { status, body } = await request(app.getHttpServer()).post('/auth/v1/2fa/setup');
+			const { status, body } = await request(app.getHttpServer()).post('/auth/2fa/setup');
 
 			expect(status).toBe(201);
 			expect(body).toHaveProperty('secret');
@@ -133,7 +133,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 			);
 
 			const { status: status1, body: body1 } = await request(app.getHttpServer()).post(
-				'/auth/v1/2fa/setup'
+				'/auth/2fa/setup'
 			);
 
 			// Second call: pending secret already set to whatever was persisted
@@ -143,7 +143,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 			});
 
 			const { status: status2, body: body2 } = await request(app.getHttpServer()).post(
-				'/auth/v1/2fa/setup'
+				'/auth/2fa/setup'
 			);
 
 			expect(status1).toBe(201);
@@ -156,14 +156,14 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 	});
 
 	// ---------------------------------------------------------------
-	// POST /auth/v1/2fa/enable
+	// POST /auth/2fa/enable
 	// ---------------------------------------------------------------
-	describe('POST /auth/v1/2fa/enable', () => {
+	describe('POST /auth/2fa/enable', () => {
 		it('returns 400 when user is not found', async () => {
 			userAuthRepo.findOne.mockResolvedValue(null);
 
 			const { status, body } = await request(app.getHttpServer())
-				.post('/auth/v1/2fa/enable')
+				.post('/auth/2fa/enable')
 				.send({ token: '000000' });
 
 			expect(status).toBe(400);
@@ -174,7 +174,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 			userAuthRepo.findOne.mockResolvedValue({ ...baseUser, twoFactorPendingSecret: null });
 
 			const { status, body } = await request(app.getHttpServer())
-				.post('/auth/v1/2fa/enable')
+				.post('/auth/2fa/enable')
 				.send({ token: '000000' });
 
 			expect(status).toBe(400);
@@ -188,7 +188,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 			});
 
 			const { status, body } = await request(app.getHttpServer())
-				.post('/auth/v1/2fa/enable')
+				.post('/auth/2fa/enable')
 				.send({ token: '000000' });
 
 			expect(status).toBe(400);
@@ -207,7 +207,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 			backupCodeRepo.save.mockResolvedValue(undefined);
 
 			const { status, body } = await request(app.getHttpServer())
-				.post('/auth/v1/2fa/enable')
+				.post('/auth/2fa/enable')
 				.send({ token });
 
 			expect(status).toBe(200);
@@ -218,14 +218,14 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 	});
 
 	// ---------------------------------------------------------------
-	// POST /auth/v1/2fa/verify
+	// POST /auth/2fa/verify
 	// ---------------------------------------------------------------
-	describe('POST /auth/v1/2fa/verify', () => {
+	describe('POST /auth/2fa/verify', () => {
 		it('returns 400 when 2FA is not configured', async () => {
 			userAuthRepo.findOne.mockResolvedValue({ ...baseUser, twoFactorEnabled: false });
 
 			const { status, body } = await request(app.getHttpServer())
-				.post('/auth/v1/2fa/verify')
+				.post('/auth/2fa/verify')
 				.send({ token: '000000' });
 
 			expect(status).toBe(400);
@@ -240,7 +240,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 			});
 
 			const { status, body } = await request(app.getHttpServer())
-				.post('/auth/v1/2fa/verify')
+				.post('/auth/2fa/verify')
 				.send({ token: '000000' });
 
 			expect(status).toBe(400);
@@ -249,14 +249,14 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 	});
 
 	// ---------------------------------------------------------------
-	// POST /auth/v1/2fa/disable
+	// POST /auth/2fa/disable
 	// ---------------------------------------------------------------
-	describe('POST /auth/v1/2fa/disable', () => {
+	describe('POST /auth/2fa/disable', () => {
 		it('returns 400 when user is not found', async () => {
 			userAuthRepo.findOne.mockResolvedValue(null);
 
 			const { status, body } = await request(app.getHttpServer())
-				.post('/auth/v1/2fa/disable')
+				.post('/auth/2fa/disable')
 				.send({ token: '000000' });
 
 			expect(status).toBe(400);
@@ -267,7 +267,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 			userAuthRepo.findOne.mockResolvedValue({ ...baseUser, twoFactorEnabled: false });
 
 			const { status, body } = await request(app.getHttpServer())
-				.post('/auth/v1/2fa/disable')
+				.post('/auth/2fa/disable')
 				.send({ token: '000000' });
 
 			expect(status).toBe(400);
@@ -284,7 +284,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 			backupCodeRepo.find.mockResolvedValue([]);
 
 			const { status, body } = await request(app.getHttpServer())
-				.post('/auth/v1/2fa/disable')
+				.post('/auth/2fa/disable')
 				.send({ token: '000000' });
 
 			expect(status).toBe(401);
@@ -293,14 +293,14 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 	});
 
 	// ---------------------------------------------------------------
-	// POST /auth/v1/2fa/backup-codes
+	// POST /auth/2fa/backup-codes
 	// ---------------------------------------------------------------
-	describe('POST /auth/v1/2fa/backup-codes', () => {
+	describe('POST /auth/2fa/backup-codes', () => {
 		it('returns 400 when 2FA is not configured', async () => {
 			userAuthRepo.findOne.mockResolvedValue({ ...baseUser, twoFactorEnabled: false });
 
 			const { status, body } = await request(app.getHttpServer())
-				.post('/auth/v1/2fa/backup-codes')
+				.post('/auth/2fa/backup-codes')
 				.send({ token: '000000' });
 
 			expect(status).toBe(400);
@@ -316,7 +316,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 			backupCodeRepo.find.mockResolvedValue([]);
 
 			const { status, body } = await request(app.getHttpServer())
-				.post('/auth/v1/2fa/backup-codes')
+				.post('/auth/2fa/backup-codes')
 				.send({ token: '000000' });
 
 			expect(status).toBe(401);
@@ -325,13 +325,13 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 	});
 
 	// ---------------------------------------------------------------
-	// GET /auth/v1/2fa/status
+	// GET /auth/2fa/status
 	// ---------------------------------------------------------------
-	describe('GET /auth/v1/2fa/status', () => {
+	describe('GET /auth/2fa/status', () => {
 		it('returns 200 with enabled: false when 2FA is not enabled', async () => {
 			userAuthRepo.findOne.mockResolvedValue({ ...baseUser, twoFactorEnabled: false });
 
-			const { status, body } = await request(app.getHttpServer()).get('/auth/v1/2fa/status');
+			const { status, body } = await request(app.getHttpServer()).get('/auth/2fa/status');
 
 			expect(status).toBe(200);
 			expect(body).toEqual({ enabled: false });
@@ -340,7 +340,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 		it('returns 200 with enabled: true when 2FA is enabled', async () => {
 			userAuthRepo.findOne.mockResolvedValue({ ...baseUser, twoFactorEnabled: true });
 
-			const { status, body } = await request(app.getHttpServer()).get('/auth/v1/2fa/status');
+			const { status, body } = await request(app.getHttpServer()).get('/auth/2fa/status');
 
 			expect(status).toBe(200);
 			expect(body).toEqual({ enabled: true });
@@ -349,7 +349,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 		it('returns 200 with enabled: false when user is not found', async () => {
 			userAuthRepo.findOne.mockResolvedValue(null);
 
-			const { status, body } = await request(app.getHttpServer()).get('/auth/v1/2fa/status');
+			const { status, body } = await request(app.getHttpServer()).get('/auth/2fa/status');
 
 			expect(status).toBe(200);
 			expect(body).toEqual({ enabled: false });

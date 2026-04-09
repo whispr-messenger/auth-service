@@ -2,8 +2,8 @@
  * E2E tests for the Signal health and cleanup endpoints.
  *
  * Verifies the observable HTTP behaviour of:
- * - GET  /auth/v1/signal/health          — returns system health status
- * - POST /auth/v1/signal/health/cleanup  — triggers manual key cleanup
+ * - GET  /auth/signal/health          — returns system health status
+ * - POST /auth/signal/health/cleanup  — triggers manual key cleanup
  *
  * GET /health is public; POST /health/cleanup requires JWT auth.
  * Both delegate to SignalKeySchedulerService / PreKeyRepository.
@@ -91,15 +91,15 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 	});
 
 	// ---------------------------------------------------------------
-	// GET /auth/v1/signal/health
+	// GET /auth/signal/health
 	// ---------------------------------------------------------------
-	describe('GET /auth/v1/signal/health', () => {
+	describe('GET /auth/signal/health', () => {
 		it('returns 200 without any Authorization header (public endpoint)', async () => {
-			await request(app.getHttpServer()).get('/auth/v1/signal/health').expect(200);
+			await request(app.getHttpServer()).get('/auth/signal/health').expect(200);
 		});
 
 		it('returns a body with the expected health status shape', async () => {
-			const { body } = await request(app.getHttpServer()).get('/auth/v1/signal/health').expect(200);
+			const { body } = await request(app.getHttpServer()).get('/auth/signal/health').expect(200);
 
 			expect(body).toHaveProperty('status');
 			expect(body).toHaveProperty('timestamp');
@@ -109,7 +109,7 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 		});
 
 		it('reports "healthy" when scheduler is healthy and prekeys are sufficient', async () => {
-			const { body } = await request(app.getHttpServer()).get('/auth/v1/signal/health').expect(200);
+			const { body } = await request(app.getHttpServer()).get('/auth/signal/health').expect(200);
 
 			expect(body.status).toBe('healthy');
 			expect(body.issues).toEqual([]);
@@ -123,7 +123,7 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 				isHealthy: false,
 			});
 
-			const { body } = await request(app.getHttpServer()).get('/auth/v1/signal/health').expect(200);
+			const { body } = await request(app.getHttpServer()).get('/auth/signal/health').expect(200);
 
 			expect(body.status).toBe('unhealthy');
 			expect(body.issues.length).toBeGreaterThan(0);
@@ -139,7 +139,7 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 				getRawMany: jest.fn().mockResolvedValue([{ userId: 'u1', deviceId: 'd1', count: '0' }]),
 			});
 
-			const { body } = await request(app.getHttpServer()).get('/auth/v1/signal/health').expect(200);
+			const { body } = await request(app.getHttpServer()).get('/auth/signal/health').expect(200);
 
 			expect(body.status).toBe('unhealthy');
 		});
@@ -147,20 +147,20 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 		it('reports "degraded" when system-wide prekey count is low', async () => {
 			mockPreKeyRepo.count.mockResolvedValue(500);
 
-			const { body } = await request(app.getHttpServer()).get('/auth/v1/signal/health').expect(200);
+			const { body } = await request(app.getHttpServer()).get('/auth/signal/health').expect(200);
 
 			expect(body.status).toBe('degraded');
 			expect(body.issues).toEqual(expect.arrayContaining([expect.stringContaining('low')]));
 		});
 
 		it('includes scheduler stats in the response', async () => {
-			const { body } = await request(app.getHttpServer()).get('/auth/v1/signal/health').expect(200);
+			const { body } = await request(app.getHttpServer()).get('/auth/signal/health').expect(200);
 
 			expect(body.scheduler).toEqual(expect.objectContaining({ isHealthy: true }));
 		});
 
 		it('includes prekey stats in the response', async () => {
-			const { body } = await request(app.getHttpServer()).get('/auth/v1/signal/health').expect(200);
+			const { body } = await request(app.getHttpServer()).get('/auth/signal/health').expect(200);
 
 			expect(body.prekeys).toEqual(
 				expect.objectContaining({
@@ -173,23 +173,23 @@ describe('Signal health & cleanup endpoints (e2e)', () => {
 	});
 
 	// ---------------------------------------------------------------
-	// POST /auth/v1/signal/health/cleanup
+	// POST /auth/signal/health/cleanup
 	// ---------------------------------------------------------------
-	describe('POST /auth/v1/signal/health/cleanup', () => {
+	describe('POST /auth/signal/health/cleanup', () => {
 		it('returns 401 without any Authorization header (protected endpoint)', async () => {
-			await request(app.getHttpServer()).post('/auth/v1/signal/health/cleanup').expect(401);
+			await request(app.getHttpServer()).post('/auth/signal/health/cleanup').expect(401);
 		});
 
 		it('returns 401 with an invalid token', async () => {
 			await request(app.getHttpServer())
-				.post('/auth/v1/signal/health/cleanup')
+				.post('/auth/signal/health/cleanup')
 				.set('Authorization', 'Bearer invalid-token')
 				.expect(401);
 		});
 
 		it('returns 200 with a valid JWT and the cleanup result', async () => {
 			const { body } = await request(app.getHttpServer())
-				.post('/auth/v1/signal/health/cleanup')
+				.post('/auth/signal/health/cleanup')
 				.set('Authorization', 'Bearer valid.access.token')
 				.expect(200);
 

@@ -2,8 +2,8 @@
  * E2E tests for the QR code authentication endpoints.
  *
  * Verifies the observable HTTP behaviour of:
- * - POST /auth/v1/qr-code/challenge/:deviceId — generates a QR challenge (JWT-protected)
- * - POST /auth/v1/qr-code/scan                — logs in by scanning a QR code (public)
+ * - POST /auth/qr-code/challenge/:deviceId — generates a QR challenge (JWT-protected)
+ * - POST /auth/qr-code/scan                — logs in by scanning a QR code (public)
  *
  * POST /challenge/:deviceId requires a valid JWT; POST /scan is public but
  * validates the challenge payload and extracts the device fingerprint from
@@ -83,12 +83,12 @@ describe('QR code authentication endpoints (e2e)', () => {
 	});
 
 	// ---------------------------------------------------------------
-	// POST /auth/v1/qr-code/challenge/:deviceId
+	// POST /auth/qr-code/challenge/:deviceId
 	// ---------------------------------------------------------------
-	describe('POST /auth/v1/qr-code/challenge/:deviceId', () => {
+	describe('POST /auth/qr-code/challenge/:deviceId', () => {
 		it('returns 201 with challenge string when authenticated', async () => {
 			const { text } = await request(app.getHttpServer())
-				.post('/auth/v1/qr-code/challenge/device-id')
+				.post('/auth/qr-code/challenge/device-id')
 				.set('Authorization', 'Bearer valid.access.token')
 				.expect(201);
 
@@ -97,17 +97,17 @@ describe('QR code authentication endpoints (e2e)', () => {
 		});
 
 		it('returns 401 without Authorization header', async () => {
-			await request(app.getHttpServer()).post('/auth/v1/qr-code/challenge/device-id').expect(401);
+			await request(app.getHttpServer()).post('/auth/qr-code/challenge/device-id').expect(401);
 		});
 	});
 
 	// ---------------------------------------------------------------
-	// POST /auth/v1/qr-code/scan
+	// POST /auth/qr-code/scan
 	// ---------------------------------------------------------------
-	describe('POST /auth/v1/qr-code/scan', () => {
+	describe('POST /auth/qr-code/scan', () => {
 		it('returns 200 with token pair on valid scan', async () => {
 			const { body } = await request(app.getHttpServer())
-				.post('/auth/v1/qr-code/scan')
+				.post('/auth/qr-code/scan')
 				.send({
 					challenge: 'valid-challenge-jwt',
 					authenticatedDeviceId: '550e8400-e29b-41d4-a716-446655440000',
@@ -134,7 +134,7 @@ describe('QR code authentication endpoints (e2e)', () => {
 			mockQrCodeService.scanLogin.mockRejectedValueOnce(new BadRequestException('Challenge expired'));
 
 			await request(app.getHttpServer())
-				.post('/auth/v1/qr-code/scan')
+				.post('/auth/qr-code/scan')
 				.send({
 					challenge: 'expired-challenge-jwt',
 					authenticatedDeviceId: '550e8400-e29b-41d4-a716-446655440000',
