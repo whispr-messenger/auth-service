@@ -275,7 +275,7 @@ describe('Login Flow (e2e)', () => {
 
 		it('should return 200 without signalKeyBundle (web session path)', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/login')
+				.post('/auth/v1/login')
 				.send({
 					verificationId: VERIFICATION_ID,
 					deviceName: 'Test Device',
@@ -290,7 +290,7 @@ describe('Login Flow (e2e)', () => {
 
 		it('should return 400 when signalKeyBundle is malformed (missing identityKey)', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/login')
+				.post('/auth/v1/login')
 				.send({
 					verificationId: VERIFICATION_ID,
 					deviceName: 'Test Device',
@@ -308,7 +308,7 @@ describe('Login Flow (e2e)', () => {
 
 		it('should return 400 when signalKeyBundle is malformed (missing preKeys)', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/login')
+				.post('/auth/v1/login')
 				.send({
 					verificationId: VERIFICATION_ID,
 					deviceName: 'Test Device',
@@ -328,7 +328,7 @@ describe('Login Flow (e2e)', () => {
 			mockCacheService.get.mockResolvedValue(null);
 
 			const response = await request(app.getHttpServer())
-				.post('/auth/login')
+				.post('/auth/v1/login')
 				.send({ verificationId: VERIFICATION_ID })
 				.set('User-Agent', 'Test Agent');
 
@@ -341,7 +341,7 @@ describe('Login Flow (e2e)', () => {
 			setupVerificationCache(false);
 
 			const response = await request(app.getHttpServer())
-				.post('/auth/login')
+				.post('/auth/v1/login')
 				.send({ verificationId: VERIFICATION_ID })
 				.set('User-Agent', 'Test Agent');
 
@@ -352,7 +352,7 @@ describe('Login Flow (e2e)', () => {
 
 		it('should return 400 with invalid verificationId format', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/login')
+				.post('/auth/v1/login')
 				.send({ verificationId: 'not-a-valid-uuid' })
 				.set('User-Agent', 'Test Agent');
 
@@ -362,7 +362,7 @@ describe('Login Flow (e2e)', () => {
 
 		it('should return 200 without User-Agent header', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/login')
+				.post('/auth/v1/login')
 				.send({
 					verificationId: VERIFICATION_ID,
 					deviceName: 'Test Device',

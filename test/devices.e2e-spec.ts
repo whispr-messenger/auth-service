@@ -2,8 +2,8 @@
  * E2E tests for the Devices endpoints.
  *
  * Verifies the observable HTTP behaviour of:
- * - GET    /auth/device            — returns all devices for the authenticated user
- * - DELETE /auth/device/:deviceId  — revokes/deletes a specific device
+ * - GET    /auth/v1/device            — returns all devices for the authenticated user
+ * - DELETE /auth/v1/device/:deviceId  — revokes/deletes a specific device
  *
  * Both endpoints require JWT authentication.
  */
@@ -83,12 +83,12 @@ describe('Devices endpoints (e2e)', () => {
 	});
 
 	// ---------------------------------------------------------------
-	// GET /auth/device
+	// GET /auth/v1/device
 	// ---------------------------------------------------------------
-	describe('GET /auth/device', () => {
+	describe('GET /auth/v1/device', () => {
 		it('returns 200 with the device list when authenticated', async () => {
 			const { body } = await request(app.getHttpServer())
-				.get('/auth/device')
+				.get('/auth/v1/device')
 				.set('Authorization', 'Bearer valid.access.token')
 				.expect(200);
 
@@ -110,17 +110,17 @@ describe('Devices endpoints (e2e)', () => {
 		});
 
 		it('returns 401 without Authorization header', async () => {
-			await request(app.getHttpServer()).get('/auth/device').expect(401);
+			await request(app.getHttpServer()).get('/auth/v1/device').expect(401);
 		});
 	});
 
 	// ---------------------------------------------------------------
-	// DELETE /auth/device/:deviceId
+	// DELETE /auth/v1/device/:deviceId
 	// ---------------------------------------------------------------
-	describe('DELETE /auth/device/:deviceId', () => {
+	describe('DELETE /auth/v1/device/:deviceId', () => {
 		it('returns 204 on successful revocation', async () => {
 			await request(app.getHttpServer())
-				.delete('/auth/device/device-1')
+				.delete('/auth/v1/device/device-1')
 				.set('Authorization', 'Bearer valid.access.token')
 				.expect(204);
 
@@ -128,14 +128,14 @@ describe('Devices endpoints (e2e)', () => {
 		});
 
 		it('returns 401 without Authorization header', async () => {
-			await request(app.getHttpServer()).delete('/auth/device/device-1').expect(401);
+			await request(app.getHttpServer()).delete('/auth/v1/device/device-1').expect(401);
 		});
 
 		it('returns 404 when device not found', async () => {
 			mockDevicesService.revokeDevice.mockRejectedValueOnce(new NotFoundException('Device not found'));
 
 			await request(app.getHttpServer())
-				.delete('/auth/device/nonexistent-device')
+				.delete('/auth/v1/device/nonexistent-device')
 				.set('Authorization', 'Bearer valid.access.token')
 				.expect(404);
 		});

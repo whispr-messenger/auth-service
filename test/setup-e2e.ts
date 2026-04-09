@@ -56,8 +56,6 @@ jest.mock(
 );
 
 // Mock ioredis to avoid real Redis connections during e2e tests.
-// The mock must be a callable constructor (for CJS `new require('ioredis')(...)` used
-// by @nestjs/microservices) AND have a `.default` property (for ESM `import Redis`).
 jest.mock('ioredis', () => {
 	const mockRedisInstance = {
 		get: jest.fn().mockResolvedValue(null),
@@ -70,11 +68,8 @@ jest.mock('ioredis', () => {
 		on: jest.fn(),
 		status: 'ready',
 	};
-	const mockCtor: any = jest.fn().mockImplementation(() => mockRedisInstance);
-	// Attach ESM interop so `import Redis from 'ioredis'` also resolves correctly
-	mockCtor.default = mockCtor;
-	mockCtor.__esModule = true;
-	return mockCtor;
+	const mockCtor = jest.fn().mockImplementation(() => mockRedisInstance);
+	return { __esModule: true, default: mockCtor };
 });
 
 // Mock SmsService
