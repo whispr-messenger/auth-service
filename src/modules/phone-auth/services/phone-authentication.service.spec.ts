@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { of, throwError } from 'rxjs';
 import { PhoneAuthenticationService } from './phone-authentication.service';
 import { DeviceRegistrationService } from '../../devices/services/device-registration/device-registration.service';
 import { DeviceActivityService } from '../../devices/services/device-activity/device-activity.service';
@@ -37,7 +38,7 @@ describe('PhoneAuthenticationService', () => {
 		storePreKeys: jest.fn(),
 	};
 	const mockRedisClient = {
-		emit: jest.fn(),
+		emit: jest.fn().mockReturnValue(of(undefined)),
 	};
 
 	const fingerprint: DeviceFingerprint = {
@@ -260,6 +261,64 @@ describe('PhoneAuthenticationService', () => {
 
 			await expect(service.register({ verificationId: 'ver-1' } as any, fingerprint)).rejects.toThrow(
 				ConflictException
+			);
+		});
+
+		it('should log before and after emitting user.registered event', async () => {
+			const savedUser = { id: 'user-123', phoneNumber: '+33600000001' };
+			mockPhoneVerificationService.getConfirmedVerification.mockResolvedValue({
+				phoneNumber: '+33600000001',
+				purpose: 'registration',
+			});
+			mockUserAuthService.findByPhoneNumber.mockResolvedValue(null);
+			mockUserAuthService.createUser.mockReturnValue(savedUser);
+			mockUserAuthService.saveUser.mockResolvedValue(savedUser);
+			mockDeviceRegistrationService.registerDevice.mockResolvedValue({ id: 'device-1' });
+			mockTokensService.generateTokenPair.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' });
+
+			const logSpy = jest.spyOn(service['logger'], 'log');
+
+			await service.register({ verificationId: 'ver-1' } as any, fingerprint);
+
+			expect(logSpy).toHaveBeenCalledWith(
+				expect.stringContaining('Emitting user.registered for userId=user-123')
+			);
+			expect(logSpy).toHaveBeenCalledWith(
+				expect.stringContaining('user.registered emitted successfully for userId=user-123')
+			);
+			expect(mockRedisClient.emit).toHaveBeenCalledWith(
+				'user.registered',
+				expect.objectContaining({ userId: 'user-123' })
+			);
+		});
+
+		it('should log error when emit observable fails', async () => {
+			const savedUser = { id: 'user-123', phoneNumber: '+33600000001' };
+			mockPhoneVerificationService.getConfirmedVerification.mockResolvedValue({
+				phoneNumber: '+33600000001',
+				purpose: 'registration',
+			});
+			mockUserAuthService.findByPhoneNumber.mockResolvedValue(null);
+			mockUserAuthService.createUser.mockReturnValue(savedUser);
+			mockUserAuthService.saveUser.mockResolvedValue(savedUser);
+			mockDeviceRegistrationService.registerDevice.mockResolvedValue({ id: 'device-1' });
+			mockTokensService.generateTokenPair.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' });
+			mockRedisClient.emit.mockReturnValue(throwError(() => new Error('Transport error')));
+
+			const errorSpy = jest.spyOn(service['logger'], 'error');
+			const logSpy = jest.spyOn(service['logger'], 'log');
+
+			const result = await service.register({ verificationId: 'ver-1' } as any, fingerprint);
+
+			expect(result).toBeDefined();
+			expect(errorSpy).toHaveBeenCalledWith(
+				expect.stringContaining(
+					'Failed to emit user.registered for userId=user-123: Transport error'
+				),
+				expect.any(String)
+			);
+			expect(logSpy).not.toHaveBeenCalledWith(
+				expect.stringContaining('user.registered emitted successfully for userId=user-123')
 			);
 		});
 	});

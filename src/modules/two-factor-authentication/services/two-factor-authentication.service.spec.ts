@@ -28,6 +28,7 @@ describe('TwoFactorAuthenticationService', () => {
 		phoneNumber: '+33612345678',
 		twoFactorEnabled: false,
 		twoFactorSecret: '',
+		twoFactorPendingSecret: null,
 	};
 
 	beforeEach(async () => {
@@ -45,23 +46,29 @@ describe('TwoFactorAuthenticationService', () => {
 	});
 
 	describe('setupTwoFactor', () => {
-		it('should return secret, qrCodeUrl, and backupCodes', async () => {
-			mockUserAuthService.findById.mockResolvedValue(mockUser);
-			(speakeasy.generateSecret as jest.Mock).mockReturnValue({
-				base32: 'BASE32SECRET',
-				otpauth_url: 'otpauth://totp/Whispr?secret=BASE32SECRET',
-			});
+		it('should persist pending secret and return secret, otpauthUri, qrCodeUrl without generating backup codes', async () => {
+			const user = { ...mockUser };
+			mockUserAuthService.findById.mockResolvedValue(user);
+			(speakeasy.generateSecret as jest.Mock).mockReturnValue({ base32: 'BASE32SECRET' });
+			(speakeasy.otpauthURL as jest.Mock).mockReturnValue('otpauth://totp/Whispr?secret=BASE32SECRET');
 			(QRCode.toDataURL as jest.Mock).mockResolvedValue('data:image/png;base64,abc');
-			mockBackupCodesService.generateBackupCodes.mockResolvedValue(['CODE1', 'CODE2']);
+			mockUserAuthService.saveUser.mockResolvedValue(undefined);
 
 			const result = await service.setupTwoFactor('user-id');
 
 			expect(result).toEqual({
 				secret: 'BASE32SECRET',
+				otpauthUri: 'otpauth://totp/Whispr?secret=BASE32SECRET',
 				qrCodeUrl: 'data:image/png;base64,abc',
-				backupCodes: ['CODE1', 'CODE2'],
 			});
-			expect(mockBackupCodesService.generateBackupCodes).toHaveBeenCalledWith('user-id');
+			expect(speakeasy.otpauthURL).toHaveBeenCalledWith(
+				expect.objectContaining({ secret: 'BASE32SECRET', encoding: 'base32' })
+			);
+			expect(QRCode.toDataURL).toHaveBeenCalledWith('otpauth://totp/Whispr?secret=BASE32SECRET');
+			expect(mockUserAuthService.saveUser).toHaveBeenCalledWith(
+				expect.objectContaining({ twoFactorPendingSecret: 'BASE32SECRET' })
+			);
+			expect(mockBackupCodesService.generateBackupCodes).not.toHaveBeenCalled();
 		});
 
 		it('should throw BadRequestException when user not found', async () => {
@@ -75,36 +82,74 @@ describe('TwoFactorAuthenticationService', () => {
 
 			await expect(service.setupTwoFactor('user-id')).rejects.toThrow(BadRequestException);
 		});
+
+		it('should reuse existing pending secret and not call saveUser when twoFactorPendingSecret is already set', async () => {
+			const user = { ...mockUser, twoFactorPendingSecret: 'EXISTING_SECRET' };
+			mockUserAuthService.findById.mockResolvedValue(user);
+			(speakeasy.otpauthURL as jest.Mock).mockReturnValue(
+				'otpauth://totp/Whispr?secret=EXISTING_SECRET'
+			);
+			(QRCode.toDataURL as jest.Mock).mockResolvedValue('data:image/png;base64,existing');
+
+			const result = await service.setupTwoFactor('user-id');
+
+			expect(result).toEqual({
+				secret: 'EXISTING_SECRET',
+				otpauthUri: 'otpauth://totp/Whispr?secret=EXISTING_SECRET',
+				qrCodeUrl: 'data:image/png;base64,existing',
+			});
+			expect(speakeasy.generateSecret).not.toHaveBeenCalled();
+			expect(speakeasy.otpauthURL).toHaveBeenCalledWith(
+				expect.objectContaining({ secret: 'EXISTING_SECRET', encoding: 'base32' })
+			);
+			expect(QRCode.toDataURL).toHaveBeenCalledWith('otpauth://totp/Whispr?secret=EXISTING_SECRET');
+			expect(mockUserAuthService.saveUser).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('enableTwoFactor', () => {
-		it('should save user with 2FA enabled when token is valid', async () => {
-			mockUserAuthService.findById.mockResolvedValue({ ...mockUser });
+		it('should save user with 2FA enabled and return backup codes when token is valid', async () => {
+			mockUserAuthService.findById.mockResolvedValue({
+				...mockUser,
+				twoFactorPendingSecret: 'PENDING_SECRET',
+			});
 			(speakeasy.totp.verify as jest.Mock).mockReturnValue(true);
 			mockUserAuthService.saveUser.mockResolvedValue(undefined);
+			mockBackupCodesService.generateBackupCodes.mockResolvedValue(['CODE1', 'CODE2']);
 
-			await service.enableTwoFactor('user-id', 'SECRET', '123456');
+			const result = await service.enableTwoFactor('user-id', '123456');
 
 			expect(mockUserAuthService.saveUser).toHaveBeenCalledWith(
-				expect.objectContaining({ twoFactorSecret: 'SECRET', twoFactorEnabled: true })
+				expect.objectContaining({
+					twoFactorSecret: 'PENDING_SECRET',
+					twoFactorPendingSecret: null,
+					twoFactorEnabled: true,
+				})
 			);
+			expect(mockBackupCodesService.generateBackupCodes).toHaveBeenCalledWith('user-id');
+			expect(result).toEqual(['CODE1', 'CODE2']);
 		});
 
 		it('should throw BadRequestException when user not found', async () => {
 			mockUserAuthService.findById.mockResolvedValue(null);
 
-			await expect(service.enableTwoFactor('user-id', 'SECRET', '123456')).rejects.toThrow(
-				BadRequestException
-			);
+			await expect(service.enableTwoFactor('user-id', '123456')).rejects.toThrow(BadRequestException);
+		});
+
+		it('should throw BadRequestException when no pending secret exists', async () => {
+			mockUserAuthService.findById.mockResolvedValue({ ...mockUser, twoFactorPendingSecret: null });
+
+			await expect(service.enableTwoFactor('user-id', '123456')).rejects.toThrow(BadRequestException);
 		});
 
 		it('should throw BadRequestException when token is invalid', async () => {
-			mockUserAuthService.findById.mockResolvedValue({ ...mockUser });
+			mockUserAuthService.findById.mockResolvedValue({
+				...mockUser,
+				twoFactorPendingSecret: 'PENDING_SECRET',
+			});
 			(speakeasy.totp.verify as jest.Mock).mockReturnValue(false);
 
-			await expect(service.enableTwoFactor('user-id', 'SECRET', 'wrong')).rejects.toThrow(
-				BadRequestException
-			);
+			await expect(service.enableTwoFactor('user-id', 'wrong')).rejects.toThrow(BadRequestException);
 		});
 	});
 

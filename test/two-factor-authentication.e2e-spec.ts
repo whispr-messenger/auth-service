@@ -2,7 +2,7 @@
  * E2E tests for the Two-Factor Authentication (2FA) endpoints.
  *
  * Verifies the externally visible HTTP behaviour of:
- * - POST /auth/v1/2fa/setup          — set up 2FA (QR + secret + backup codes)
+ * - POST /auth/v1/2fa/setup          — set up 2FA (returns qrCodeUrl, secret, otpauthUri)
  * - POST /auth/v1/2fa/enable         — enable 2FA with TOTP verification
  * - POST /auth/v1/2fa/verify         — verify a TOTP / backup code
  * - POST /auth/v1/2fa/disable        — disable 2FA
@@ -20,6 +20,7 @@ import { BackupCode } from '../src/modules/two-factor-authentication/entities/ba
 import { JwtAuthGuard } from '../src/modules/tokens/guards/jwt-auth.guard';
 import { createTestModule, makeMockRepository } from './helpers/create-test-module';
 import { createTestApp } from './helpers/create-test-app';
+import * as speakeasy from 'speakeasy';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const request = require('supertest');
@@ -34,6 +35,7 @@ const baseUser: UserAuth = {
 	id: TEST_USER_ID,
 	phoneNumber: '+33600000000',
 	twoFactorSecret: '',
+	twoFactorPendingSecret: null,
 	twoFactorEnabled: false,
 	lastAuthenticatedAt: new Date(),
 	createdAt: new Date(),
@@ -106,17 +108,50 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 			expect(body.message).toBe('Two-factor authentication is already enabled');
 		});
 
-		it('returns 201 with secret, qrCodeUrl and backupCodes on success', async () => {
+		it('returns 201 with qrCodeUrl, secret, and otpauthUri', async () => {
 			userAuthRepo.findOne.mockResolvedValue({ ...baseUser });
-			backupCodeRepo.delete.mockResolvedValue({ affected: 0 });
+			userAuthRepo.save.mockResolvedValue(undefined);
 
 			const { status, body } = await request(app.getHttpServer()).post('/auth/v1/2fa/setup');
 
 			expect(status).toBe(201);
 			expect(body).toHaveProperty('secret');
+			expect(body).toHaveProperty('otpauthUri');
 			expect(body).toHaveProperty('qrCodeUrl');
-			expect(body).toHaveProperty('backupCodes');
-			expect(Array.isArray(body.backupCodes)).toBe(true);
+			expect(body).not.toHaveProperty('backupCodes');
+		});
+
+		it('returns 201 with the same qrCodeUrl on a second call before enable (save called exactly once)', async () => {
+			// First call: no pending secret yet — generates and persists a new secret
+			userAuthRepo.findOne.mockResolvedValueOnce({ ...baseUser, twoFactorPendingSecret: null });
+			let capturedSecret: string | null = null;
+			userAuthRepo.save.mockImplementation(
+				(user: typeof baseUser & { twoFactorPendingSecret: string | null }) => {
+					capturedSecret = user.twoFactorPendingSecret;
+					return Promise.resolve(undefined);
+				}
+			);
+
+			const { status: status1, body: body1 } = await request(app.getHttpServer()).post(
+				'/auth/v1/2fa/setup'
+			);
+
+			// Second call: pending secret already set to whatever was persisted
+			userAuthRepo.findOne.mockResolvedValueOnce({
+				...baseUser,
+				twoFactorPendingSecret: capturedSecret,
+			});
+
+			const { status: status2, body: body2 } = await request(app.getHttpServer()).post(
+				'/auth/v1/2fa/setup'
+			);
+
+			expect(status1).toBe(201);
+			expect(status2).toBe(201);
+			// Both calls must produce the same QR code — the secret was not rotated
+			expect(body1.qrCodeUrl).toBe(body2.qrCodeUrl);
+			// save must have been called exactly once (only during the first call)
+			expect(userAuthRepo.save).toHaveBeenCalledTimes(1);
 		});
 	});
 
@@ -129,21 +164,56 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 
 			const { status, body } = await request(app.getHttpServer())
 				.post('/auth/v1/2fa/enable')
-				.send({ secret: 'JBSWY3DPEHPK3PXP', token: '000000' });
+				.send({ token: '000000' });
 
 			expect(status).toBe(400);
 			expect(body.message).toBe('User not found');
 		});
 
-		it('returns 400 when verification code is invalid', async () => {
-			userAuthRepo.findOne.mockResolvedValue({ ...baseUser });
+		it('returns 400 when no pending secret exists (setup not initiated)', async () => {
+			userAuthRepo.findOne.mockResolvedValue({ ...baseUser, twoFactorPendingSecret: null });
 
 			const { status, body } = await request(app.getHttpServer())
 				.post('/auth/v1/2fa/enable')
-				.send({ secret: 'JBSWY3DPEHPK3PXP', token: '000000' });
+				.send({ token: '000000' });
+
+			expect(status).toBe(400);
+			expect(body.message).toBe('2FA setup not initiated');
+		});
+
+		it('returns 400 when verification code is invalid', async () => {
+			userAuthRepo.findOne.mockResolvedValue({
+				...baseUser,
+				twoFactorPendingSecret: 'JBSWY3DPEHPK3PXP',
+			});
+
+			const { status, body } = await request(app.getHttpServer())
+				.post('/auth/v1/2fa/enable')
+				.send({ token: '000000' });
 
 			expect(status).toBe(400);
 			expect(body.message).toBe('Invalid verification code');
+		});
+
+		it('returns 200 with backupCodes on success', async () => {
+			// Use a real TOTP secret stored server-side as pending secret
+			const secret = speakeasy.generateSecret({ length: 20 });
+			const token: string = speakeasy.totp({ secret: secret.base32, encoding: 'base32' });
+
+			userAuthRepo.findOne.mockResolvedValue({ ...baseUser, twoFactorPendingSecret: secret.base32 });
+			userAuthRepo.save.mockResolvedValue(undefined);
+			backupCodeRepo.delete.mockResolvedValue({ affected: 0 });
+			backupCodeRepo.create.mockImplementation((data: any) => data);
+			backupCodeRepo.save.mockResolvedValue(undefined);
+
+			const { status, body } = await request(app.getHttpServer())
+				.post('/auth/v1/2fa/enable')
+				.send({ token });
+
+			expect(status).toBe(200);
+			expect(body).toHaveProperty('backupCodes');
+			expect(Array.isArray(body.backupCodes)).toBe(true);
+			expect(body.backupCodes.length).toBe(10);
 		});
 	});
 

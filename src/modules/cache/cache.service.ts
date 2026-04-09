@@ -7,7 +7,7 @@ export class CacheService {
 	private readonly logger = new Logger(CacheService.name);
 	private readonly redis: Redis;
 
-	constructor(private redisConfig: RedisConfig) {
+	constructor(private readonly redisConfig: RedisConfig) {
 		this.redis = this.redisConfig.getClient();
 	}
 

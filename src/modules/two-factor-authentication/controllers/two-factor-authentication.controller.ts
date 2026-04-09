@@ -1,6 +1,19 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Request, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { TwoFactorSetupDto, TwoFactorVerifyDto } from '../dto';
+import {
+	ApiBearerAuth,
+	ApiBody,
+	ApiCreatedResponse,
+	ApiOkResponse,
+	ApiOperation,
+	ApiResponse,
+	ApiTags,
+} from '@nestjs/swagger';
+import {
+	TwoFactorBackupCodesResponseDto,
+	TwoFactorSetupDto,
+	TwoFactorSetupResponseDto,
+	TwoFactorVerifyDto,
+} from '../dto';
 import { TwoFactorAuthenticationService } from '../services/two-factor-authentication.service';
 import { JwtAuthGuard } from '../../tokens/guards';
 
@@ -13,9 +26,12 @@ export class TwoFactorAuthenticationController {
 	@UseGuards(JwtAuthGuard)
 	@ApiBearerAuth()
 	@ApiOperation({ summary: 'Setup two-factor authentication (2FA)' })
-	@ApiResponse({ status: 200, description: 'Returns QR code and secret for 2FA setup' })
+	@ApiCreatedResponse({
+		description: 'Returns QR code URL, secret, and otpauthUri for 2FA setup',
+		type: TwoFactorSetupResponseDto,
+	})
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
-	async setupTwoFactor(@Request() req: any): Promise<any> {
+	async setupTwoFactor(@Request() req: any): Promise<TwoFactorSetupResponseDto> {
 		return this.twoFactorService.setupTwoFactor(req.user.sub);
 	}
 
@@ -25,11 +41,15 @@ export class TwoFactorAuthenticationController {
 	@ApiBearerAuth()
 	@ApiOperation({ summary: 'Enable two-factor authentication' })
 	@ApiBody({ type: TwoFactorSetupDto })
-	@ApiResponse({ status: 200, description: '2FA enabled successfully with backup codes' })
-	@ApiResponse({ status: 400, description: 'Invalid token or secret' })
+	@ApiOkResponse({
+		type: TwoFactorBackupCodesResponseDto,
+		description: '2FA enabled successfully; returns backup codes',
+	})
+	@ApiResponse({ status: 400, description: 'Invalid token or 2FA setup not initiated' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
 	async enableTwoFactor(@Request() req: any, @Body() dto: TwoFactorSetupDto) {
-		return this.twoFactorService.enableTwoFactor(req.user.sub, dto.secret, dto.token);
+		const backupCodes = await this.twoFactorService.enableTwoFactor(req.user.sub, dto.token);
+		return { backupCodes };
 	}
 
 	@Post('verify')
@@ -61,10 +81,11 @@ export class TwoFactorAuthenticationController {
 
 	@Post('backup-codes')
 	@UseGuards(JwtAuthGuard)
+	@HttpCode(HttpStatus.OK)
 	@ApiBearerAuth()
 	@ApiOperation({ summary: 'Generate new 2FA backup codes' })
 	@ApiBody({ type: TwoFactorVerifyDto })
-	@ApiResponse({ status: 200, description: 'New backup codes generated' })
+	@ApiOkResponse({ type: TwoFactorBackupCodesResponseDto, description: 'New backup codes generated' })
 	@ApiResponse({ status: 400, description: 'Invalid token' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
 	async generateBackupCodes(@Request() req: any, @Body() dto: TwoFactorVerifyDto) {

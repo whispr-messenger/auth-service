@@ -32,8 +32,12 @@ describe('TwoFactorAuthenticationController', () => {
 	});
 
 	describe('setupTwoFactor', () => {
-		it('should return setup data', async () => {
-			const setup = { secret: 'SECRET', qrCodeUrl: 'data:image/png;base64,abc', backupCodes: [] };
+		it('should return setup data with secret, otpauthUri and qrCodeUrl', async () => {
+			const setup = {
+				secret: 'BASE32SECRET',
+				otpauthUri: 'otpauth://totp/Whispr?secret=BASE32SECRET',
+				qrCodeUrl: 'data:image/png;base64,abc',
+			};
 			mockTwoFactorService.setupTwoFactor.mockResolvedValue(setup);
 
 			const result = await controller.setupTwoFactor(mockRequest);
@@ -44,16 +48,13 @@ describe('TwoFactorAuthenticationController', () => {
 	});
 
 	describe('enableTwoFactor', () => {
-		it('should enable 2FA and return undefined', async () => {
-			mockTwoFactorService.enableTwoFactor.mockResolvedValue(undefined);
+		it('should enable 2FA and return backup codes', async () => {
+			mockTwoFactorService.enableTwoFactor.mockResolvedValue(['CODE1', 'CODE2']);
 
-			const result = await controller.enableTwoFactor(mockRequest, {
-				secret: 'SECRET',
-				token: '123456',
-			});
+			const result = await controller.enableTwoFactor(mockRequest, { token: '123456' });
 
-			expect(result).toBeUndefined();
-			expect(mockTwoFactorService.enableTwoFactor).toHaveBeenCalledWith('user-id', 'SECRET', '123456');
+			expect(result).toEqual({ backupCodes: ['CODE1', 'CODE2'] });
+			expect(mockTwoFactorService.enableTwoFactor).toHaveBeenCalledWith('user-id', '123456');
 		});
 	});
 

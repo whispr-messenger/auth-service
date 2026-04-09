@@ -16,6 +16,14 @@ export class UserAuth {
 	})
 	twoFactorSecret: string;
 
+	@Column({
+		name: 'two_factor_pending_secret',
+		type: 'varchar',
+		length: 255,
+		nullable: true,
+	})
+	twoFactorPendingSecret: string | null;
+
 	@Column({ name: 'two_factor_enabled', type: 'boolean', default: false })
 	twoFactorEnabled: boolean;
 
