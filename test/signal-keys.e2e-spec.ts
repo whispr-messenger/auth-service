@@ -4,15 +4,15 @@
  * Verifies the observable HTTP behaviour of:
  *
  * PUBLIC (no JWT required):
- * - GET  /auth/v1/signal/keys/:userId/devices/:deviceId         — Retrieve key bundle
- * - GET  /auth/v1/signal/keys/:userId/devices/:deviceId/status  — Get prekey status
+ * - GET  /auth/signal/keys/:userId/devices/:deviceId         — Retrieve key bundle
+ * - GET  /auth/signal/keys/:userId/devices/:deviceId/status  — Get prekey status
  *
  * PROTECTED (JWT required):
- * - POST   /auth/v1/signal/keys/signed-prekey    — Upload signed prekey
- * - POST   /auth/v1/signal/keys/prekeys          — Upload batch of one-time prekeys
- * - GET    /auth/v1/signal/keys/recommendations   — Get key rotation recommendations
- * - DELETE /auth/v1/signal/keys/device/:deviceId  — Delete keys for a device
- * - DELETE /auth/v1/signal/keys                   — Delete all keys for user
+ * - POST   /auth/signal/keys/signed-prekey    — Upload signed prekey
+ * - POST   /auth/signal/keys/prekeys          — Upload batch of one-time prekeys
+ * - GET    /auth/signal/keys/recommendations   — Get key rotation recommendations
+ * - DELETE /auth/signal/keys/device/:deviceId  — Delete keys for a device
+ * - DELETE /auth/signal/keys                   — Delete all keys for user
  *
  * SignalKeysController delegates to SignalPreKeyBundleService.
  * SignalKeysManagementController delegates to SignalKeyRotationService,
@@ -131,12 +131,12 @@ describe('Signal key management endpoints (e2e)', () => {
 	});
 
 	// ---------------------------------------------------------------
-	// GET /auth/v1/signal/keys/:userId/devices/:deviceId
+	// GET /auth/signal/keys/:userId/devices/:deviceId
 	// ---------------------------------------------------------------
-	describe('GET /auth/v1/signal/keys/:userId/devices/:deviceId', () => {
+	describe('GET /auth/signal/keys/:userId/devices/:deviceId', () => {
 		it('returns 200 with key bundle (public endpoint, no JWT needed)', async () => {
 			const { body } = await request(app.getHttpServer())
-				.get('/auth/v1/signal/keys/target-user-id/devices/target-device-id')
+				.get('/auth/signal/keys/target-user-id/devices/target-device-id')
 				.expect(200);
 
 			expect(body).toHaveProperty('identityKey', 'base64-identity-key');
@@ -163,18 +163,18 @@ describe('Signal key management endpoints (e2e)', () => {
 			);
 
 			await request(app.getHttpServer())
-				.get('/auth/v1/signal/keys/unknown-user/devices/unknown-device')
+				.get('/auth/signal/keys/unknown-user/devices/unknown-device')
 				.expect(404);
 		});
 	});
 
 	// ---------------------------------------------------------------
-	// GET /auth/v1/signal/keys/:userId/devices/:deviceId/status
+	// GET /auth/signal/keys/:userId/devices/:deviceId/status
 	// ---------------------------------------------------------------
-	describe('GET /auth/v1/signal/keys/:userId/devices/:deviceId/status', () => {
+	describe('GET /auth/signal/keys/:userId/devices/:deviceId/status', () => {
 		it('returns 200 with prekey status (public endpoint)', async () => {
 			const { body } = await request(app.getHttpServer())
-				.get('/auth/v1/signal/keys/target-user-id/devices/target-device-id/status')
+				.get('/auth/signal/keys/target-user-id/devices/target-device-id/status')
 				.expect(200);
 
 			expect(body).toHaveProperty('availablePreKeys', 50);
@@ -188,9 +188,9 @@ describe('Signal key management endpoints (e2e)', () => {
 	});
 
 	// ---------------------------------------------------------------
-	// POST /auth/v1/signal/keys/signed-prekey
+	// POST /auth/signal/keys/signed-prekey
 	// ---------------------------------------------------------------
-	describe('POST /auth/v1/signal/keys/signed-prekey', () => {
+	describe('POST /auth/signal/keys/signed-prekey', () => {
 		const validSignedPreKey = {
 			keyId: 2,
 			publicKey: 'YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY3',
@@ -199,7 +199,7 @@ describe('Signal key management endpoints (e2e)', () => {
 
 		it('returns 201 with a valid JWT', async () => {
 			await request(app.getHttpServer())
-				.post('/auth/v1/signal/keys/signed-prekey')
+				.post('/auth/signal/keys/signed-prekey')
 				.set('Authorization', 'Bearer valid.access.token')
 				.send(validSignedPreKey)
 				.expect(201);
@@ -219,14 +219,14 @@ describe('Signal key management endpoints (e2e)', () => {
 
 		it('returns 401 without an Authorization header', async () => {
 			await request(app.getHttpServer())
-				.post('/auth/v1/signal/keys/signed-prekey')
+				.post('/auth/signal/keys/signed-prekey')
 				.send(validSignedPreKey)
 				.expect(401);
 		});
 
 		it('returns 401 with an invalid token', async () => {
 			await request(app.getHttpServer())
-				.post('/auth/v1/signal/keys/signed-prekey')
+				.post('/auth/signal/keys/signed-prekey')
 				.set('Authorization', 'Bearer invalid-token')
 				.send(validSignedPreKey)
 				.expect(401);
@@ -234,9 +234,9 @@ describe('Signal key management endpoints (e2e)', () => {
 	});
 
 	// ---------------------------------------------------------------
-	// POST /auth/v1/signal/keys/prekeys
+	// POST /auth/signal/keys/prekeys
 	// ---------------------------------------------------------------
-	describe('POST /auth/v1/signal/keys/prekeys', () => {
+	describe('POST /auth/signal/keys/prekeys', () => {
 		const validPreKeys = {
 			preKeys: [
 				{ keyId: 100, publicKey: 'YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY3' },
@@ -246,7 +246,7 @@ describe('Signal key management endpoints (e2e)', () => {
 
 		it('returns 201 with a valid JWT and batch of prekeys', async () => {
 			const { body } = await request(app.getHttpServer())
-				.post('/auth/v1/signal/keys/prekeys')
+				.post('/auth/signal/keys/prekeys')
 				.set('Authorization', 'Bearer valid.access.token')
 				.send(validPreKeys)
 				.expect(201);
@@ -263,19 +263,19 @@ describe('Signal key management endpoints (e2e)', () => {
 
 		it('returns 401 without an Authorization header', async () => {
 			await request(app.getHttpServer())
-				.post('/auth/v1/signal/keys/prekeys')
+				.post('/auth/signal/keys/prekeys')
 				.send(validPreKeys)
 				.expect(401);
 		});
 	});
 
 	// ---------------------------------------------------------------
-	// GET /auth/v1/signal/keys/recommendations
+	// GET /auth/signal/keys/recommendations
 	// ---------------------------------------------------------------
-	describe('GET /auth/v1/signal/keys/recommendations', () => {
+	describe('GET /auth/signal/keys/recommendations', () => {
 		it('returns 200 with rotation recommendations', async () => {
 			const { body } = await request(app.getHttpServer())
-				.get('/auth/v1/signal/keys/recommendations')
+				.get('/auth/signal/keys/recommendations')
 				.set('Authorization', 'Bearer valid.access.token')
 				.expect(200);
 
@@ -290,17 +290,17 @@ describe('Signal key management endpoints (e2e)', () => {
 		});
 
 		it('returns 401 without an Authorization header', async () => {
-			await request(app.getHttpServer()).get('/auth/v1/signal/keys/recommendations').expect(401);
+			await request(app.getHttpServer()).get('/auth/signal/keys/recommendations').expect(401);
 		});
 	});
 
 	// ---------------------------------------------------------------
-	// DELETE /auth/v1/signal/keys/device/:deviceId
+	// DELETE /auth/signal/keys/device/:deviceId
 	// ---------------------------------------------------------------
-	describe('DELETE /auth/v1/signal/keys/device/:deviceId', () => {
+	describe('DELETE /auth/signal/keys/device/:deviceId', () => {
 		it('returns 204 with a valid JWT', async () => {
 			await request(app.getHttpServer())
-				.delete('/auth/v1/signal/keys/device/target-device-id')
+				.delete('/auth/signal/keys/device/target-device-id')
 				.set('Authorization', 'Bearer valid.access.token')
 				.expect(204);
 
@@ -313,18 +313,18 @@ describe('Signal key management endpoints (e2e)', () => {
 
 		it('returns 401 without an Authorization header', async () => {
 			await request(app.getHttpServer())
-				.delete('/auth/v1/signal/keys/device/target-device-id')
+				.delete('/auth/signal/keys/device/target-device-id')
 				.expect(401);
 		});
 	});
 
 	// ---------------------------------------------------------------
-	// DELETE /auth/v1/signal/keys
+	// DELETE /auth/signal/keys
 	// ---------------------------------------------------------------
-	describe('DELETE /auth/v1/signal/keys', () => {
+	describe('DELETE /auth/signal/keys', () => {
 		it('returns 204 with a valid JWT', async () => {
 			await request(app.getHttpServer())
-				.delete('/auth/v1/signal/keys')
+				.delete('/auth/signal/keys')
 				.set('Authorization', 'Bearer valid.access.token')
 				.expect(204);
 
@@ -332,7 +332,7 @@ describe('Signal key management endpoints (e2e)', () => {
 		});
 
 		it('returns 401 without an Authorization header', async () => {
-			await request(app.getHttpServer()).delete('/auth/v1/signal/keys').expect(401);
+			await request(app.getHttpServer()).delete('/auth/signal/keys').expect(401);
 		});
 	});
 });
