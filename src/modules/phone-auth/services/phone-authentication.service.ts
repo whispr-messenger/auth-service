@@ -21,7 +21,6 @@ import { VerificationPurpose } from '../../phone-verification/types/verification
 import { DeviceInfo } from '../interfaces/device-info.interface';
 import { USER_REGISTERED_PATTERN, UserRegisteredEvent } from '../../../shared/events';
 import { SignalKeyStorageService } from '../../signal/services/signal-key-storage.service';
-import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class PhoneAuthenticationService {
@@ -142,7 +141,11 @@ export class PhoneAuthenticationService {
 			phoneNumber: savedUser.phoneNumber,
 			timestamp: new Date(),
 		};
-		await firstValueFrom(this.redisClient.emit(USER_REGISTERED_PATTERN, event));
+		try {
+			this.redisClient.emit(USER_REGISTERED_PATTERN, event).subscribe({ error: () => undefined });
+		} catch {
+			void 0;
+		}
 		const userServiceUrl = process.env.USER_SERVICE_URL;
 		if (userServiceUrl) {
 			const base = userServiceUrl.replace(/\/+$/, '');
