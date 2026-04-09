@@ -217,7 +217,7 @@ describe('Login Flow (e2e)', () => {
 	describe('POST /auth/login', () => {
 		it('should return 200 with tokens on first login', async () => {
 			const response = await request(app.getHttpServer())
-				.post('/auth/login')
+				.post('/auth/v1/login')
 				.send({
 					verificationId: VERIFICATION_ID,
 					deviceName: 'Test Device',
@@ -240,7 +240,7 @@ describe('Login Flow (e2e)', () => {
 			};
 
 			const first = await request(app.getHttpServer())
-				.post('/auth/login')
+				.post('/auth/v1/login')
 				.send(loginPayload)
 				.set('User-Agent', 'Test Agent')
 				.expect(200);
@@ -250,7 +250,7 @@ describe('Login Flow (e2e)', () => {
 			setupVerificationCache();
 
 			const second = await request(app.getHttpServer())
-				.post('/auth/login')
+				.post('/auth/v1/login')
 				.send(loginPayload)
 				.set('User-Agent', 'Test Agent')
 				.expect(200);
@@ -264,7 +264,7 @@ describe('Login Flow (e2e)', () => {
 			mockUserAuthRepository.findOne.mockResolvedValueOnce(null);
 
 			const response = await request(app.getHttpServer())
-				.post('/auth/login')
+				.post('/auth/v1/login')
 				.send({ verificationId: VERIFICATION_ID })
 				.set('User-Agent', 'Test Agent');
 
