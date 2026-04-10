@@ -29,12 +29,23 @@ when picking up and completing a Jira ticket for this repository.
 ```bash
 git checkout main
 git pull origin main
-git checkout -b <TICKET-KEY>-<short-kebab-description>
+git worktree add .worktrees/<TICKET-KEY>-<short-kebab-description> -b <TICKET-KEY>-<short-kebab-description>
 ```
+
+Then use the `EnterWorktree` tool to switch into the worktree:
+
+```json
+// EnterWorktree
+{ "path": ".worktrees/<TICKET-KEY>-<short-kebab-description>" }
+```
+
+All subsequent work (edits, commits, pushes) happens inside the worktree. Use `ExitWorktree` when done.
 
 Branch naming convention: `WHISPR-XXX-short-description-of-the-fix`
 
 Example: `WHISPR-290-fix-isTokenRevoked-uses-userId-instead-of-tokenId`
+
+Worktrees are created in `.worktrees/` (repo-local, git-ignored) to keep the parent directory clean.
 
 ---
 
@@ -313,15 +324,21 @@ Use `mcp__atlassian__transitionJiraIssue` with the transition whose `name` is
 
 ---
 
-## 11. Return to main and refresh the index
+## 11. Return to main and clean up
+
+Use `ExitWorktree` to leave the worktree, then:
 
 ```bash
 git checkout main
 git pull origin main
+git worktree remove .worktrees/<TICKET-KEY>-<short-kebab-description>
+git branch -d <TICKET-KEY>-<short-kebab-description>
 npx gitnexus analyze --embeddings --force
 ```
 
 The `--force` flag is required after a squash merge: GitNexus compares commit hashes and will silently skip re-indexing if it considers the index already up to date. `--force` ensures embeddings are always regenerated.
+
+`git worktree remove` deletes the `.worktrees/<branch>` directory. `git branch -d` removes the local branch (the remote branch is deleted automatically by GitHub after squash merge).
 
 ---
 
@@ -416,7 +433,7 @@ Use beads for **in-session planning and subtask decomposition**. Jira remains th
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **auth-service** (1568 symbols, 3974 relationships, 121 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **auth-service** (1587 symbols, 4126 relationships, 120 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
