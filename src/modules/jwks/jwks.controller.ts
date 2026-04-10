@@ -1,9 +1,9 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwksDocument, JwksService } from './jwks.service';
 
 @ApiTags('Auth - JWKS')
-@Controller('.well-known')
+@Controller({ path: '.well-known', version: VERSION_NEUTRAL })
 export class JwksController {
 	constructor(private readonly jwksService: JwksService) {}
 
