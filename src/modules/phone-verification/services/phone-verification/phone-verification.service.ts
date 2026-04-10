@@ -35,6 +35,7 @@ export class PhoneVerificationService {
 	private readonly isDemoMode: boolean;
 	private readonly otpBypassCode: string | undefined;
 	private readonly VERIFICATION_TTL = 15 * 60; // 15 minutes in seconds
+	private readonly POST_CONFIRM_TTL = 60 * 1000; // 60 seconds post-confirm in milliseconds
 	private readonly MAX_ATTEMPTS = 5;
 	private readonly RATE_LIMIT_TTL = 60 * 60; // 1 hour in seconds
 	private readonly MAX_REQUESTS_PER_HOUR = 5;
@@ -236,11 +237,7 @@ export class PhoneVerificationService {
 		verificationData: VerificationCode
 	): Promise<void> {
 		verificationData.verified = true;
-		await this.verificationRepo.update(
-			verificationId,
-			verificationData,
-			Math.ceil(verificationData.expiresAt - Date.now())
-		);
+		await this.verificationRepo.update(verificationId, verificationData, this.POST_CONFIRM_TTL);
 	}
 
 	/**
