@@ -37,7 +37,7 @@ export class PhoneVerificationService {
 	private readonly VERIFICATION_TTL = 15 * 60; // 15 minutes in seconds
 	private readonly MAX_ATTEMPTS = 5;
 	private readonly RATE_LIMIT_TTL = 60 * 60; // 1 hour in seconds
-	private readonly MAX_REQUESTS_PER_HOUR = 5;
+	private readonly MAX_REQUESTS_PER_HOUR = 999;
 
 	constructor(
 		@Inject('VerificationRepository') private readonly verificationRepo: VerificationRepository,
