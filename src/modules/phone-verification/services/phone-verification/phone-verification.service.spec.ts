@@ -158,7 +158,7 @@ describe('PhoneVerificationService', () => {
 			expect(result).toEqual({ verified: true });
 		});
 
-		it('should update verificationId with a 60-second TTL after confirm', async () => {
+		it('should update verificationId with a 60-second TTL after confirm when remaining TTL > 60s', async () => {
 			const verificationData: VerificationCode = {
 				phoneNumber: '+33612345678',
 				hashedCode: 'hashed-123456',
@@ -180,6 +180,49 @@ describe('PhoneVerificationService', () => {
 				expect.objectContaining({ verified: true }),
 				60 * 1000
 			);
+		});
+
+		it('should use remaining TTL when it is less than 60 seconds', async () => {
+			const verificationData: VerificationCode = {
+				phoneNumber: '+33612345678',
+				hashedCode: 'hashed-123456',
+				purpose: 'registration',
+				attempts: 0,
+				expiresAt: Date.now() + 30000, // 30 seconds remaining
+			};
+			mockVerificationRepo.findById.mockResolvedValue(verificationData);
+			mockCodeGenerator.compareCode.mockResolvedValue(true);
+			mockVerificationRepo.update.mockResolvedValue(undefined);
+
+			await service.confirmRegistrationVerification({
+				verificationId: 'verification-id',
+				code: '123456',
+			});
+
+			const [, , ttl] = mockVerificationRepo.update.mock.calls[0];
+			expect(ttl).toBeLessThanOrEqual(30000);
+			expect(ttl).toBeGreaterThan(0);
+		});
+
+		it('should delete verificationId instead of updating when already expired', async () => {
+			const verificationData: VerificationCode = {
+				phoneNumber: '+33612345678',
+				hashedCode: 'hashed-123456',
+				purpose: 'registration',
+				attempts: 0,
+				expiresAt: Date.now() - 1000, // already expired
+			};
+			mockVerificationRepo.findById.mockResolvedValue(verificationData);
+			mockCodeGenerator.compareCode.mockResolvedValue(true);
+			mockVerificationRepo.delete.mockResolvedValue(undefined);
+
+			await service.confirmRegistrationVerification({
+				verificationId: 'verification-id',
+				code: '123456',
+			});
+
+			expect(mockVerificationRepo.delete).toHaveBeenCalledWith('verification-id');
+			expect(mockVerificationRepo.update).not.toHaveBeenCalled();
 		});
 
 		it('should throw BadRequestException when verification not found', async () => {
@@ -239,7 +282,7 @@ describe('PhoneVerificationService', () => {
 			expect(result).toEqual({ verified: true, requires2FA: false });
 		});
 
-		it('should update verificationId with a 60-second TTL after confirm', async () => {
+		it('should update verificationId with a 60-second TTL after confirm when remaining TTL > 60s', async () => {
 			const verificationData: VerificationCode = {
 				phoneNumber: '+33612345678',
 				hashedCode: 'hashed-123456',
