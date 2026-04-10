@@ -204,7 +204,7 @@ describe('PhoneVerificationService', () => {
 			expect(ttl).toBeGreaterThan(0);
 		});
 
-		it('should delete verificationId instead of updating when already expired', async () => {
+		it('should delete verificationId and throw BadRequestException when already expired at confirm time', async () => {
 			const verificationData: VerificationCode = {
 				phoneNumber: '+33612345678',
 				hashedCode: 'hashed-123456',
@@ -216,10 +216,12 @@ describe('PhoneVerificationService', () => {
 			mockCodeGenerator.compareCode.mockResolvedValue(true);
 			mockVerificationRepo.delete.mockResolvedValue(undefined);
 
-			await service.confirmRegistrationVerification({
-				verificationId: 'verification-id',
-				code: '123456',
-			});
+			await expect(
+				service.confirmRegistrationVerification({
+					verificationId: 'verification-id',
+					code: '123456',
+				})
+			).rejects.toThrow(BadRequestException);
 
 			expect(mockVerificationRepo.delete).toHaveBeenCalledWith('verification-id');
 			expect(mockVerificationRepo.update).not.toHaveBeenCalled();

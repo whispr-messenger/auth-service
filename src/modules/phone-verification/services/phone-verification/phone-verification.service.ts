@@ -239,7 +239,7 @@ export class PhoneVerificationService {
 		const remainingMs = verificationData.expiresAt - Date.now();
 		if (remainingMs <= 0) {
 			await this.verificationRepo.delete(verificationId);
-			return;
+			throw new BadRequestException('Invalid or expired verification code');
 		}
 		verificationData.verified = true;
 		await this.verificationRepo.update(
