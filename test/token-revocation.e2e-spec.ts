@@ -62,7 +62,7 @@ describe('Token revocation (e2e)', () => {
 
 	/** Sends a GET to the guard-protected /auth/device endpoint */
 	const hitProtectedEndpoint = (token?: string) => {
-		const req = request(app.getHttpServer()).get('/auth/device');
+		const req = request(app.getHttpServer()).get('/auth/v1/device');
 		if (token) req.set('Authorization', `Bearer ${token}`);
 		return req;
 	};
@@ -74,7 +74,7 @@ describe('Token revocation (e2e)', () => {
 
 		it('returns 401 when scheme is not Bearer', async () => {
 			await request(app.getHttpServer())
-				.get('/auth/device')
+				.get('/auth/v1/device')
 				.set('Authorization', 'Basic sometoken')
 				.expect(401);
 		});
