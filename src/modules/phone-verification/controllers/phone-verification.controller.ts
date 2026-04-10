@@ -35,7 +35,10 @@ export class PhoneVerificationController {
 	@ApiOperation({ summary: 'Confirm registration verification code' })
 	@ApiBody({ type: VerificationConfirmDto, examples: VERIFICATION_CONFIRM_EXAMPLES })
 	@ApiResponse({ status: 200, description: 'Verification code confirmed' })
-	@ApiResponse({ status: 400, description: 'Incorrect verification code — or invalid/expired verification session' })
+	@ApiResponse({
+		status: 400,
+		description: 'Incorrect verification code — or invalid/expired verification session',
+	})
 	@ApiResponse({ status: 429, description: 'Too many failed attempts — verification blocked' })
 	async confirmRegistrationVerification(
 		@Body() dto: VerificationConfirmDto
@@ -61,7 +64,10 @@ export class PhoneVerificationController {
 	@ApiOperation({ summary: 'Confirm login verification code' })
 	@ApiBody({ type: VerificationConfirmDto, examples: VERIFICATION_CONFIRM_EXAMPLES })
 	@ApiResponse({ status: 200, description: 'Verification code confirmed' })
-	@ApiResponse({ status: 400, description: 'Incorrect verification code — or invalid/expired verification session' })
+	@ApiResponse({
+		status: 400,
+		description: 'Incorrect verification code — or invalid/expired verification session',
+	})
 	@ApiResponse({ status: 429, description: 'Too many failed attempts — verification blocked' })
 	async confirmLoginVerification(@Body() dto: VerificationConfirmDto) {
 		return this.phoneVerificationService.confirmLoginVerification(dto);
