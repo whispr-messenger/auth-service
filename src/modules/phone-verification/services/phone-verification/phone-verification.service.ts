@@ -196,9 +196,11 @@ export class PhoneVerificationService {
 			throw new BadRequestException('Invalid or expired verification code');
 		}
 
-		// If already verified and no code provided, return the data
-		if (verificationData.verified && code === '') {
-			return verificationData;
+		if (verificationData.verified) {
+			if (code === '') {
+				return verificationData;
+			}
+			throw new BadRequestException('Verification code has already been confirmed');
 		}
 
 		if (verificationData.attempts >= this.MAX_ATTEMPTS) {
