@@ -294,6 +294,38 @@ describe('PhoneVerificationService', () => {
 			expect(result).toEqual(verificationData);
 		});
 
+		it('should throw BadRequestException when already verified and a non-empty code is submitted', async () => {
+			const verificationData: VerificationCode = {
+				phoneNumber: '+33612345678',
+				hashedCode: 'hashed',
+				purpose: 'login',
+				attempts: 0,
+				expiresAt: Date.now() + 900000,
+				verified: true,
+			};
+			mockVerificationRepo.findById.mockResolvedValue(verificationData);
+
+			await expect(service.verifyCode('verification-id', '123456')).rejects.toThrow(
+				new BadRequestException('Verification code has already been confirmed')
+			);
+		});
+
+		it('should throw BadRequestException when already verified and an incorrect code is submitted', async () => {
+			const verificationData: VerificationCode = {
+				phoneNumber: '+33612345678',
+				hashedCode: 'hashed',
+				purpose: 'registration',
+				attempts: 0,
+				expiresAt: Date.now() + 900000,
+				verified: true,
+			};
+			mockVerificationRepo.findById.mockResolvedValue(verificationData);
+
+			await expect(service.verifyCode('verification-id', 'wrong')).rejects.toThrow(
+				new BadRequestException('Verification code has already been confirmed')
+			);
+		});
+
 		it('should accept OTP bypass code when configured', async () => {
 			service = await buildModule({ OTP_BYPASS_CODE: 'BYPASS123' });
 			const verificationData: VerificationCode = {
