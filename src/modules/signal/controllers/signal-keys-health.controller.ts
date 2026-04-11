@@ -30,7 +30,7 @@ export class SignalKeysHealthController {
 	) {}
 
 	/**
-	 * GET /auth/signal/health
+	 * GET /api/v1/signal/health
 	 *
 	 * Get overall health status of Signal key management system
 	 */
@@ -118,7 +118,7 @@ export class SignalKeysHealthController {
 	}
 
 	/**
-	 * POST /auth/signal/health/cleanup
+	 * POST /api/v1/signal/health/cleanup
 	 *
 	 * Manually trigger cleanup operations (for admin use)
 	 */

@@ -52,7 +52,7 @@ export class SignalKeysManagementController {
 	) {}
 
 	/**
-	 * POST /auth/signal/keys/signed-prekey
+	 * POST /api/v1/signal/keys/signed-prekey
 	 *
 	 * Upload a new signed prekey (for rotation)
 	 */
@@ -101,7 +101,7 @@ export class SignalKeysManagementController {
 	}
 
 	/**
-	 * POST /auth/signal/keys/prekeys
+	 * POST /api/v1/signal/keys/prekeys
 	 *
 	 * Upload new prekeys (replenishment)
 	 */
@@ -156,7 +156,7 @@ export class SignalKeysManagementController {
 	}
 
 	/**
-	 * GET /auth/signal/keys/recommendations
+	 * GET /api/v1/signal/keys/recommendations
 	 *
 	 * Get rotation recommendations for the authenticated user
 	 */
@@ -185,7 +185,7 @@ export class SignalKeysManagementController {
 	}
 
 	/**
-	 * DELETE /auth/signal/keys/device/:deviceId
+	 * DELETE /api/v1/signal/keys/device/:deviceId
 	 *
 	 * Delete all keys associated with a device
 	 */
@@ -228,7 +228,7 @@ export class SignalKeysManagementController {
 	}
 
 	/**
-	 * DELETE /auth/signal/keys
+	 * DELETE /api/v1/signal/keys
 	 *
 	 * Delete all keys for the authenticated user
 	 */

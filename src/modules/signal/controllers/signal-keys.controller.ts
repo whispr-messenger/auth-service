@@ -17,7 +17,7 @@ export class SignalKeysController {
 	constructor(private readonly prKeyBundleService: SignalPreKeyBundleService) {}
 
 	/**
-	 * GET /auth/signal/keys/:userId/devices/:deviceId
+	 * GET /api/v1/signal/keys/:userId/devices/:deviceId
 	 *
 	 * Retrieve the key bundle for a specific device of a user.
 	 * Useful for multi-device support.
@@ -64,7 +64,7 @@ export class SignalKeysController {
 	}
 
 	/**
-	 * GET /auth/signal/keys/:userId/devices/:deviceId/status
+	 * GET /api/v1/signal/keys/:userId/devices/:deviceId/status
 	 *
 	 * Get the prekey status for a specific device (for monitoring)
 	 */
