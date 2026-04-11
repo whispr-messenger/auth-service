@@ -15,12 +15,21 @@ async function bootstrap() {
 
 	app.setGlobalPrefix(globalPrefix);
 
-	app.enableCors({
-		origin: true,
-		methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-		allowedHeaders: ['Authorization', 'Content-Type', 'Accept', 'Origin', 'X-Requested-With'],
-		credentials: true,
-	});
+	const corsOrigins = configService
+		.get<string>('CORS_ORIGINS', '')
+		.split(',')
+		.map((origin) => origin.trim())
+		.filter(Boolean);
+
+	if (corsOrigins.length > 0) {
+		app.enableCors({
+			origin: corsOrigins,
+			methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+			allowedHeaders: ['Authorization', 'Content-Type', 'Accept', 'Origin', 'X-Requested-With'],
+			credentials: true,
+		});
+		logger.log(`CORS enabled for origins: ${corsOrigins.join(', ')}`);
+	}
 
 	app.enableVersioning({
 		type: VersioningType.URI,
