@@ -18,4 +18,7 @@
 # 💡 Explanation
 - [System Architecture](./explanation/system-design.md)
 - [End-to-End Encryption](./explanation/encryption.md)
-- [ADR 0001: User Data Denormalization](./explanation/adr/0001-denormalize-user-data.md)
+- [Architecture Decision Records](./explanation/adr/README.md)
+  - [ADR 0001: User Data Denormalization](./explanation/adr/0001-denormalize-user-data.md)
+  - [ADR 0002: CORS Origin Whitelist](./explanation/adr/0002-cors-origin-whitelist.md)
+  - [ADR 0003: API Versioning via URI Prefix](./explanation/adr/0003-api-versioning-uri-prefix.md)
