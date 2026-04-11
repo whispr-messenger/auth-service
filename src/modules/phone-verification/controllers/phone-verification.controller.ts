@@ -3,6 +3,7 @@ import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
 	VerificationConfirmDto,
 	VerificationConfirmResponseDto,
+	VerificationLoginResponseDto,
 	VerificationRequestDto,
 	VerificationRequestResponseDto,
 } from '../dto';
@@ -34,7 +35,11 @@ export class PhoneVerificationController {
 	@HttpCode(HttpStatus.OK)
 	@ApiOperation({ summary: 'Confirm registration verification code' })
 	@ApiBody({ type: VerificationConfirmDto, examples: VERIFICATION_CONFIRM_EXAMPLES })
-	@ApiResponse({ status: 200, description: 'Verification code confirmed' })
+	@ApiResponse({
+		status: 200,
+		description: 'Verification code confirmed',
+		type: VerificationConfirmResponseDto,
+	})
 	@ApiResponse({
 		status: 400,
 		description: 'Incorrect verification code — or invalid/expired verification session',
@@ -66,7 +71,11 @@ export class PhoneVerificationController {
 	@HttpCode(HttpStatus.OK)
 	@ApiOperation({ summary: 'Confirm login verification code' })
 	@ApiBody({ type: VerificationConfirmDto, examples: VERIFICATION_CONFIRM_EXAMPLES })
-	@ApiResponse({ status: 200, description: 'Verification code confirmed' })
+	@ApiResponse({
+		status: 200,
+		description: 'Verification code confirmed',
+		type: VerificationLoginResponseDto,
+	})
 	@ApiResponse({
 		status: 400,
 		description: 'Incorrect verification code, invalid/expired verification session, or user not found',
@@ -75,7 +84,9 @@ export class PhoneVerificationController {
 		status: 429,
 		description: 'Too many verification attempts — session deleted, subsequent requests return 400',
 	})
-	async confirmLoginVerification(@Body() dto: VerificationConfirmDto) {
+	async confirmLoginVerification(
+		@Body() dto: VerificationConfirmDto
+	): Promise<VerificationLoginResponseDto> {
 		return this.phoneVerificationService.confirmLoginVerification(dto);
 	}
 }
