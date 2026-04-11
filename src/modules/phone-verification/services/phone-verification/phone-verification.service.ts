@@ -34,10 +34,11 @@ export class PhoneVerificationService {
 	private readonly logger = new Logger(PhoneVerificationService.name);
 	private readonly isDemoMode: boolean;
 	private readonly otpBypassCode: string | undefined;
-	private readonly VERIFICATION_TTL = 15 * 60; // 15 minutes in seconds
+	private readonly VERIFICATION_TTL_MS = 15 * 60 * 1000; // 15 minutes in milliseconds
+	private readonly POST_CONFIRM_TTL_MS = 60 * 1000; // 60 seconds post-confirm in milliseconds
 	private readonly MAX_ATTEMPTS = 5;
-	private readonly RATE_LIMIT_TTL = 60 * 60; // 1 hour in seconds
-	private readonly MAX_REQUESTS_PER_HOUR = 999;
+	private readonly RATE_LIMIT_TTL_SECONDS = 60 * 60; // 1 hour in seconds
+	private readonly MAX_REQUESTS_PER_HOUR = 5;
 
 	constructor(
 		@Inject('VerificationRepository') private readonly verificationRepo: VerificationRepository,
@@ -78,7 +79,7 @@ export class PhoneVerificationService {
 			purpose
 		);
 
-		await this.verificationRepo.save(verificationId, verificationData, this.VERIFICATION_TTL * 1000);
+		await this.verificationRepo.save(verificationId, verificationData, this.VERIFICATION_TTL_MS);
 
 		await this.incrementRateLimit(normalizedPhone);
 
@@ -99,7 +100,7 @@ export class PhoneVerificationService {
 		await this.rateLimitService.checkLimit(
 			key,
 			this.MAX_REQUESTS_PER_HOUR,
-			this.RATE_LIMIT_TTL,
+			this.RATE_LIMIT_TTL_SECONDS,
 			errorMessage
 		);
 	}
@@ -110,7 +111,7 @@ export class PhoneVerificationService {
 	 */
 	private async incrementRateLimit(phoneNumber: string): Promise<void> {
 		const key = `rate_limit:${phoneNumber}`;
-		await this.rateLimitService.increment(key, this.RATE_LIMIT_TTL);
+		await this.rateLimitService.increment(key, this.RATE_LIMIT_TTL_SECONDS);
 	}
 
 	/**
@@ -126,7 +127,7 @@ export class PhoneVerificationService {
 		const verificationId = uuidv4();
 		const code = this.codeGenerator.generateCode();
 		const hashedCode = await this.codeGenerator.hashCode(code);
-		const expirationTime = Date.now() + this.VERIFICATION_TTL * 1000;
+		const expirationTime = Date.now() + this.VERIFICATION_TTL_MS;
 
 		const verificationData: VerificationCode = {
 			phoneNumber,
@@ -196,9 +197,11 @@ export class PhoneVerificationService {
 			throw new BadRequestException('Invalid or expired verification code');
 		}
 
-		// If already verified and no code provided, return the data
-		if (verificationData.verified && code === '') {
-			return verificationData;
+		if (verificationData.verified) {
+			if (code === '') {
+				return verificationData;
+			}
+			throw new BadRequestException('Verification code has already been confirmed');
 		}
 
 		if (verificationData.attempts >= this.MAX_ATTEMPTS) {
@@ -235,11 +238,16 @@ export class PhoneVerificationService {
 		verificationId: string,
 		verificationData: VerificationCode
 	): Promise<void> {
+		const remainingMs = verificationData.expiresAt - Date.now();
+		if (remainingMs <= 0) {
+			await this.verificationRepo.delete(verificationId);
+			throw new BadRequestException('Invalid or expired verification code');
+		}
 		verificationData.verified = true;
 		await this.verificationRepo.update(
 			verificationId,
 			verificationData,
-			Math.ceil(verificationData.expiresAt - Date.now())
+			Math.min(this.POST_CONFIRM_TTL_MS, remainingMs)
 		);
 	}
 

@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Request, Post } from '@nestjs/common';
+import { Body, Controller, Headers, HttpCode, HttpStatus, Request, Post } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { DeviceFingerprint } from '../../devices/types/device-fingerprint.interface';
 import { TokensService } from '../services/tokens.service';
@@ -18,11 +18,15 @@ export class TokensController {
 		status: 401,
 		description: 'Invalid or expired refresh token',
 	})
-	async refreshToken(@Body() dto: RefreshTokenDto, @Request() req: any) {
+	async refreshToken(
+		@Body() dto: RefreshTokenDto,
+		@Request() req: any,
+		@Headers('x-device-type') deviceType?: string
+	) {
 		const fingerprint: DeviceFingerprint = {
 			userAgent: req.headers['user-agent'],
 			ipAddress: req.ip,
-			deviceType: 'unknown',
+			deviceType: deviceType?.trim() || 'unknown',
 			timestamp: Date.now(),
 		};
 

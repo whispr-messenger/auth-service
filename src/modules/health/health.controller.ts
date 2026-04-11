@@ -1,10 +1,12 @@
 import { Controller, Get, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { DataSource } from 'typeorm';
 import { CacheService } from '../cache/cache.service';
 import { RedisConfig } from '../../config/redis.config';
 import { TwilioHealthIndicator } from './twilio-health.indicator';
 
+@SkipThrottle()
 @ApiTags('Health')
 @Controller('health')
 export class HealthController {
