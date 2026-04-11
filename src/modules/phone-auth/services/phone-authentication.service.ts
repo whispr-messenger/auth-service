@@ -51,8 +51,7 @@ export class PhoneAuthenticationService {
 		const verificationData = await this.phoneVerificationService.getConfirmedVerification(verificationId);
 
 		if (verificationData.purpose !== purpose) {
-			this.getWrongPurposeMessage(purpose);
-			throw new BadRequestException();
+			throw new BadRequestException(this.getWrongPurposeMessage(purpose));
 		}
 
 		return verificationData.phoneNumber;
