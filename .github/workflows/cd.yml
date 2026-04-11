@@ -118,23 +118,18 @@ jobs:
           # Update the deployment manifest in the infrastructure repository
           yq -i 'select(.kind == "Deployment").spec.template.spec.containers[0].image = "'"${FULL_IMAGE}"'"' k8s/whispr/preprod/auth-service/deployment.yaml
 
-          # Update the migration job manifest so PreSync always uses the same image
-          yq -i 'select(.kind == "Job").spec.template.spec.containers[0].image = "'"${FULL_IMAGE}"'"' k8s/whispr/preprod/auth-service/migration-job.yaml
-
       - name: Verify update
         run: |
           echo "Updated deployment manifest:"
           yq '.spec.template.spec.containers[0].image' k8s/whispr/preprod/auth-service/deployment.yaml
-          echo "Updated migration job manifest:"
-          yq '.spec.template.spec.containers[0].image' k8s/whispr/preprod/auth-service/migration-job.yaml
 
       - name: Commit and push changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          
+
           # Check if there are changes to commit
-          if git diff --quiet k8s/whispr/preprod/auth-service/deployment.yaml k8s/whispr/preprod/auth-service/migration-job.yaml; then
+          if git diff --quiet k8s/whispr/preprod/auth-service/deployment.yaml; then
             echo "No changes to commit"
             exit 0
           fi
@@ -149,7 +144,7 @@ jobs:
             COMMIT_MSG="🔧 chore(deploy/auth-service): update image to ${COMMIT_SHA:0:7}"
           fi
 
-          git add k8s/whispr/preprod/auth-service/deployment.yaml k8s/whispr/preprod/auth-service/migration-job.yaml
+          git add k8s/whispr/preprod/auth-service/deployment.yaml
           git commit -m "${COMMIT_MSG}"
 
           INFRA_BRANCH="${{ inputs.ref || 'main' }}"

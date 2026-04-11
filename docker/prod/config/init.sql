@@ -7,3 +7,4 @@
 --
 -- Current migration prerequisites:
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION auth_user;
