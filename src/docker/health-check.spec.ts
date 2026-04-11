@@ -20,6 +20,7 @@ describe('health-check', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		jest.resetModules();
+		delete process.env.HTTP_PORT;
 
 		// Create mock request
 		mockRequest = Object.assign(new EventEmitter(), {
@@ -153,7 +154,7 @@ describe('health-check', () => {
 		loadHealthCheck();
 
 		expect(mockConsoleLog).toHaveBeenCalledWith(
-			expect.stringContaining('Target: GET http://localhost:3010/auth/v1/health/ready')
+			expect.stringContaining('Target: GET http://localhost:3001/auth/v1/health/ready')
 		);
 		expect(mockConsoleLog).toHaveBeenCalledWith(expect.stringContaining('Timeout: 3000ms'));
 	});
