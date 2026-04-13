@@ -101,6 +101,8 @@ jobs:
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/test_db
           REDIS_URL: redis://localhost:6379
+          JWT_ISSUER: https://auth.whispr.epitech.beer
+          JWT_AUDIENCE: whispr-api
 
       ####################################################################################################
       # SonarCloud Analysis (all branches — enables PR decoration and quality gate enforcement)

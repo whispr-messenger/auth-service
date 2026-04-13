@@ -317,6 +317,31 @@ Always use **squash** merge to keep `main` history linear.
 
 ---
 
+## 9b. Notify the team on Discord
+
+After merging, post a summary to the team Discord channel using the `AUTH_SERVICE_DISCORD_WEBHOOK_URL` environment variable:
+
+```bash
+curl -X POST "$AUTH_SERVICE_DISCORD_WEBHOOK_URL" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "<message>"}'
+```
+
+**Message format** — do NOT recap the merge (GitHub notifications already cover that). Instead, explain **what changed and why it matters**:
+
+```
+**[WHISPR-XXX]** <one-line description of the behaviour change>.
+
+<2–3 sentences explaining the bug that was fixed or the feature added, what the impact was before the fix, and what the fix does. Audience: teammates who haven't read the ticket.>
+```
+
+Example:
+> **[WHISPR-687]** `verifyCode` now rejects any re-submission of a code on an already-confirmed `verificationId` (400 `"Verification code has already been confirmed"`).
+>
+> Before this fix, submitting a code (correct or not) against an already-verified `verificationId` would fall through to hash comparison instead of being rejected immediately — leaving the door open to post-confirmation brute-force attempts or unexpected client-side behaviour. The existing guard only covered the internal `code === ''` path.
+
+---
+
 ## 10. Close the Jira ticket
 
 Use `mcp__atlassian__transitionJiraIssue` with the transition whose `name` is
@@ -433,7 +458,7 @@ Use beads for **in-session planning and subtask decomposition**. Jira remains th
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **auth-service** (1587 symbols, 4126 relationships, 120 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **auth-service** (1590 symbols, 4130 relationships, 120 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
