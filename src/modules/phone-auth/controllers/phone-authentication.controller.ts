@@ -47,8 +47,9 @@ export class PhoneAuthenticationController {
 	@ApiOperation({ summary: 'Logout and invalidate current session' })
 	@ApiResponse({ status: 204, description: 'Successfully logged out' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
+	@ApiResponse({ status: 403, description: 'deviceId does not belong to the authenticated user' })
 	@ApiBody({ type: LogoutDto })
 	async logout(@Body() dto: LogoutDto, @Request() req: any) {
-		return this.authService.logout(dto.userId ?? req.user.sub, dto.deviceId ?? req.user.deviceId);
+		return this.authService.logout(req.user.sub, req.user.deviceId, dto.deviceId);
 	}
 }

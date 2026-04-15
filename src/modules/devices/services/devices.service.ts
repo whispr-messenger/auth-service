@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Device } from '../entities/device.entity';
 import { DeviceRepository } from '../repositories/device.repository';
 import { DeviceRegistrationData } from '../types/device-registration-data.interface';
@@ -56,6 +56,14 @@ export class DevicesService {
 
 		await this.deviceRepository.remove(device);
 		this.logger.log(`Device revoked: ${deviceId} for user: ${userId}`);
+	}
+
+	async assertDeviceBelongsToUser(userId: string, deviceId: string): Promise<void> {
+		const device = await this.deviceRepository.findByUserIdAndDeviceId(userId, deviceId);
+
+		if (!device) {
+			throw new ForbiddenException('Device does not belong to the authenticated user');
+		}
 	}
 
 	/**
