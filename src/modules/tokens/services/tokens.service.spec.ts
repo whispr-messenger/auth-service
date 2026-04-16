@@ -363,6 +363,32 @@ describe('TokensService', () => {
 				expect.any(Number)
 			);
 		});
+
+		// WHISPR-919 : le TTL doit être strictement supérieur à la validité
+		// d'un refresh token (30 j) pour qu'un access token signé avec ce
+		// device ne puisse jamais bypasser la revocation pendant sa durée
+		// de vie. On laisse un peu de marge mais la clé doit bien expirer
+		// automatiquement (éviter la pollution Redis indéfinie).
+		it('should set a TTL greater than refresh token lifetime and less than ~60 days', async () => {
+			cacheService.set.mockResolvedValue(undefined);
+
+			await service.revokeAllTokensForDevice('device-id');
+
+			const ttl = (cacheService.set.mock.calls[0] as [string, string, number])[2];
+			expect(ttl).toBeGreaterThan(30 * 24 * 60 * 60);
+			expect(ttl).toBeLessThan(60 * 24 * 60 * 60);
+		});
+	});
+
+	// WHISPR-919
+	describe('clearDeviceRevocation', () => {
+		it('should delete the revoked_device cache entry', async () => {
+			cacheService.del.mockResolvedValue(undefined);
+
+			await service.clearDeviceRevocation('device-id');
+
+			expect(cacheService.del).toHaveBeenCalledWith('revoked_device:device-id');
+		});
 	});
 
 	describe('isTokenRevoked', () => {
