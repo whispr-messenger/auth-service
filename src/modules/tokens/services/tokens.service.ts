@@ -12,6 +12,15 @@ import { JwksService } from '../../jwks/jwks.service';
 export class TokensService {
 	private readonly ACCESS_TOKEN_TTL = 60 * 60;
 	private readonly REFRESH_TOKEN_TTL = 30 * 24 * 60 * 60;
+	/**
+	 * TTL des clés de revocation (WHISPR-919).
+	 * Doit être supérieur au TTL maximum d'un refresh token pour garantir
+	 * qu'un access token signé avec ce device ne puisse jamais bypasser
+	 * la revocation. Au-delà, la clé devient inutile et doit expirer
+	 * automatiquement pour que Redis ne grandisse pas indéfiniment et
+	 * qu'une reconnexion légitime ne soit pas bloquée ad vitam.
+	 */
+	private readonly REVOCATION_TTL = this.REFRESH_TOKEN_TTL + 24 * 60 * 60;
 
 	constructor(
 		private readonly jwtService: JwtService,
@@ -126,7 +135,23 @@ export class TokensService {
 	}
 
 	async revokeAllTokensForDevice(deviceId: string): Promise<void> {
-		await this.cacheService.set(`revoked_device:${deviceId}`, 'true', this.REFRESH_TOKEN_TTL);
+		await this.cacheService.set(`revoked_device:${deviceId}`, 'true', this.REVOCATION_TTL);
+	}
+
+	/**
+	 * Supprime la revocation d'un device (WHISPR-919).
+	 *
+	 * À appeler après un login par SMS code réussi : la possession d'un
+	 * OTP valide prouve l'autorisation du propriétaire du numéro, il est
+	 * donc cohérent de ré-autoriser ce device au lieu de le laisser
+	 * bloqué jusqu'à l'expiration naturelle du TTL.
+	 *
+	 * Sans ce mécanisme, un logout suivi d'un login avec le même deviceId
+	 * (cas du client web qui persiste le deviceId dans le localStorage)
+	 * retourne un access token immédiatement rejeté par `JwtAuthGuard`.
+	 */
+	async clearDeviceRevocation(deviceId: string): Promise<void> {
+		await this.cacheService.del(`revoked_device:${deviceId}`);
 	}
 
 	async isTokenRevoked(tokenId: string): Promise<boolean> {
