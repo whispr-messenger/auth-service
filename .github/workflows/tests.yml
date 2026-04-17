@@ -130,6 +130,10 @@ jobs:
         if: ${{ steps.check-secrets.outputs.secrets-available == 'true' }}
         uses: sonarsource/sonarqube-quality-gate-action@cf038b0e0cdecfa9e56c198bbb7d21d751d62c3b # v1.2.0
         timeout-minutes: 5
+        # Quality Gate non-bloquant sur deploy/preprod : on veut l'analyse
+        # pour voir la tendance mais pas bloquer les déploiements de staging.
+        # Main reste strict.
+        continue-on-error: ${{ inputs.ref == 'refs/heads/deploy/preprod' }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
