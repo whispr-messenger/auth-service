@@ -26,6 +26,7 @@ describe('PhoneAuthenticationService', () => {
 	const mockTokensService = {
 		generateTokenPair: jest.fn(),
 		revokeAllTokensForDevice: jest.fn(),
+		clearDeviceRevocation: jest.fn().mockResolvedValue(undefined),
 	};
 	const mockUserAuthService = {
 		findByPhoneNumber: jest.fn(),

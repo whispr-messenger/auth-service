@@ -107,6 +107,10 @@ export class PhoneAuthenticationService {
 		user.lastAuthenticatedAt = new Date();
 		await this.userAuthService.saveUser(user);
 		await this.phoneVerificationService.consumeVerification(verificationId);
+		// WHISPR-919 : un login par OTP valide ré-autorise ce device.
+		// Sans ce del, un client qui persiste le deviceId (web, mobile) reste
+		// bloqué par la revocation jusqu'à l'expiration naturelle du TTL.
+		await this.tokenService.clearDeviceRevocation(deviceId);
 		return this.tokenService.generateTokenPair(user.id, deviceId, fingerprint);
 	}
 
