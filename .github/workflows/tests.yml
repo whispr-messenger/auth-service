@@ -118,9 +118,14 @@ jobs:
             echo "⚠️ SonarCloud secrets not configured. Skipping SonarCloud analysis."
           fi
 
+      # Sur deploy/preprod on veut l'analyse SonarCloud (pour suivre la
+      # tendance) mais on ne bloque pas le déploiement si la Quality Gate
+      # ne passe pas. Le scanner v6 exit code 3 = QG FAILED, exit code != 0 = erreur réelle.
+      # Main reste strict (pas de continue-on-error).
       - name: SonarCloud Analysis
         if: ${{ steps.check-secrets.outputs.secrets-available == 'true' }}
         uses: sonarsource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6.0.0
+        continue-on-error: ${{ inputs.ref == 'refs/heads/deploy/preprod' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -130,9 +135,6 @@ jobs:
         if: ${{ steps.check-secrets.outputs.secrets-available == 'true' }}
         uses: sonarsource/sonarqube-quality-gate-action@cf038b0e0cdecfa9e56c198bbb7d21d751d62c3b # v1.2.0
         timeout-minutes: 5
-        # Quality Gate non-bloquant sur deploy/preprod : on veut l'analyse
-        # pour voir la tendance mais pas bloquer les déploiements de staging.
-        # Main reste strict.
         continue-on-error: ${{ inputs.ref == 'refs/heads/deploy/preprod' }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
