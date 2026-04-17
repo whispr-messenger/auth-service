@@ -10,8 +10,8 @@ export async function jwtModuleOptionsFactory(configService: ConfigService): Pro
 		publicKey: configService.get<string>('jwtPublicKey')!,
 		signOptions: {
 			algorithm: 'ES256',
-			...(issuer ? { issuer } : {}),
-			...(audience ? { audience } : {}),
+			issuer: configService.getOrThrow<string>('JWT_ISSUER'),
+			audience: configService.getOrThrow<string>('JWT_AUDIENCE'),
 		},
 		verifyOptions: {
 			algorithms: ['ES256'],
