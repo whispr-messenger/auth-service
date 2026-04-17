@@ -81,6 +81,38 @@ describe('TokensService', () => {
 
 			expect(hash1).toBe(hash2);
 		});
+
+		// WHISPR-921 : le fingerprint doit rester stable entre login et refresh,
+		// même si l'IP change (roaming mobile) ou si deviceType diffère
+		// (body au login vs header x-device-type au refresh).
+		it('should remain stable when ipAddress or deviceType change (WHISPR-921)', () => {
+			const base: DeviceFingerprint = {
+				userAgent: 'Expo/1017756 CFNetwork/3860.400.51 Darwin/25.3.0',
+				ipAddress: '10.0.0.1',
+				deviceType: 'mobile',
+				timestamp: Date.now(),
+			};
+			const ipChanged: DeviceFingerprint = { ...base, ipAddress: '192.168.1.1' };
+			const typeMissing: DeviceFingerprint = { ...base, deviceType: 'unknown' };
+
+			const baseHash = (service as any).generateDeviceFingerprint(base);
+			expect((service as any).generateDeviceFingerprint(ipChanged)).toBe(baseHash);
+			expect((service as any).generateDeviceFingerprint(typeMissing)).toBe(baseHash);
+		});
+
+		it('should still differ when userAgent differs (WHISPR-921)', () => {
+			const fpA: DeviceFingerprint = {
+				userAgent: 'Mozilla/5.0',
+				ipAddress: '10.0.0.1',
+				deviceType: 'mobile',
+				timestamp: Date.now(),
+			};
+			const fpB: DeviceFingerprint = { ...fpA, userAgent: 'Chrome/147.0' };
+
+			expect((service as any).generateDeviceFingerprint(fpA)).not.toBe(
+				(service as any).generateDeviceFingerprint(fpB)
+			);
+		});
 	});
 
 	describe('generateTokenPair', () => {

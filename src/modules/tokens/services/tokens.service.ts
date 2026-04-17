@@ -173,7 +173,10 @@ export class TokensService {
 	}
 
 	private generateDeviceFingerprint(fingerprint: DeviceFingerprint): string {
-		const data = `${fingerprint.userAgent || ''}:${fingerprint.ipAddress || ''}:${fingerprint.deviceType || ''}`;
+		// Fingerprint stable entre login et refresh : uniquement userAgent.
+		// IP exclue (roaming mobile wifi/4G), deviceType exclu (incohérent
+		// entre body au login et header au refresh, et redondant avec UA).
+		const data = fingerprint.userAgent || '';
 		return crypto.createHash('sha256').update(data).digest('hex').substring(0, 12);
 	}
 }
