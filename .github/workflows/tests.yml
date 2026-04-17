@@ -131,11 +131,15 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
+      # Quality Gate: on skip entièrement sur deploy/preprod
+      # (l'analyse SonarCloud continue de tourner et alimente le dashboard).
+      # La step sonarqube-quality-gate-action ignore continue-on-error
+      # (elle enregistre son propre check GitHub). Le skip est donc l'option
+      # la plus fiable. Main reste strict.
       - name: SonarCloud Quality Gate
-        if: ${{ steps.check-secrets.outputs.secrets-available == 'true' }}
+        if: ${{ steps.check-secrets.outputs.secrets-available == 'true' && inputs.ref != 'refs/heads/deploy/preprod' }}
         uses: sonarsource/sonarqube-quality-gate-action@cf038b0e0cdecfa9e56c198bbb7d21d751d62c3b # v1.2.0
         timeout-minutes: 5
-        continue-on-error: ${{ inputs.ref == 'refs/heads/deploy/preprod' }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
