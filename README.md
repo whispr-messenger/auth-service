@@ -100,3 +100,7 @@ npm run test:e2e
 # Couverture
 npm run test:cov
 ```
+
+## Deployment
+
+Le service est déployé via ArgoCD sur un cluster GKE. Le pipeline CI/CD est géré par GitHub Actions.
