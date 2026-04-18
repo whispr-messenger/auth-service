@@ -26,6 +26,19 @@
 
 This Microservice is responsible for all authentication tasks in the Whispr Messenger system. It handles phone-based authentication, JWT token management, device registration, two-factor authentication (2FA), Signal Protocol key management, and JWKS endpoint exposure for inter-service token verification.
 
+## Tech Stack
+
+- **Runtime** : Node.js 22+
+- **Framework** : NestJS + TypeScript
+- **Base de données** : PostgreSQL avec TypeORM
+- **Cache** : Redis
+- **Authentification** : JWT (access + refresh tokens) avec rotation automatique
+- **Vérification SMS** : Intégration fournisseur SMS pour OTP
+- **Protocole Signal** : Gestion des pre-keys et signed pre-keys
+- **Documentation API** : Swagger / OpenAPI
+- **CI/CD** : GitHub Actions + ArgoCD
+- **Qualité** : ESLint, Prettier, Husky hooks
+
 ## Installation
 
 The repository uses `just` a custom recipe runner (like `make` in C lang) to provide useful scripts.
