@@ -62,3 +62,15 @@ just up dev
            │ PostgreSQL│ │  Redis  │ │  JWKS   │
            └──────────┘ └─────────┘ └─────────┘
 ```
+
+### Modules
+
+| Module | Rôle |
+|--------|------|
+| `phone-verification` | Envoi et validation des codes OTP par SMS |
+| `phone-auth` | Login/register via numéro de téléphone |
+| `tokens` | Gestion des JWT (access, refresh, révocation) |
+| `devices` | Enregistrement et suivi des appareils |
+| `two-factor-authentication` | 2FA TOTP |
+| `signal` | Gestion des clés Signal Protocol |
+| `jwks` | Exposition des clés publiques pour les autres services |
