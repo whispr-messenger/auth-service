@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { DevicesService } from './devices.service';
 import { Device } from '../entities/device.entity';
 import { DeviceRepository } from '../repositories/device.repository';
@@ -266,6 +266,38 @@ describe('DevicesService', () => {
 			await expect(service.revokeDevice('user-456', 'device-123')).rejects.toThrow(NotFoundException);
 
 			expect(deviceRepository.remove).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('assertDeviceBelongsToUser', () => {
+		it('should resolve when the device is owned by the user', async () => {
+			deviceRepository.findByUserIdAndDeviceId.mockResolvedValue(mockDevice);
+
+			await expect(
+				service.assertDeviceBelongsToUser('user-123', 'device-123')
+			).resolves.toBeUndefined();
+
+			expect(deviceRepository.findByUserIdAndDeviceId).toHaveBeenCalledWith('user-123', 'device-123');
+		});
+
+		it('should throw ForbiddenException when the device belongs to another user', async () => {
+			deviceRepository.findByUserIdAndDeviceId.mockResolvedValue(null);
+
+			await expect(
+				service.assertDeviceBelongsToUser('attacker-id', 'victim-device-id')
+			).rejects.toThrow(ForbiddenException);
+
+			await expect(
+				service.assertDeviceBelongsToUser('attacker-id', 'victim-device-id')
+			).rejects.toThrow('Device does not belong to the authenticated user');
+		});
+
+		it('should throw ForbiddenException when the device does not exist', async () => {
+			deviceRepository.findByUserIdAndDeviceId.mockResolvedValue(null);
+
+			await expect(service.assertDeviceBelongsToUser('user-123', 'non-existent')).rejects.toThrow(
+				ForbiddenException
+			);
 		});
 	});
 });
