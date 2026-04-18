@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import Redis from 'ioredis';
 import { buildRedisOptions } from '../../config/redis.config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { PhoneAuthenticationController } from './controllers/phone-authentication.controller';
@@ -22,7 +23,7 @@ import { SignalModule } from '../signal/signal.module';
 			inject: [ConfigService],
 			useFactory: (configService: ConfigService) => ({
 				throttlers: [{ ttl: 60000, limit: 10 }],
-				storage: new ThrottlerStorageRedisService(buildRedisOptions(configService)),
+				storage: new ThrottlerStorageRedisService(new Redis(buildRedisOptions(configService))),
 			}),
 		}),
 		ClientsModule.registerAsync([

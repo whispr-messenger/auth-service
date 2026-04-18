@@ -3,6 +3,7 @@ import { ConfigModule, ConfigModuleOptions, ConfigService } from '@nestjs/config
 import { TypeOrmModule, TypeOrmModuleAsyncOptions } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerGuard, ThrottlerOptions } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import Redis from 'ioredis';
 import { HealthModule } from '../health/health.module';
 import { AuthModule } from '../auth.module';
 import { typeOrmModuleOptionsFactory } from './typeorm';
@@ -61,7 +62,7 @@ const throttlerGuardProvider: Provider = {
 			inject: [ConfigService],
 			useFactory: (configService: ConfigService) => ({
 				throttlers: [SHORT_THROTTLER, MEDIUM_THOTTLER, LONG_THROTTLER],
-				storage: new ThrottlerStorageRedisService(buildRedisOptions(configService)),
+				storage: new ThrottlerStorageRedisService(new Redis(buildRedisOptions(configService))),
 			}),
 		}),
 		HealthModule,
