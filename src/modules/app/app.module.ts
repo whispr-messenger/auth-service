@@ -1,13 +1,15 @@
 import { Module, Provider } from '@nestjs/common';
 import { ConfigModule, ConfigModuleOptions, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleAsyncOptions } from '@nestjs/typeorm';
-import { ThrottlerModule, ThrottlerGuard, ThrottlerModuleOptions, ThrottlerOptions } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard, ThrottlerOptions } from '@nestjs/throttler';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { HealthModule } from '../health/health.module';
 import { AuthModule } from '../auth.module';
 import { typeOrmModuleOptionsFactory } from './typeorm';
 import { CacheModule } from '../cache/cache.module';
 import { APP_GUARD } from '@nestjs/core';
 import { validateJwtKeys } from '../../config/jwt-keys.config';
+import { buildRedisOptions } from '../../config/redis.config';
 
 // Environment variables
 const configModuleOptions: ConfigModuleOptions = {
@@ -44,8 +46,6 @@ const LONG_THROTTLER: ThrottlerOptions = {
 	limit: 100,
 };
 
-const throttlerModuleOptions: ThrottlerModuleOptions = [SHORT_THROTTLER, MEDIUM_THOTTLER, LONG_THROTTLER];
-
 const throttlerGuardProvider: Provider = {
 	provide: APP_GUARD,
 	useClass: ThrottlerGuard,
@@ -56,7 +56,14 @@ const throttlerGuardProvider: Provider = {
 		ConfigModule.forRoot(configModuleOptions),
 		TypeOrmModule.forRootAsync(typeOrmModuleAsyncOptions),
 		CacheModule,
-		ThrottlerModule.forRoot(throttlerModuleOptions),
+		ThrottlerModule.forRootAsync({
+			imports: [ConfigModule],
+			inject: [ConfigService],
+			useFactory: (configService: ConfigService) => ({
+				throttlers: [SHORT_THROTTLER, MEDIUM_THOTTLER, LONG_THROTTLER],
+				storage: new ThrottlerStorageRedisService(buildRedisOptions(configService)),
+			}),
+		}),
 		HealthModule,
 		AuthModule,
 	],
