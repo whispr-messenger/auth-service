@@ -85,3 +85,5 @@ Variables d'environnement principales :
 | `REDIS_HOST` | Hôte Redis |
 | `REDIS_PORT` | Port Redis |
 | `JWT_SECRET` | Secret pour signer les tokens |
+| `SMS_PROVIDER_API_KEY` | Clé API du fournisseur SMS |
+| `NODE_ENV` | Environnement (development, production) |
