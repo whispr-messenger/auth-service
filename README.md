@@ -74,3 +74,14 @@ just up dev
 | `two-factor-authentication` | 2FA TOTP |
 | `signal` | Gestion des clés Signal Protocol |
 | `jwks` | Exposition des clés publiques pour les autres services |
+
+## Configuration
+
+Variables d'environnement principales :
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | URL PostgreSQL |
+| `REDIS_HOST` | Hôte Redis |
+| `REDIS_PORT` | Port Redis |
+| `JWT_SECRET` | Secret pour signer les tokens |
