@@ -87,3 +87,16 @@ Variables d'environnement principales :
 | `JWT_SECRET` | Secret pour signer les tokens |
 | `SMS_PROVIDER_API_KEY` | Clé API du fournisseur SMS |
 | `NODE_ENV` | Environnement (development, production) |
+
+## Testing
+
+```bash
+# Tests unitaires
+npm test
+
+# Tests e2e
+npm run test:e2e
+
+# Couverture
+npm run test:cov
+```
