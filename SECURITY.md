@@ -11,3 +11,5 @@ Si vous découvrez une faille de sécurité, ne créez pas d'issue publique. Con
 - Rate limiting sur les endpoints sensibles
 - Validation stricte des entrées
 - Hashage des codes de vérification
+- 2FA TOTP disponible
+- Gestion des devices avec fingerprinting
