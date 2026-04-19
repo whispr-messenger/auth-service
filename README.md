@@ -135,3 +135,5 @@ Mobile App ──▶ POST /auth/confirm ──▶ Vérif code
                                     │  refresh)  │
                                     └───────────┘
 ```
+
+Les autres services vérifient les tokens via le endpoint JWKS (`GET /auth/.well-known/jwks.json`).
