@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule, ThrottlerModuleOptions } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import Redis from 'ioredis';
+import { buildRedisOptions } from '../../config/redis.config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { PhoneAuthenticationController } from './controllers/phone-authentication.controller';
 import { PhoneAuthenticationService } from './services';
@@ -11,18 +14,18 @@ import { CommonModule } from '../common/common.module';
 import { TwoFactorAuthenticationModule } from '../two-factor-authentication/two-factor-authentication.module';
 import { SignalModule } from '../signal/signal.module';
 
-const throttlerModuleOptions: ThrottlerModuleOptions = [
-	{
-		ttl: 60000,
-		limit: 10,
-	},
-];
-
 @Module({
 	providers: [PhoneAuthenticationService],
 	controllers: [PhoneAuthenticationController],
 	imports: [
-		ThrottlerModule.forRoot(throttlerModuleOptions),
+		ThrottlerModule.forRootAsync({
+			imports: [ConfigModule],
+			inject: [ConfigService],
+			useFactory: (configService: ConfigService) => ({
+				throttlers: [{ ttl: 60000, limit: 10 }],
+				storage: new ThrottlerStorageRedisService(new Redis(buildRedisOptions(configService))),
+			}),
+		}),
 		ClientsModule.registerAsync([
 			{
 				name: 'REDIS_CLIENT',

@@ -72,6 +72,21 @@ jest.mock('ioredis', () => {
 	return { __esModule: true, default: mockCtor };
 });
 
+// Mock @nest-lab/throttler-storage-redis : évite l'erreur instanceof ioredis_1.default
+// quand ioredis est mocké avant que le module ne soit chargé (setupFilesAfterEnv).
+jest.mock('@nest-lab/throttler-storage-redis', () => {
+	const ThrottlerStorageRedisService = jest.fn().mockImplementation(() => ({
+		increment: jest.fn().mockResolvedValue({
+			totalHits: 1,
+			timeToExpire: 60000,
+			isBlocked: false,
+			timeToBlockExpire: 0,
+		}),
+		onModuleDestroy: jest.fn(),
+	}));
+	return { ThrottlerStorageRedisService };
+});
+
 // Mock SmsService
 jest.mock('../src/modules/phone-verification/services/sms/sms.service', () => ({
 	SmsService: jest.fn().mockImplementation(() => ({
