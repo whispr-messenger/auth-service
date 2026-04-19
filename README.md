@@ -121,3 +121,17 @@ Push main ──▶ GitHub Actions ──▶ Build Docker ──▶ GHCR
 - Docker & Docker Compose
 - PostgreSQL 14+
 - Redis 7+
+
+## Flux d'authentification
+
+```
+Mobile App ──▶ POST /auth/verify ──▶ Envoi SMS (OTP)
+                                          │
+Mobile App ──▶ POST /auth/confirm ──▶ Vérif code
+                                          │
+                                    ┌─────▼─────┐
+                                    │ JWT tokens │
+                                    │ (access +  │
+                                    │  refresh)  │
+                                    └───────────┘
+```
