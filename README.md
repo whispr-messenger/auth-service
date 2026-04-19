@@ -137,3 +137,8 @@ Mobile App ──▶ POST /auth/confirm ──▶ Vérif code
 ```
 
 Les autres services vérifient les tokens via le endpoint JWKS (`GET /auth/.well-known/jwks.json`).
+
+## Liens utiles
+
+- [Guide de contribution](CONTRIBUTING.md)
+- [Politique de sécurité](SECURITY.md)
