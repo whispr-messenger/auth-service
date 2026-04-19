@@ -83,6 +83,7 @@ Variables d'environnement principales :
 
 | Variable | Description |
 |----------|-------------|
+| `PORT` | Port du serveur (défaut: 3000) |
 | `DATABASE_URL` | URL PostgreSQL |
 | `REDIS_HOST` | Hôte Redis |
 | `REDIS_PORT` | Port Redis |
