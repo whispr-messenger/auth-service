@@ -114,3 +114,10 @@ Push main ──▶ GitHub Actions ──▶ Build Docker ──▶ GHCR
                                                     │
                                               GKE Cluster
 ```
+
+## Prérequis
+
+- Node.js 22+
+- Docker & Docker Compose
+- PostgreSQL 14+
+- Redis 7+
