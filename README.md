@@ -73,6 +73,8 @@ just up dev
 | `devices` | Enregistrement et suivi des appareils |
 | `two-factor-authentication` | 2FA TOTP |
 | `signal` | Gestion des clés Signal Protocol |
+| `cache` | Module cache Redis |
+| `health` | Health checks du service |
 | `jwks` | Exposition des clés publiques pour les autres services |
 
 ## Configuration
