@@ -104,3 +104,13 @@ npm run test:cov
 ## Deployment
 
 Le service est déployé via ArgoCD sur un cluster GKE. Le pipeline CI/CD est géré par GitHub Actions.
+
+### Flux de déploiement
+
+```
+Push main ──▶ GitHub Actions ──▶ Build Docker ──▶ GHCR
+                                                    │
+                                              ArgoCD sync
+                                                    │
+                                              GKE Cluster
+```
