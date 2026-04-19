@@ -73,6 +73,8 @@ just up dev
 | `devices` | Enregistrement et suivi des appareils |
 | `two-factor-authentication` | 2FA TOTP |
 | `signal` | Gestion des clés Signal Protocol |
+| `cache` | Module cache Redis |
+| `health` | Health checks du service |
 | `jwks` | Exposition des clés publiques pour les autres services |
 
 ## Configuration
@@ -81,6 +83,7 @@ Variables d'environnement principales :
 
 | Variable | Description |
 |----------|-------------|
+| `PORT` | Port du serveur (défaut: 3000) |
 | `DATABASE_URL` | URL PostgreSQL |
 | `REDIS_HOST` | Hôte Redis |
 | `REDIS_PORT` | Port Redis |
@@ -104,3 +107,41 @@ npm run test:cov
 ## Deployment
 
 Le service est déployé via ArgoCD sur un cluster GKE. Le pipeline CI/CD est géré par GitHub Actions.
+
+### Flux de déploiement
+
+```
+Push main ──▶ GitHub Actions ──▶ Build Docker ──▶ GHCR
+                                                    │
+                                              ArgoCD sync
+                                                    │
+                                              GKE Cluster
+```
+
+## Prérequis
+
+- Node.js 22+
+- Docker & Docker Compose
+- PostgreSQL 14+
+- Redis 7+
+
+## Flux d'authentification
+
+```
+Mobile App ──▶ POST /auth/verify ──▶ Envoi SMS (OTP)
+                                          │
+Mobile App ──▶ POST /auth/confirm ──▶ Vérif code
+                                          │
+                                    ┌─────▼─────┐
+                                    │ JWT tokens │
+                                    │ (access +  │
+                                    │  refresh)  │
+                                    └───────────┘
+```
+
+Les autres services vérifient les tokens via le endpoint JWKS (`GET /auth/.well-known/jwks.json`).
+
+## Liens utiles
+
+- [Guide de contribution](CONTRIBUTING.md)
+- [Politique de sécurité](SECURITY.md)
