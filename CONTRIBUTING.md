@@ -38,3 +38,8 @@ Format : `WHISPR-XXX-description-courte`
 - Base : `main`
 - Titre clair et concis
 - Description avec résumé et plan de test
+
+## Qualité de code
+
+- ESLint + Prettier (hooks Husky automatiques)
+- SonarQube vérifie la qualité à chaque PR
