@@ -29,11 +29,14 @@ export class RedisStreamProducer implements OnModuleDestroy {
 	 * Publish a message to a Redis Stream.
 	 * Uses MAXLEN ~ 10000 to cap the stream at approximately 10k entries.
 	 */
-	async emit(stream: string, data: Record<string, string>): Promise<string> {
-		const fields = Object.entries(data).flat();
+	async emit(stream: string, data: Record<string, unknown>): Promise<string> {
+		const fields = Object.entries(data).flatMap(([k, v]) => [k, String(v)]);
 		const id = await this.redis.xadd(stream, 'MAXLEN', '~', '10000', '*', ...fields);
+		if (!id) {
+			throw new Error(`XADD to ${stream} returned null`);
+		}
 		this.logger.debug(`XADD ${stream} → ${id}`);
-		return id!;
+		return id;
 	}
 
 	async onModuleDestroy() {
