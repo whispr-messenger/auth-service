@@ -108,6 +108,51 @@ describe('RedisStreamProducer', () => {
 			);
 		});
 
+		it('should serialize null and undefined values as empty strings', async () => {
+			mockXadd.mockResolvedValue('1718000000000-3');
+
+			await service.emit('stream:test', {
+				nullField: null,
+				undefinedField: undefined,
+			});
+
+			expect(mockXadd).toHaveBeenCalledWith(
+				'stream:test',
+				'MAXLEN',
+				'~',
+				'10000',
+				'*',
+				'nullField',
+				'',
+				'undefinedField',
+				''
+			);
+		});
+
+		it('should serialize bigint values to string', async () => {
+			mockXadd.mockResolvedValue('1718000000000-4');
+
+			await service.emit('stream:test', {
+				bigValue: BigInt('9007199254740993'),
+			});
+
+			expect(mockXadd).toHaveBeenCalledWith(
+				'stream:test',
+				'MAXLEN',
+				'~',
+				'10000',
+				'*',
+				'bigValue',
+				'9007199254740993'
+			);
+		});
+
+		it('should throw when data is empty', async () => {
+			await expect(service.emit('stream:test', {})).rejects.toThrow(
+				'XADD to stream:test requires at least one field'
+			);
+		});
+
 		it('should throw when xadd returns null', async () => {
 			mockXadd.mockResolvedValue(null);
 
@@ -122,6 +167,16 @@ describe('RedisStreamProducer', () => {
 			await service.onModuleDestroy();
 
 			expect(mockQuit).toHaveBeenCalled();
+		});
+
+		it('should fall back to disconnect() if quit() rejects', async () => {
+			const mockDisconnect = jest.fn();
+			(service as any).redis.disconnect = mockDisconnect;
+			mockQuit.mockRejectedValueOnce(new Error('Connection lost'));
+
+			await service.onModuleDestroy();
+
+			expect(mockDisconnect).toHaveBeenCalled();
 		});
 	});
 });

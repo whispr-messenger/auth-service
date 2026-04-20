@@ -19,7 +19,7 @@ import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { VerificationPurpose } from '../../phone-verification/types/verification-purpose.type';
 import { DeviceInfo } from '../interfaces/device-info.interface';
-import { USER_REGISTERED_PATTERN } from '../../../shared/events';
+import { USER_REGISTERED_PATTERN, UserRegisteredEvent } from '../../../shared/events';
 import { SignalKeyStorageService } from '../../signal/services/signal-key-storage.service';
 import { RedisStreamProducer } from '../../../shared/redis';
 
@@ -145,13 +145,15 @@ export class PhoneAuthenticationService {
 		const savedUser = await this.createAndSaveUser(phoneNumber);
 		const deviceId = await this.handleDeviceRegistration(savedUser.id, dto, fingerprint);
 
+		const event: UserRegisteredEvent = {
+			userId: savedUser.id,
+			phoneNumber: savedUser.phoneNumber,
+			timestamp: new Date().toISOString(),
+		};
+
 		this.logger.log(`Emitting user.registered stream event for userId=${savedUser.id}`);
 		try {
-			await this.streamProducer.emit(STREAM_USER_REGISTERED, {
-				userId: savedUser.id,
-				phoneNumber: savedUser.phoneNumber,
-				timestamp: new Date().toISOString(),
-			});
+			await this.streamProducer.emit(STREAM_USER_REGISTERED, event);
 			this.logger.log(`user.registered stream event emitted for userId=${savedUser.id}`);
 		} catch (error) {
 			if (error instanceof Error) {
