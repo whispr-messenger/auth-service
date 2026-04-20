@@ -10,6 +10,7 @@ import { UserAuthService } from '../../common/services/user-auth.service';
 import { UserAuth } from '../../common/entities/user-auth.entity';
 import { DeviceRegistrationService } from '../../devices/services/device-registration/device-registration.service';
 import { DeviceActivityService } from '../../devices/services/device-activity/device-activity.service';
+import { DevicesService } from '../../devices/services/devices.service';
 import { DeviceFingerprint } from '../../devices/types/device-fingerprint.interface';
 import { TokenPair } from '../../tokens/types/token-pair.interface';
 import { TokensService } from '../../tokens/services/tokens.service';
@@ -31,6 +32,7 @@ export class PhoneAuthenticationService {
 	constructor(
 		private readonly deviceRegistrationService: DeviceRegistrationService,
 		private readonly deviceActivityService: DeviceActivityService,
+		private readonly devicesService: DevicesService,
 		private readonly phoneVerificationService: PhoneVerificationService,
 		private readonly tokenService: TokensService,
 		private readonly userAuthService: UserAuthService,
@@ -180,11 +182,17 @@ export class PhoneAuthenticationService {
 		return this.createAuthSession(user, deviceId, fingerprint, dto.verificationId);
 	}
 
-	public async logout(userId: string, deviceId: string): Promise<void> {
-		await this.tokenService.revokeAllTokensForDevice(deviceId);
+	public async logout(userId: string, currentDeviceId: string, targetDeviceId?: string): Promise<void> {
+		const deviceIdToRevoke = targetDeviceId ?? currentDeviceId;
+
+		if (targetDeviceId && targetDeviceId !== currentDeviceId) {
+			await this.devicesService.assertDeviceBelongsToUser(userId, targetDeviceId);
+		}
+
+		await this.tokenService.revokeAllTokensForDevice(deviceIdToRevoke);
 
 		try {
-			await this.deviceActivityService.updateLastActive(deviceId);
+			await this.deviceActivityService.updateLastActive(deviceIdToRevoke);
 		} catch (error) {
 			if (!(error instanceof NotFoundException)) {
 				throw error;
