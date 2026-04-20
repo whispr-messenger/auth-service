@@ -1,9 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
-import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
-import Redis from 'ioredis';
-import { buildRedisOptions } from '../../config/redis.config';
+import { ConfigModule } from '@nestjs/config';
 import { PhoneAuthenticationController } from './controllers/phone-authentication.controller';
 import { PhoneAuthenticationService } from './services';
 import { TokensModule } from '../tokens/tokens.module';
@@ -18,14 +14,6 @@ import { RedisStreamProducer } from '../../shared/redis';
 	providers: [PhoneAuthenticationService, RedisStreamProducer],
 	controllers: [PhoneAuthenticationController],
 	imports: [
-		ThrottlerModule.forRootAsync({
-			imports: [ConfigModule],
-			inject: [ConfigService],
-			useFactory: (configService: ConfigService) => ({
-				throttlers: [{ ttl: 60000, limit: 10 }],
-				storage: new ThrottlerStorageRedisService(new Redis(buildRedisOptions(configService))),
-			}),
-		}),
 		ConfigModule,
 		CommonModule,
 		DevicesModule,

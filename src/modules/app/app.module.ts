@@ -35,7 +35,7 @@ const SHORT_THROTTLER: ThrottlerOptions = {
 	limit: 3,
 };
 
-const MEDIUM_THOTTLER: ThrottlerOptions = {
+const MEDIUM_THROTTLER: ThrottlerOptions = {
 	name: 'medium',
 	ttl: 10000,
 	limit: 20,
@@ -61,7 +61,7 @@ const throttlerGuardProvider: Provider = {
 			imports: [ConfigModule],
 			inject: [ConfigService],
 			useFactory: (configService: ConfigService) => ({
-				throttlers: [SHORT_THROTTLER, MEDIUM_THOTTLER, LONG_THROTTLER],
+				throttlers: [SHORT_THROTTLER, MEDIUM_THROTTLER, LONG_THROTTLER],
 				storage: new ThrottlerStorageRedisService(new Redis(buildRedisOptions(configService))),
 			}),
 		}),

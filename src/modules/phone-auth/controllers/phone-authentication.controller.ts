@@ -1,11 +1,13 @@
 import { Controller, Post, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { PhoneAuthenticationService } from '../services/phone-authentication.service';
 import { JwtAuthGuard } from '../../tokens/guards';
 import { DeviceFingerprintService } from '../../devices/services/device-fingerprint/device-fingerprint.service';
 import { RegisterDto, LoginDto, LogoutDto, RegisterResponseDto, LoginResponseDto } from '../dto';
 
 @ApiTags('Auth - Authentication by SMS')
+@Throttle({ default: { ttl: 60000, limit: 10 } })
 @Controller('')
 export class PhoneAuthenticationController {
 	constructor(
