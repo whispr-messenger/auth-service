@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
-import { of, throwError } from 'rxjs';
 import { PhoneAuthenticationService } from './phone-authentication.service';
 import { DeviceRegistrationService } from '../../devices/services/device-registration/device-registration.service';
 import { DeviceActivityService } from '../../devices/services/device-activity/device-activity.service';
@@ -8,6 +7,7 @@ import { PhoneVerificationService } from '../../phone-verification/services/phon
 import { TokensService } from '../../tokens/services/tokens.service';
 import { UserAuthService } from '../../common/services/user-auth.service';
 import { SignalKeyStorageService } from '../../signal/services/signal-key-storage.service';
+import { RedisStreamProducer } from '../../../shared/redis';
 import { DeviceFingerprint } from '../../devices/types/device-fingerprint.interface';
 
 describe('PhoneAuthenticationService', () => {
@@ -38,8 +38,8 @@ describe('PhoneAuthenticationService', () => {
 		storeSignedPreKey: jest.fn(),
 		storePreKeys: jest.fn(),
 	};
-	const mockRedisClient = {
-		emit: jest.fn().mockReturnValue(of(undefined)),
+	const mockStreamProducer = {
+		emit: jest.fn().mockResolvedValue('1-0'),
 	};
 
 	const fingerprint: DeviceFingerprint = {
@@ -58,7 +58,7 @@ describe('PhoneAuthenticationService', () => {
 				{ provide: TokensService, useValue: mockTokensService },
 				{ provide: UserAuthService, useValue: mockUserAuthService },
 				{ provide: SignalKeyStorageService, useValue: mockSignalKeyStorageService },
-				{ provide: 'REDIS_CLIENT', useValue: mockRedisClient },
+				{ provide: RedisStreamProducer, useValue: mockStreamProducer },
 			],
 		}).compile();
 
@@ -282,18 +282,18 @@ describe('PhoneAuthenticationService', () => {
 			await service.register({ verificationId: 'ver-1' } as any, fingerprint);
 
 			expect(logSpy).toHaveBeenCalledWith(
-				expect.stringContaining('Emitting user.registered for userId=user-123')
+				expect.stringContaining('Emitting user.registered stream event for userId=user-123')
 			);
 			expect(logSpy).toHaveBeenCalledWith(
-				expect.stringContaining('user.registered emitted successfully for userId=user-123')
+				expect.stringContaining('user.registered stream event emitted for userId=user-123')
 			);
-			expect(mockRedisClient.emit).toHaveBeenCalledWith(
-				'user.registered',
+			expect(mockStreamProducer.emit).toHaveBeenCalledWith(
+				'stream:user.registered',
 				expect.objectContaining({ userId: 'user-123' })
 			);
 		});
 
-		it('should log error when emit observable fails', async () => {
+		it('should log error when stream emit fails', async () => {
 			const savedUser = { id: 'user-123', phoneNumber: '+33600000001' };
 			mockPhoneVerificationService.getConfirmedVerification.mockResolvedValue({
 				phoneNumber: '+33600000001',
@@ -304,7 +304,7 @@ describe('PhoneAuthenticationService', () => {
 			mockUserAuthService.saveUser.mockResolvedValue(savedUser);
 			mockDeviceRegistrationService.registerDevice.mockResolvedValue({ id: 'device-1' });
 			mockTokensService.generateTokenPair.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' });
-			mockRedisClient.emit.mockReturnValue(throwError(() => new Error('Transport error')));
+			mockStreamProducer.emit.mockRejectedValue(new Error('Transport error'));
 
 			const errorSpy = jest.spyOn(service['logger'], 'error');
 			const logSpy = jest.spyOn(service['logger'], 'log');
@@ -319,7 +319,7 @@ describe('PhoneAuthenticationService', () => {
 				expect.any(String)
 			);
 			expect(logSpy).not.toHaveBeenCalledWith(
-				expect.stringContaining('user.registered emitted successfully for userId=user-123')
+				expect.stringContaining('user.registered stream event emitted for userId=user-123')
 			);
 		});
 	});

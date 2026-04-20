@@ -2,13 +2,10 @@ import {
 	Injectable,
 	BadRequestException,
 	ConflictException,
-	Inject,
 	Logger,
 	NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { ClientProxy } from '@nestjs/microservices';
-import { lastValueFrom } from 'rxjs';
 import { UserAuthService } from '../../common/services/user-auth.service';
 import { UserAuth } from '../../common/entities/user-auth.entity';
 import { DeviceRegistrationService } from '../../devices/services/device-registration/device-registration.service';
@@ -21,8 +18,11 @@ import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { VerificationPurpose } from '../../phone-verification/types/verification-purpose.type';
 import { DeviceInfo } from '../interfaces/device-info.interface';
-import { USER_REGISTERED_PATTERN, UserRegisteredEvent } from '../../../shared/events';
+import { USER_REGISTERED_PATTERN } from '../../../shared/events';
 import { SignalKeyStorageService } from '../../signal/services/signal-key-storage.service';
+import { RedisStreamProducer } from '../../../shared/redis';
+
+const STREAM_USER_REGISTERED = `stream:${USER_REGISTERED_PATTERN}`;
 
 @Injectable()
 export class PhoneAuthenticationService {
@@ -35,7 +35,7 @@ export class PhoneAuthenticationService {
 		private readonly tokenService: TokensService,
 		private readonly userAuthService: UserAuthService,
 		private readonly signalKeyStorageService: SignalKeyStorageService,
-		@Inject('REDIS_CLIENT') private readonly redisClient: ClientProxy
+		private readonly streamProducer: RedisStreamProducer
 	) {}
 
 	private getWrongPurposeMessage(purpose: VerificationPurpose): string {
@@ -143,16 +143,14 @@ export class PhoneAuthenticationService {
 		const savedUser = await this.createAndSaveUser(phoneNumber);
 		const deviceId = await this.handleDeviceRegistration(savedUser.id, dto, fingerprint);
 
-		const event: UserRegisteredEvent = {
-			userId: savedUser.id,
-			phoneNumber: savedUser.phoneNumber,
-			timestamp: new Date(),
-		};
-
-		this.logger.log(`Emitting user.registered for userId=${savedUser.id}`);
+		this.logger.log(`Emitting user.registered stream event for userId=${savedUser.id}`);
 		try {
-			await lastValueFrom(this.redisClient.emit(USER_REGISTERED_PATTERN, event));
-			this.logger.log(`user.registered emitted successfully for userId=${savedUser.id}`);
+			await this.streamProducer.emit(STREAM_USER_REGISTERED, {
+				userId: savedUser.id,
+				phoneNumber: savedUser.phoneNumber,
+				timestamp: new Date().toISOString(),
+			});
+			this.logger.log(`user.registered stream event emitted for userId=${savedUser.id}`);
 		} catch (error) {
 			if (error instanceof Error) {
 				this.logger.error(
