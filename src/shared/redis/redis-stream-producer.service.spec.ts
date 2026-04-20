@@ -87,6 +87,27 @@ describe('RedisStreamProducer', () => {
 			);
 		});
 
+		it('should JSON.stringify non-string non-primitive values', async () => {
+			mockXadd.mockResolvedValue('1718000000000-2');
+
+			await service.emit('stream:test', {
+				metadata: { nested: true },
+				tags: ['a', 'b'],
+			});
+
+			expect(mockXadd).toHaveBeenCalledWith(
+				'stream:test',
+				'MAXLEN',
+				'~',
+				'10000',
+				'*',
+				'metadata',
+				'{"nested":true}',
+				'tags',
+				'["a","b"]'
+			);
+		});
+
 		it('should throw when xadd returns null', async () => {
 			mockXadd.mockResolvedValue(null);
 

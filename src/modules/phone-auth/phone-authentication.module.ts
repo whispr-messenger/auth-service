@@ -12,7 +12,7 @@ import { PhoneVerificationModule } from '../phone-verification/phone-verificatio
 import { CommonModule } from '../common/common.module';
 import { TwoFactorAuthenticationModule } from '../two-factor-authentication/two-factor-authentication.module';
 import { SignalModule } from '../signal/signal.module';
-import { RedisStreamProducer } from '../../../shared/redis';
+import { RedisStreamProducer } from '../../shared/redis';
 
 @Module({
 	providers: [PhoneAuthenticationService, RedisStreamProducer],

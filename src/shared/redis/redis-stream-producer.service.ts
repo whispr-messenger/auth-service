@@ -16,8 +16,7 @@ export class RedisStreamProducer implements OnModuleDestroy {
 
 	constructor(private readonly configService: ConfigService) {
 		const options = buildRedisOptions(this.configService);
-		// Use database 0 for streams (global inter-service communication)
-		options.db = 0;
+		options.db = this.configService.get<number>('REDIS_STREAM_DB', 0);
 		this.redis = new Redis(options);
 
 		this.redis.on('error', (err) => {
@@ -30,7 +29,10 @@ export class RedisStreamProducer implements OnModuleDestroy {
 	 * Uses MAXLEN ~ 10000 to cap the stream at approximately 10k entries.
 	 */
 	async emit(stream: string, data: Record<string, unknown>): Promise<string> {
-		const fields = Object.entries(data).flatMap(([k, v]) => [k, String(v)]);
+		const fields = Object.entries(data).flatMap(([k, v]) => [
+			k,
+			typeof v === 'string' ? v : JSON.stringify(v),
+		]);
 		const id = await this.redis.xadd(stream, 'MAXLEN', '~', '10000', '*', ...fields);
 		if (!id) {
 			throw new Error(`XADD to ${stream} returned null`);
