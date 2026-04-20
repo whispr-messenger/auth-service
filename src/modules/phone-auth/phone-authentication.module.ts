@@ -4,7 +4,6 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import Redis from 'ioredis';
 import { buildRedisOptions } from '../../config/redis.config';
-import { ClientsModule, Transport } from '@nestjs/microservices';
 import { PhoneAuthenticationController } from './controllers/phone-authentication.controller';
 import { PhoneAuthenticationService } from './services';
 import { TokensModule } from '../tokens/tokens.module';
@@ -13,9 +12,10 @@ import { PhoneVerificationModule } from '../phone-verification/phone-verificatio
 import { CommonModule } from '../common/common.module';
 import { TwoFactorAuthenticationModule } from '../two-factor-authentication/two-factor-authentication.module';
 import { SignalModule } from '../signal/signal.module';
+import { RedisStreamProducer } from '../../shared/redis';
 
 @Module({
-	providers: [PhoneAuthenticationService],
+	providers: [PhoneAuthenticationService, RedisStreamProducer],
 	controllers: [PhoneAuthenticationController],
 	imports: [
 		ThrottlerModule.forRootAsync({
@@ -26,23 +26,7 @@ import { SignalModule } from '../signal/signal.module';
 				storage: new ThrottlerStorageRedisService(new Redis(buildRedisOptions(configService))),
 			}),
 		}),
-		ClientsModule.registerAsync([
-			{
-				name: 'REDIS_CLIENT',
-				imports: [ConfigModule],
-				useFactory: (configService: ConfigService) => ({
-					transport: Transport.REDIS,
-					options: {
-						host: configService.get<string>('REDIS_HOST', 'localhost'),
-						port: configService.get<number>('REDIS_PORT', 6379),
-						username: configService.get<string>('REDIS_USERNAME'),
-						password: configService.get<string>('REDIS_PASSWORD'),
-						db: configService.get<number>('REDIS_DB', 0),
-					},
-				}),
-				inject: [ConfigService],
-			},
-		]),
+		ConfigModule,
 		CommonModule,
 		DevicesModule,
 		PhoneVerificationModule,
