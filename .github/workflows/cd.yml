@@ -87,30 +87,11 @@ jobs:
           # Store COMMIT_SHA as output for use in subsequent steps
           echo "commit_sha=${COMMIT_SHA}" >> $GITHUB_OUTPUT
 
-      - name: Determine trigger branch and infrastructure ref
-        id: branch_info
-        run: |
-          TRIGGER_BRANCH="${{ github.event.workflow_run.head_branch || inputs.ref || 'main' }}"
-          echo "Trigger branch: $TRIGGER_BRANCH"
-
-          if [ "$TRIGGER_BRANCH" = "main" ]; then
-            INFRA_REF="main"
-            DEPLOY_MODE="all"
-          else
-            INFRA_REF="deploy/preprod"
-            DEPLOY_MODE="preprod-only"
-          fi
-
-          echo "infra_ref=${INFRA_REF}" >> $GITHUB_OUTPUT
-          echo "deploy_mode=${DEPLOY_MODE}" >> $GITHUB_OUTPUT
-          echo "Infrastructure ref: $INFRA_REF"
-          echo "Deploy mode: $DEPLOY_MODE"
-
       - name: Checkout infrastructure repository
         uses: actions/checkout@v4
         with:
           repository: whispr-messenger/infrastructure
-          ref: ${{ steps.branch_info.outputs.infra_ref }}
+          ref: main
           token: ${{ steps.generate_token.outputs.token }}
 
       - name: Update image tag in deployment
@@ -134,49 +115,32 @@ jobs:
           echo "Image tag: $IMAGE_TAG"
           echo "Updating deployment image to: ${FULL_IMAGE}"
 
-          DEPLOY_MODE="${{ steps.branch_info.outputs.deploy_mode }}"
+          echo "Updating preprod, prod, and production manifests..."
 
-          # Always update preprod
           echo "Updating k8s/whispr/preprod/auth-service/deployment.yaml"
           yq -i 'select(.kind == "Deployment").spec.template.spec.containers[0].image = "'"${FULL_IMAGE}"'"' k8s/whispr/preprod/auth-service/deployment.yaml
 
-          if [ "$DEPLOY_MODE" = "all" ]; then
-            # Update prod
-            echo "Updating k8s/whispr/prod/auth-service/deployment.yaml"
-            yq -i 'select(.kind == "Deployment").spec.template.spec.containers[0].image = "'"${FULL_IMAGE}"'"' k8s/whispr/prod/auth-service/deployment.yaml
+          echo "Updating k8s/whispr/prod/auth-service/deployment.yaml"
+          yq -i 'select(.kind == "Deployment").spec.template.spec.containers[0].image = "'"${FULL_IMAGE}"'"' k8s/whispr/prod/auth-service/deployment.yaml
 
-            # Update production (deployment only — migration-job.yaml is NOT managed by us)
-            echo "Updating k8s/whispr/production/auth-service/deployment.yaml"
-            yq -i 'select(.kind == "Deployment").spec.template.spec.containers[0].image = "'"${FULL_IMAGE}"'"' k8s/whispr/production/auth-service/deployment.yaml
-          fi
+          echo "Updating k8s/whispr/production/auth-service/deployment.yaml"
+          yq -i 'select(.kind == "Deployment").spec.template.spec.containers[0].image = "'"${FULL_IMAGE}"'"' k8s/whispr/production/auth-service/deployment.yaml
 
       - name: Verify update
         run: |
-          DEPLOY_MODE="${{ steps.branch_info.outputs.deploy_mode }}"
-
           echo "=== preprod ==="
           yq '.spec.template.spec.containers[0].image' k8s/whispr/preprod/auth-service/deployment.yaml
-
-          if [ "$DEPLOY_MODE" = "all" ]; then
-            echo "=== prod ==="
-            yq '.spec.template.spec.containers[0].image' k8s/whispr/prod/auth-service/deployment.yaml
-            echo "=== production ==="
-            yq '.spec.template.spec.containers[0].image' k8s/whispr/production/auth-service/deployment.yaml
-          fi
+          echo "=== prod ==="
+          yq '.spec.template.spec.containers[0].image' k8s/whispr/prod/auth-service/deployment.yaml
+          echo "=== production ==="
+          yq '.spec.template.spec.containers[0].image' k8s/whispr/production/auth-service/deployment.yaml
 
       - name: Commit and push changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
-          DEPLOY_MODE="${{ steps.branch_info.outputs.deploy_mode }}"
-          INFRA_BRANCH="${{ steps.branch_info.outputs.infra_ref }}"
-
-          # Build the list of files to check and add
-          FILES="k8s/whispr/preprod/auth-service/deployment.yaml"
-          if [ "$DEPLOY_MODE" = "all" ]; then
-            FILES="$FILES k8s/whispr/prod/auth-service/deployment.yaml k8s/whispr/production/auth-service/deployment.yaml"
-          fi
+          FILES="k8s/whispr/preprod/auth-service/deployment.yaml k8s/whispr/prod/auth-service/deployment.yaml k8s/whispr/production/auth-service/deployment.yaml"
 
           # Check if there are changes to commit
           if git diff --quiet $FILES; then
@@ -197,5 +161,5 @@ jobs:
           git add $FILES
           git commit -m "${COMMIT_MSG}"
 
-          git pull origin "${INFRA_BRANCH}" --rebase
-          git push https://x-access-token:${{ steps.generate_token.outputs.token }}@github.com/whispr-messenger/infrastructure.git HEAD:"${INFRA_BRANCH}"
+          git pull origin main --rebase
+          git push https://x-access-token:${{ steps.generate_token.outputs.token }}@github.com/whispr-messenger/infrastructure.git HEAD:main
