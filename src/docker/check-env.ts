@@ -60,6 +60,9 @@ export default function runEnvChecks(): void {
 	// Ports
 	checkRequired('HTTP_PORT');
 
+	// Logging
+	checkRequired('LOG_LEVEL');
+
 	// Twilio
 	checkRequired('TWILIO_ACCOUNT_SID');
 	checkRequired('TWILIO_AUTH_TOKEN');
@@ -74,7 +77,6 @@ export default function runEnvChecks(): void {
 	checkOptional('REDIS_PASSWORD', '(no password)');
 	checkOptional('NODE_OPTIONS', '(default Node settings)');
 	checkOptional('PORT', '(defaults to HTTP_PORT)');
-	checkOptional('LOG_LEVEL', 'info');
 	checkOptional('METRICS_ENABLED', 'true');
 	checkOptional('HEALTH_CHECK_TIMEOUT', '5000');
 	checkOptional('DEMO_MODE', 'false');

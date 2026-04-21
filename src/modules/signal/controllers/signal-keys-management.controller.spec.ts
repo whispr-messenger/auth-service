@@ -6,6 +6,7 @@ import { SignalKeyValidationService } from '../services/signal-key-validation.se
 import { SignalKeyStorageService } from '../services/signal-key-storage.service';
 import { SignedPreKeyDto, PreKeyDto } from '../dto';
 import { JwtAuthGuard } from '../../tokens/guards/jwt-auth.guard';
+import { AuthenticatedRequest } from '../../tokens/types/authenticated-request.interface';
 import { DevicesService } from '../../devices/services';
 
 describe('SignalKeysManagementController', () => {
@@ -82,7 +83,9 @@ describe('SignalKeysManagementController', () => {
 			validationService.validateSignedPreKeyIdUniqueness.mockResolvedValue(undefined);
 			rotationService.rotateSignedPreKey.mockResolvedValue(undefined);
 
-			const mockReq = { user: { sub: mockUserId, deviceId: mockDeviceId } };
+			const mockReq = {
+				user: { sub: mockUserId, deviceId: mockDeviceId },
+			} as unknown as AuthenticatedRequest;
 
 			const result = await controller.uploadSignedPreKey(newSignedPreKey, mockReq);
 
@@ -113,7 +116,9 @@ describe('SignalKeysManagementController', () => {
 				throw new BadRequestException('Invalid key');
 			});
 
-			const mockReq = { user: { sub: mockUserId, deviceId: mockDeviceId } };
+			const mockReq = {
+				user: { sub: mockUserId, deviceId: mockDeviceId },
+			} as unknown as AuthenticatedRequest;
 
 			await expect(controller.uploadSignedPreKey(invalidKey, mockReq)).rejects.toThrow(
 				BadRequestException
@@ -132,7 +137,9 @@ describe('SignalKeysManagementController', () => {
 				new BadRequestException('KeyId already exists')
 			);
 
-			const mockReq = { user: { sub: mockUserId, deviceId: mockDeviceId } };
+			const mockReq = {
+				user: { sub: mockUserId, deviceId: mockDeviceId },
+			} as unknown as AuthenticatedRequest;
 
 			await expect(controller.uploadSignedPreKey(duplicateKey, mockReq)).rejects.toThrow(
 				BadRequestException
@@ -150,7 +157,9 @@ describe('SignalKeysManagementController', () => {
 			validationService.validatePreKeys.mockReturnValue(undefined);
 			rotationService.replenishPreKeys.mockResolvedValue(undefined);
 
-			const mockReq = { user: { sub: mockUserId, deviceId: mockDeviceId } };
+			const mockReq = {
+				user: { sub: mockUserId, deviceId: mockDeviceId },
+			} as unknown as AuthenticatedRequest;
 
 			const result = await controller.uploadPreKeys({ preKeys: newPreKeys }, mockReq);
 
@@ -173,7 +182,9 @@ describe('SignalKeysManagementController', () => {
 				throw new BadRequestException('Empty array');
 			});
 
-			const mockReq = { user: { sub: mockUserId, deviceId: mockDeviceId } };
+			const mockReq = {
+				user: { sub: mockUserId, deviceId: mockDeviceId },
+			} as unknown as AuthenticatedRequest;
 
 			await expect(controller.uploadPreKeys({ preKeys: invalidKeys }, mockReq)).rejects.toThrow(
 				BadRequestException
@@ -193,7 +204,9 @@ describe('SignalKeysManagementController', () => {
 
 			rotationService.getRotationRecommendations.mockResolvedValue(mockRecommendations);
 
-			const mockReq = { user: { sub: mockUserId, deviceId: mockDeviceId } };
+			const mockReq = {
+				user: { sub: mockUserId, deviceId: mockDeviceId },
+			} as unknown as AuthenticatedRequest;
 
 			const result = await controller.getRotationRecommendations(mockReq);
 
@@ -204,7 +217,7 @@ describe('SignalKeysManagementController', () => {
 
 	describe('deleteDeviceKeys', () => {
 		it('should delete keys for a device', async () => {
-			const mockReq = { user: { sub: mockUserId } };
+			const mockReq = { user: { sub: mockUserId } } as unknown as AuthenticatedRequest;
 			devicesService.revokeDevice.mockResolvedValue(undefined);
 			storageService.deleteAllKeysForDevice.mockResolvedValue(undefined);
 
@@ -217,7 +230,7 @@ describe('SignalKeysManagementController', () => {
 
 	describe('deleteUserKeys', () => {
 		it('should delete all keys for a user', async () => {
-			const mockReq = { user: { sub: mockUserId } };
+			const mockReq = { user: { sub: mockUserId } } as unknown as AuthenticatedRequest;
 			storageService.deleteAllKeysForUser.mockResolvedValue(undefined);
 
 			await controller.deleteAllKeys(mockReq);
