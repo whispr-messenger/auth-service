@@ -81,6 +81,38 @@ describe('TokensService', () => {
 
 			expect(hash1).toBe(hash2);
 		});
+
+		// WHISPR-921 : le fingerprint doit rester stable entre login et refresh,
+		// même si l'IP change (roaming mobile) ou si deviceType diffère
+		// (body au login vs header x-device-type au refresh).
+		it('should remain stable when ipAddress or deviceType change (WHISPR-921)', () => {
+			const base: DeviceFingerprint = {
+				userAgent: 'Expo/1017756 CFNetwork/3860.400.51 Darwin/25.3.0',
+				ipAddress: '10.0.0.1',
+				deviceType: 'mobile',
+				timestamp: Date.now(),
+			};
+			const ipChanged: DeviceFingerprint = { ...base, ipAddress: '192.168.1.1' };
+			const typeMissing: DeviceFingerprint = { ...base, deviceType: 'unknown' };
+
+			const baseHash = (service as any).generateDeviceFingerprint(base);
+			expect((service as any).generateDeviceFingerprint(ipChanged)).toBe(baseHash);
+			expect((service as any).generateDeviceFingerprint(typeMissing)).toBe(baseHash);
+		});
+
+		it('should still differ when userAgent differs (WHISPR-921)', () => {
+			const fpA: DeviceFingerprint = {
+				userAgent: 'Mozilla/5.0',
+				ipAddress: '10.0.0.1',
+				deviceType: 'mobile',
+				timestamp: Date.now(),
+			};
+			const fpB: DeviceFingerprint = { ...fpA, userAgent: 'Chrome/147.0' };
+
+			expect((service as any).generateDeviceFingerprint(fpA)).not.toBe(
+				(service as any).generateDeviceFingerprint(fpB)
+			);
+		});
 	});
 
 	describe('generateTokenPair', () => {
@@ -362,6 +394,32 @@ describe('TokensService', () => {
 				'true',
 				expect.any(Number)
 			);
+		});
+
+		// WHISPR-919 : le TTL doit être strictement supérieur à la validité
+		// d'un refresh token (30 j) pour qu'un access token signé avec ce
+		// device ne puisse jamais bypasser la revocation pendant sa durée
+		// de vie. On laisse un peu de marge mais la clé doit bien expirer
+		// automatiquement (éviter la pollution Redis indéfinie).
+		it('should set a TTL greater than refresh token lifetime and less than ~60 days', async () => {
+			cacheService.set.mockResolvedValue(undefined);
+
+			await service.revokeAllTokensForDevice('device-id');
+
+			const ttl = (cacheService.set.mock.calls[0] as [string, string, number])[2];
+			expect(ttl).toBeGreaterThan(30 * 24 * 60 * 60);
+			expect(ttl).toBeLessThan(60 * 24 * 60 * 60);
+		});
+	});
+
+	// WHISPR-919
+	describe('clearDeviceRevocation', () => {
+		it('should delete the revoked_device cache entry', async () => {
+			cacheService.del.mockResolvedValue(undefined);
+
+			await service.clearDeviceRevocation('device-id');
+
+			expect(cacheService.del).toHaveBeenCalledWith('revoked_device:device-id');
 		});
 	});
 

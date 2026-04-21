@@ -27,7 +27,12 @@ export class JwtAuthGuard implements CanActivate {
 
 			request.user = payload;
 			return true;
-		} catch {
+		} catch (err) {
+			// Préserver la raison exacte (ERROR_TOKEN_REVOKED, ERROR_INVALID_TOKEN, etc.)
+			// pour que le client et les logs voient le vrai motif (WHISPR-919).
+			if (err instanceof UnauthorizedException) {
+				throw err;
+			}
 			throw new UnauthorizedException('ERROR_INVALID_TOKEN');
 		}
 	}

@@ -126,5 +126,33 @@ describe('JwtAuthGuard', () => {
 
 			await expect(guard.canActivate(ctx())).rejects.toThrow(UnauthorizedException);
 		});
+
+		// WHISPR-919 : vérifie que le catch ne masque pas la raison exacte.
+		// Avant ce ticket, un device revoked renvoyait ERROR_INVALID_TOKEN
+		// (trompeur pour le client et les logs) parce que le catch attrapait
+		// l'UnauthorizedException levée intérieurement et la réécrivait.
+		it('preserves ERROR_TOKEN_REVOKED when device is revoked (WHISPR-919)', async () => {
+			tokensService.isDeviceRevoked.mockResolvedValue(true);
+
+			await expect(guard.canActivate(ctx())).rejects.toMatchObject({
+				message: 'ERROR_TOKEN_REVOKED',
+			});
+		});
+
+		it('preserves ERROR_TOKEN_REVOKED when token is revoked (WHISPR-919)', async () => {
+			tokensService.isTokenRevoked.mockResolvedValue(true);
+
+			await expect(guard.canActivate(ctx())).rejects.toMatchObject({
+				message: 'ERROR_TOKEN_REVOKED',
+			});
+		});
+
+		it('still returns ERROR_INVALID_TOKEN for non-Unauthorized errors (WHISPR-919)', async () => {
+			tokensService.isDeviceRevoked.mockRejectedValue(new Error('redis timeout'));
+
+			await expect(guard.canActivate(ctx())).rejects.toMatchObject({
+				message: 'ERROR_INVALID_TOKEN',
+			});
+		});
 	});
 });

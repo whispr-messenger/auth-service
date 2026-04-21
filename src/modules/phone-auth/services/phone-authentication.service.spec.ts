@@ -1,13 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
-import { of, throwError } from 'rxjs';
+import {
+	BadRequestException,
+	ConflictException,
+	ForbiddenException,
+	NotFoundException,
+} from '@nestjs/common';
 import { PhoneAuthenticationService } from './phone-authentication.service';
 import { DeviceRegistrationService } from '../../devices/services/device-registration/device-registration.service';
 import { DeviceActivityService } from '../../devices/services/device-activity/device-activity.service';
+import { DevicesService } from '../../devices/services/devices.service';
 import { PhoneVerificationService } from '../../phone-verification/services/phone-verification/phone-verification.service';
 import { TokensService } from '../../tokens/services/tokens.service';
 import { UserAuthService } from '../../common/services/user-auth.service';
 import { SignalKeyStorageService } from '../../signal/services/signal-key-storage.service';
+import { RedisStreamProducer } from '../../../shared/redis';
 import { DeviceFingerprint } from '../../devices/types/device-fingerprint.interface';
 
 describe('PhoneAuthenticationService', () => {
@@ -19,6 +25,9 @@ describe('PhoneAuthenticationService', () => {
 	const mockDeviceActivityService = {
 		updateLastActive: jest.fn(),
 	};
+	const mockDevicesService = {
+		assertDeviceBelongsToUser: jest.fn(),
+	};
 	const mockPhoneVerificationService = {
 		getConfirmedVerification: jest.fn(),
 		consumeVerification: jest.fn(),
@@ -26,6 +35,7 @@ describe('PhoneAuthenticationService', () => {
 	const mockTokensService = {
 		generateTokenPair: jest.fn(),
 		revokeAllTokensForDevice: jest.fn(),
+		clearDeviceRevocation: jest.fn().mockResolvedValue(undefined),
 	};
 	const mockUserAuthService = {
 		findByPhoneNumber: jest.fn(),
@@ -37,8 +47,8 @@ describe('PhoneAuthenticationService', () => {
 		storeSignedPreKey: jest.fn(),
 		storePreKeys: jest.fn(),
 	};
-	const mockRedisClient = {
-		emit: jest.fn().mockReturnValue(of(undefined)),
+	const mockStreamProducer = {
+		emit: jest.fn().mockResolvedValue('1-0'),
 	};
 
 	const fingerprint: DeviceFingerprint = {
@@ -53,11 +63,12 @@ describe('PhoneAuthenticationService', () => {
 				PhoneAuthenticationService,
 				{ provide: DeviceRegistrationService, useValue: mockDeviceRegistrationService },
 				{ provide: DeviceActivityService, useValue: mockDeviceActivityService },
+				{ provide: DevicesService, useValue: mockDevicesService },
 				{ provide: PhoneVerificationService, useValue: mockPhoneVerificationService },
 				{ provide: TokensService, useValue: mockTokensService },
 				{ provide: UserAuthService, useValue: mockUserAuthService },
 				{ provide: SignalKeyStorageService, useValue: mockSignalKeyStorageService },
-				{ provide: 'REDIS_CLIENT', useValue: mockRedisClient },
+				{ provide: RedisStreamProducer, useValue: mockStreamProducer },
 			],
 		}).compile();
 
@@ -208,14 +219,53 @@ describe('PhoneAuthenticationService', () => {
 	});
 
 	describe('logout', () => {
-		it('should revoke tokens and update device activity for a registered device', async () => {
+		it('should revoke tokens and update device activity for the current device (no targetDeviceId)', async () => {
 			mockTokensService.revokeAllTokensForDevice.mockResolvedValue(undefined);
 			mockDeviceActivityService.updateLastActive.mockResolvedValue(undefined);
 
 			await service.logout('user-1', 'device-uuid-123');
 
+			expect(mockDevicesService.assertDeviceBelongsToUser).not.toHaveBeenCalled();
 			expect(mockTokensService.revokeAllTokensForDevice).toHaveBeenCalledWith('device-uuid-123');
 			expect(mockDeviceActivityService.updateLastActive).toHaveBeenCalledWith('device-uuid-123');
+		});
+
+		it('should skip the ownership check when targetDeviceId equals the current device', async () => {
+			mockTokensService.revokeAllTokensForDevice.mockResolvedValue(undefined);
+			mockDeviceActivityService.updateLastActive.mockResolvedValue(undefined);
+
+			await service.logout('user-1', 'device-uuid-123', 'device-uuid-123');
+
+			expect(mockDevicesService.assertDeviceBelongsToUser).not.toHaveBeenCalled();
+			expect(mockTokensService.revokeAllTokensForDevice).toHaveBeenCalledWith('device-uuid-123');
+		});
+
+		it('should verify ownership before revoking a different targetDeviceId', async () => {
+			mockDevicesService.assertDeviceBelongsToUser.mockResolvedValue(undefined);
+			mockTokensService.revokeAllTokensForDevice.mockResolvedValue(undefined);
+			mockDeviceActivityService.updateLastActive.mockResolvedValue(undefined);
+
+			await service.logout('user-1', 'device-uuid-123', 'other-device-uuid');
+
+			expect(mockDevicesService.assertDeviceBelongsToUser).toHaveBeenCalledWith(
+				'user-1',
+				'other-device-uuid'
+			);
+			expect(mockTokensService.revokeAllTokensForDevice).toHaveBeenCalledWith('other-device-uuid');
+			expect(mockDeviceActivityService.updateLastActive).toHaveBeenCalledWith('other-device-uuid');
+		});
+
+		it('should reject with 403 when target device does not belong to the authenticated user', async () => {
+			mockDevicesService.assertDeviceBelongsToUser.mockRejectedValue(
+				new ForbiddenException('Device does not belong to the authenticated user')
+			);
+
+			await expect(service.logout('user-1', 'device-uuid-123', 'victim-device')).rejects.toThrow(
+				ForbiddenException
+			);
+
+			expect(mockTokensService.revokeAllTokensForDevice).not.toHaveBeenCalled();
+			expect(mockDeviceActivityService.updateLastActive).not.toHaveBeenCalled();
 		});
 
 		it('should silently ignore NotFoundException from updateLastActive for web session device IDs', async () => {
@@ -281,18 +331,18 @@ describe('PhoneAuthenticationService', () => {
 			await service.register({ verificationId: 'ver-1' } as any, fingerprint);
 
 			expect(logSpy).toHaveBeenCalledWith(
-				expect.stringContaining('Emitting user.registered for userId=user-123')
+				expect.stringContaining('Emitting user.registered stream event for userId=user-123')
 			);
 			expect(logSpy).toHaveBeenCalledWith(
-				expect.stringContaining('user.registered emitted successfully for userId=user-123')
+				expect.stringContaining('user.registered stream event emitted for userId=user-123')
 			);
-			expect(mockRedisClient.emit).toHaveBeenCalledWith(
-				'user.registered',
+			expect(mockStreamProducer.emit).toHaveBeenCalledWith(
+				'stream:user.registered',
 				expect.objectContaining({ userId: 'user-123' })
 			);
 		});
 
-		it('should log error when emit observable fails', async () => {
+		it('should log error when stream emit fails', async () => {
 			const savedUser = { id: 'user-123', phoneNumber: '+33600000001' };
 			mockPhoneVerificationService.getConfirmedVerification.mockResolvedValue({
 				phoneNumber: '+33600000001',
@@ -303,7 +353,7 @@ describe('PhoneAuthenticationService', () => {
 			mockUserAuthService.saveUser.mockResolvedValue(savedUser);
 			mockDeviceRegistrationService.registerDevice.mockResolvedValue({ id: 'device-1' });
 			mockTokensService.generateTokenPair.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' });
-			mockRedisClient.emit.mockReturnValue(throwError(() => new Error('Transport error')));
+			mockStreamProducer.emit.mockRejectedValue(new Error('Transport error'));
 
 			const errorSpy = jest.spyOn(service['logger'], 'error');
 			const logSpy = jest.spyOn(service['logger'], 'log');
@@ -318,7 +368,7 @@ describe('PhoneAuthenticationService', () => {
 				expect.any(String)
 			);
 			expect(logSpy).not.toHaveBeenCalledWith(
-				expect.stringContaining('user.registered emitted successfully for userId=user-123')
+				expect.stringContaining('user.registered stream event emitted for userId=user-123')
 			);
 		});
 	});

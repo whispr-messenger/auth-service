@@ -84,22 +84,22 @@ describe('PhoneAuthenticationController', () => {
 	});
 
 	describe('logout', () => {
-		it('should use dto userId and deviceId when provided', async () => {
-			const dto = { userId: 'dto-user', deviceId: 'dto-device' };
+		it('should always pass userId from JWT and forward optional deviceId from body', async () => {
+			const dto = { deviceId: 'other-device-id' };
 			mockAuthService.logout.mockResolvedValue(undefined);
 
 			await controller.logout(dto as any, mockRequest);
 
-			expect(mockAuthService.logout).toHaveBeenCalledWith('dto-user', 'dto-device');
+			expect(mockAuthService.logout).toHaveBeenCalledWith('user-id', 'device-id', 'other-device-id');
 		});
 
-		it('should fall back to req.user sub and deviceId when dto fields are absent', async () => {
+		it('should pass undefined targetDeviceId when body is empty (logs out current device)', async () => {
 			const dto = {};
 			mockAuthService.logout.mockResolvedValue(undefined);
 
 			await controller.logout(dto as any, mockRequest);
 
-			expect(mockAuthService.logout).toHaveBeenCalledWith('user-id', 'device-id');
+			expect(mockAuthService.logout).toHaveBeenCalledWith('user-id', 'device-id', undefined);
 		});
 	});
 });
