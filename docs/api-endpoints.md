@@ -35,3 +35,13 @@ POST /auth/tokens/revoke
 ```
 
 Révoque un token (logout).
+
+## Devices
+
+### Lister ses appareils
+
+```
+GET /auth/devices
+```
+
+Retourne la liste des appareils enregistrés pour l'utilisateur.
