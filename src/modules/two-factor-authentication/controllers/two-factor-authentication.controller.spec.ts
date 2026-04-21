@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TwoFactorAuthenticationController } from './two-factor-authentication.controller';
 import { TwoFactorAuthenticationService } from '../services/two-factor-authentication.service';
 import { JwtAuthGuard } from '../../tokens/guards';
+import { AuthenticatedRequest } from '../../tokens/types/authenticated-request.interface';
 
 describe('TwoFactorAuthenticationController', () => {
 	let controller: TwoFactorAuthenticationController;
@@ -15,7 +16,7 @@ describe('TwoFactorAuthenticationController', () => {
 		isTwoFactorEnabled: jest.fn(),
 	};
 
-	const mockRequest = { user: { sub: 'user-id' } };
+	const mockRequest = { user: { sub: 'user-id' } } as unknown as AuthenticatedRequest;
 
 	beforeEach(async () => {
 		jest.clearAllMocks();

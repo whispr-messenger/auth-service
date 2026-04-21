@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import { QuickResponseCodeController } from './quick-response-code.controller';
 import { QuickResponseCodeService } from '../services/quick-response-code.service';
 import { DeviceFingerprintService } from '../../services/device-fingerprint/device-fingerprint.service';
@@ -32,7 +33,7 @@ describe('QuickResponseCodeController', () => {
 			'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15',
 		},
 		ip: '192.168.1.100',
-	};
+	} as unknown as ExpressRequest;
 
 	beforeEach(async () => {
 		const module: TestingModule = await Test.createTestingModule({
@@ -421,7 +422,7 @@ describe('QuickResponseCodeController', () => {
 				const requestWithoutUserAgent = {
 					...mockRequest,
 					headers: {},
-				};
+				} as unknown as ExpressRequest;
 
 				const expectedFingerprint = {
 					userAgent: undefined,
