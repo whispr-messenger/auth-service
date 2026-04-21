@@ -45,3 +45,13 @@ GET /auth/devices
 ```
 
 Retourne la liste des appareils enregistrés pour l'utilisateur.
+
+## JWKS
+
+### Clés publiques
+
+```
+GET /auth/.well-known/jwks.json
+```
+
+Endpoint public utilisé par les autres services pour vérifier les tokens JWT.
