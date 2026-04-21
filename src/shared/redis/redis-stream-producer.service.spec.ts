@@ -24,20 +24,28 @@ jest.mock('../../config/redis.config', () => ({
 describe('RedisStreamProducer', () => {
 	let service: RedisStreamProducer;
 
-	beforeEach(async () => {
-		jest.clearAllMocks();
-
+	const makeService = async (configOverrides: Record<string, unknown> = {}) => {
 		const module: TestingModule = await Test.createTestingModule({
 			providers: [
 				RedisStreamProducer,
 				{
 					provide: ConfigService,
-					useValue: { get: jest.fn() },
+					useValue: {
+						get: jest.fn((key: string, def?: unknown) =>
+							key in configOverrides ? configOverrides[key] : def
+						),
+					},
 				},
 			],
 		}).compile();
 
-		service = module.get<RedisStreamProducer>(RedisStreamProducer);
+		return module.get<RedisStreamProducer>(RedisStreamProducer);
+	};
+
+	beforeEach(async () => {
+		jest.clearAllMocks();
+		// Base tests run with 0ms backoff so retry pauses don't slow the suite.
+		service = await makeService({ REDIS_STREAM_BASE_BACKOFF_MS: 0 });
 	});
 
 	describe('emit', () => {
@@ -153,12 +161,119 @@ describe('RedisStreamProducer', () => {
 			);
 		});
 
-		it('should throw when xadd returns null', async () => {
+		it('should throw when xadd returns null on every attempt', async () => {
 			mockXadd.mockResolvedValue(null);
 
 			await expect(service.emit('stream:test', { key: 'value' })).rejects.toThrow(
 				'XADD to stream:test returned null'
 			);
+		});
+	});
+
+	// WHISPR-992: retry with exponential backoff
+	describe('emit retry', () => {
+		it('retries after a transient failure and succeeds on the second attempt', async () => {
+			service = await makeService({ REDIS_STREAM_BASE_BACKOFF_MS: 0 });
+			mockXadd.mockRejectedValueOnce(new Error('ECONNREFUSED')).mockResolvedValueOnce('id-ok');
+
+			const id = await service.emit('stream:test', { key: 'value' });
+
+			expect(id).toBe('id-ok');
+			expect(mockXadd).toHaveBeenCalledTimes(2);
+		});
+
+		it('retries twice then succeeds on the third attempt', async () => {
+			service = await makeService({ REDIS_STREAM_BASE_BACKOFF_MS: 0 });
+			mockXadd
+				.mockRejectedValueOnce(new Error('ETIMEDOUT'))
+				.mockRejectedValueOnce(new Error('ECONNRESET'))
+				.mockResolvedValueOnce('id-ok');
+
+			const id = await service.emit('stream:test', { key: 'value' });
+
+			expect(id).toBe('id-ok');
+			expect(mockXadd).toHaveBeenCalledTimes(3);
+		});
+
+		it('rethrows the last error after exhausting all attempts', async () => {
+			service = await makeService({ REDIS_STREAM_BASE_BACKOFF_MS: 0 });
+			mockXadd
+				.mockRejectedValueOnce(new Error('fail-1'))
+				.mockRejectedValueOnce(new Error('fail-2'))
+				.mockRejectedValueOnce(new Error('fail-final'));
+
+			await expect(service.emit('stream:test', { key: 'value' })).rejects.toThrow('fail-final');
+
+			expect(mockXadd).toHaveBeenCalledTimes(3);
+		});
+
+		it('retries when xadd returns null until an id is produced', async () => {
+			service = await makeService({ REDIS_STREAM_BASE_BACKOFF_MS: 0 });
+			mockXadd.mockResolvedValueOnce(null).mockResolvedValueOnce('id-ok');
+
+			const id = await service.emit('stream:test', { key: 'value' });
+
+			expect(id).toBe('id-ok');
+			expect(mockXadd).toHaveBeenCalledTimes(2);
+		});
+
+		it('does not retry when data is empty (programmer error)', async () => {
+			service = await makeService({ REDIS_STREAM_BASE_BACKOFF_MS: 0 });
+
+			await expect(service.emit('stream:test', {})).rejects.toThrow('requires at least one field');
+
+			expect(mockXadd).not.toHaveBeenCalled();
+		});
+
+		it('honors REDIS_STREAM_MAX_ATTEMPTS config override', async () => {
+			service = await makeService({
+				REDIS_STREAM_MAX_ATTEMPTS: 5,
+				REDIS_STREAM_BASE_BACKOFF_MS: 0,
+			});
+			for (let i = 0; i < 5; i++) {
+				mockXadd.mockRejectedValueOnce(new Error(`fail-${i + 1}`));
+			}
+
+			await expect(service.emit('stream:test', { key: 'value' })).rejects.toThrow('fail-5');
+
+			expect(mockXadd).toHaveBeenCalledTimes(5);
+		});
+
+		it('waits with exponential backoff between attempts (100ms, then 200ms)', async () => {
+			jest.useFakeTimers();
+			try {
+				service = await makeService({ REDIS_STREAM_BASE_BACKOFF_MS: 100 });
+				mockXadd
+					.mockRejectedValueOnce(new Error('fail-1'))
+					.mockRejectedValueOnce(new Error('fail-2'))
+					.mockResolvedValueOnce('id-ok');
+
+				const promise = service.emit('stream:test', { key: 'value' });
+
+				// First attempt runs immediately.
+				await Promise.resolve();
+				expect(mockXadd).toHaveBeenCalledTimes(1);
+
+				// Not enough time for the first backoff to fire (needs 100ms).
+				await jest.advanceTimersByTimeAsync(99);
+				expect(mockXadd).toHaveBeenCalledTimes(1);
+
+				// Cross the 100ms mark → second attempt fires.
+				await jest.advanceTimersByTimeAsync(1);
+				expect(mockXadd).toHaveBeenCalledTimes(2);
+
+				// Second backoff is 200ms. At +199ms total = 299ms, still 2 calls.
+				await jest.advanceTimersByTimeAsync(199);
+				expect(mockXadd).toHaveBeenCalledTimes(2);
+
+				// Cross 300ms → third attempt fires.
+				await jest.advanceTimersByTimeAsync(1);
+				expect(mockXadd).toHaveBeenCalledTimes(3);
+
+				await expect(promise).resolves.toBe('id-ok');
+			} finally {
+				jest.useRealTimers();
+			}
 		});
 	});
 
