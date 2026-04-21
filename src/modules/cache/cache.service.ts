@@ -14,7 +14,7 @@ export class CacheService {
 	/**
 	 * Set a value in cache with optional TTL (in seconds)
 	 */
-	async set(key: string, value: any, ttl?: number): Promise<void> {
+	async set(key: string, value: unknown, ttl?: number): Promise<void> {
 		try {
 			const serializedValue = JSON.stringify(value);
 			if (ttl) {
@@ -131,11 +131,11 @@ export class CacheService {
 	/**
 	 * Execute multiple commands in a pipeline
 	 */
-	async pipeline(commands: Array<[string, ...any[]]>): Promise<any[]> {
+	async pipeline(commands: Array<[string, ...unknown[]]>): Promise<unknown[]> {
 		try {
 			const pipeline = this.redis.pipeline();
 			commands.forEach(([command, ...args]) => {
-				(pipeline as any)[command](...args);
+				(pipeline as unknown as Record<string, (...args: unknown[]) => void>)[command](...args);
 			});
 			const results = await pipeline.exec();
 			return (

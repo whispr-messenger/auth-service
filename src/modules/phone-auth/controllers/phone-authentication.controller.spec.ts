@@ -3,6 +3,7 @@ import { PhoneAuthenticationController } from './phone-authentication.controller
 import { PhoneAuthenticationService } from '../services/phone-authentication.service';
 import { DeviceFingerprintService } from '../../devices/services/device-fingerprint/device-fingerprint.service';
 import { JwtAuthGuard } from '../../tokens/guards';
+import { AuthenticatedRequest } from '../../tokens/types/authenticated-request.interface';
 
 describe('PhoneAuthenticationController', () => {
 	let controller: PhoneAuthenticationController;
@@ -20,7 +21,7 @@ describe('PhoneAuthenticationController', () => {
 	const mockRequest = {
 		headers: { 'user-agent': 'Mozilla/5.0' },
 		user: { sub: 'user-id', deviceId: 'device-id' },
-	};
+	} as unknown as AuthenticatedRequest;
 
 	beforeEach(async () => {
 		jest.clearAllMocks();
