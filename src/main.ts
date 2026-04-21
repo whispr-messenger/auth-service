@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { Logger, VersioningType } from '@nestjs/common';
+import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './modules/app/app.module';
@@ -46,6 +46,7 @@ async function bootstrap() {
 
 	createSwaggerDocumentation(app, port, configService, globalPrefix);
 
+	app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 	app.useGlobalInterceptors(new LoggingInterceptor());
 
 	app.enableShutdownHooks();
