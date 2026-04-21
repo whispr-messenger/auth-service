@@ -27,3 +27,11 @@ POST /auth/tokens/refresh
 ```
 
 Renouvelle l'access token à partir du refresh token.
+
+### Révoquer un token
+
+```
+POST /auth/tokens/revoke
+```
+
+Révoque un token (logout).
