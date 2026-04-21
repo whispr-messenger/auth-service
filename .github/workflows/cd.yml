@@ -87,17 +87,11 @@ jobs:
           # Store COMMIT_SHA as output for use in subsequent steps
           echo "commit_sha=${COMMIT_SHA}" >> $GITHUB_OUTPUT
 
-      - name: Determine infrastructure ref
-        id: branch_info
-        run: |
-          echo "infra_ref=main" >> $GITHUB_OUTPUT
-          echo "deploy_mode=all" >> $GITHUB_OUTPUT
-
       - name: Checkout infrastructure repository
         uses: actions/checkout@v4
         with:
           repository: whispr-messenger/infrastructure
-          ref: ${{ steps.branch_info.outputs.infra_ref }}
+          ref: main
           token: ${{ steps.generate_token.outputs.token }}
 
       - name: Update image tag in deployment
