@@ -17,3 +17,13 @@ POST /auth/phone/confirm
 ```
 
 Vérifie le code OTP et retourne les tokens JWT.
+
+## Tokens
+
+### Rafraîchir un token
+
+```
+POST /auth/tokens/refresh
+```
+
+Renouvelle l'access token à partir du refresh token.
