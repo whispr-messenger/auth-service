@@ -44,6 +44,7 @@ describe('Registration Flow (e2e)', () => {
 			accessToken: 'test-access-token',
 			refreshToken: 'test-refresh-token',
 		}),
+		clearDeviceRevocation: jest.fn().mockResolvedValue(undefined),
 	};
 
 	beforeEach(async () => {

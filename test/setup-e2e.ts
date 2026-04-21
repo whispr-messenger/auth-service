@@ -34,6 +34,8 @@ process.env.JWT_PRIVATE_KEY_FILE = privateKeyFile;
 process.env.JWT_PUBLIC_KEY_FILE = publicKeyFile;
 process.env.JWT_ACCESS_TOKEN_EXPIRY = '1h';
 process.env.JWT_REFRESH_TOKEN_EXPIRY = '7d';
+process.env.JWT_ISSUER = 'whispr-auth-service-test';
+process.env.JWT_AUDIENCE = 'whispr-test-audience';
 process.env.REDIS_HOST = 'localhost';
 process.env.REDIS_PORT = '6379';
 process.env.SMS_PROVIDER = 'mock';
@@ -70,6 +72,21 @@ jest.mock('ioredis', () => {
 	};
 	const mockCtor = jest.fn().mockImplementation(() => mockRedisInstance);
 	return { __esModule: true, default: mockCtor };
+});
+
+// Mock @nest-lab/throttler-storage-redis : évite l'erreur instanceof ioredis_1.default
+// quand ioredis est mocké avant que le module ne soit chargé (setupFilesAfterEnv).
+jest.mock('@nest-lab/throttler-storage-redis', () => {
+	const ThrottlerStorageRedisService = jest.fn().mockImplementation(() => ({
+		increment: jest.fn().mockResolvedValue({
+			totalHits: 1,
+			timeToExpire: 60000,
+			isBlocked: false,
+			timeToBlockExpire: 0,
+		}),
+		onModuleDestroy: jest.fn(),
+	}));
+	return { ThrottlerStorageRedisService };
 });
 
 // Mock SmsService

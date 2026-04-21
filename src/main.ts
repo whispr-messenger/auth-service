@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { Logger, VersioningType } from '@nestjs/common';
+import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './modules/app/app.module';
@@ -25,7 +25,14 @@ async function bootstrap() {
 		app.enableCors({
 			origin: corsOrigins,
 			methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-			allowedHeaders: ['Authorization', 'Content-Type', 'Accept', 'Origin', 'X-Requested-With'],
+			allowedHeaders: [
+				'Authorization',
+				'Content-Type',
+				'Accept',
+				'Origin',
+				'X-Requested-With',
+				'X-Device-Type',
+			],
 			credentials: true,
 		});
 		logger.log(`CORS enabled for origins: ${corsOrigins.join(', ')}`);
@@ -39,6 +46,7 @@ async function bootstrap() {
 
 	createSwaggerDocumentation(app, port, configService, globalPrefix);
 
+	app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 	app.useGlobalInterceptors(new LoggingInterceptor());
 
 	app.enableShutdownHooks();
