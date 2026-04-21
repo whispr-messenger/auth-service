@@ -2,17 +2,15 @@ import {
 	Injectable,
 	BadRequestException,
 	ConflictException,
-	Inject,
 	Logger,
 	NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { ClientProxy } from '@nestjs/microservices';
-import { lastValueFrom } from 'rxjs';
 import { UserAuthService } from '../../common/services/user-auth.service';
 import { UserAuth } from '../../common/entities/user-auth.entity';
 import { DeviceRegistrationService } from '../../devices/services/device-registration/device-registration.service';
 import { DeviceActivityService } from '../../devices/services/device-activity/device-activity.service';
+import { DevicesService } from '../../devices/services/devices.service';
 import { DeviceFingerprint } from '../../devices/types/device-fingerprint.interface';
 import { TokenPair } from '../../tokens/types/token-pair.interface';
 import { TokensService } from '../../tokens/services/tokens.service';
@@ -23,6 +21,9 @@ import { VerificationPurpose } from '../../phone-verification/types/verification
 import { DeviceInfo } from '../interfaces/device-info.interface';
 import { USER_REGISTERED_PATTERN, UserRegisteredEvent } from '../../../shared/events';
 import { SignalKeyStorageService } from '../../signal/services/signal-key-storage.service';
+import { RedisStreamProducer } from '../../../shared/redis';
+
+const STREAM_USER_REGISTERED = `stream:${USER_REGISTERED_PATTERN}`;
 
 @Injectable()
 export class PhoneAuthenticationService {
@@ -31,11 +32,12 @@ export class PhoneAuthenticationService {
 	constructor(
 		private readonly deviceRegistrationService: DeviceRegistrationService,
 		private readonly deviceActivityService: DeviceActivityService,
+		private readonly devicesService: DevicesService,
 		private readonly phoneVerificationService: PhoneVerificationService,
 		private readonly tokenService: TokensService,
 		private readonly userAuthService: UserAuthService,
 		private readonly signalKeyStorageService: SignalKeyStorageService,
-		@Inject('REDIS_CLIENT') private readonly redisClient: ClientProxy
+		private readonly streamProducer: RedisStreamProducer
 	) {}
 
 	private getWrongPurposeMessage(purpose: VerificationPurpose): string {
@@ -146,13 +148,13 @@ export class PhoneAuthenticationService {
 		const event: UserRegisteredEvent = {
 			userId: savedUser.id,
 			phoneNumber: savedUser.phoneNumber,
-			timestamp: new Date(),
+			timestamp: new Date().toISOString(),
 		};
 
-		this.logger.log(`Emitting user.registered for userId=${savedUser.id}`);
+		this.logger.log(`Emitting user.registered stream event for userId=${savedUser.id}`);
 		try {
-			await lastValueFrom(this.redisClient.emit(USER_REGISTERED_PATTERN, event));
-			this.logger.log(`user.registered emitted successfully for userId=${savedUser.id}`);
+			await this.streamProducer.emit(STREAM_USER_REGISTERED, event);
+			this.logger.log(`user.registered stream event emitted for userId=${savedUser.id}`);
 		} catch (error) {
 			if (error instanceof Error) {
 				this.logger.error(
@@ -182,11 +184,17 @@ export class PhoneAuthenticationService {
 		return this.createAuthSession(user, deviceId, fingerprint, dto.verificationId);
 	}
 
-	public async logout(userId: string, deviceId: string): Promise<void> {
-		await this.tokenService.revokeAllTokensForDevice(deviceId);
+	public async logout(userId: string, currentDeviceId: string, targetDeviceId?: string): Promise<void> {
+		const deviceIdToRevoke = targetDeviceId ?? currentDeviceId;
+
+		if (targetDeviceId && targetDeviceId !== currentDeviceId) {
+			await this.devicesService.assertDeviceBelongsToUser(userId, targetDeviceId);
+		}
+
+		await this.tokenService.revokeAllTokensForDevice(deviceIdToRevoke);
 
 		try {
-			await this.deviceActivityService.updateLastActive(deviceId);
+			await this.deviceActivityService.updateLastActive(deviceIdToRevoke);
 		} catch (error) {
 			if (!(error instanceof NotFoundException)) {
 				throw error;

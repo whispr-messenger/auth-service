@@ -175,8 +175,13 @@ export class PhoneVerificationService {
 	 */
 	private buildVerificationResponse(verificationId: string, code: string): VerificationRequestResponseDto {
 		if (this.isDemoMode) {
+			// When a bypass code is configured, surface that predictable value in
+			// demo responses instead of the randomly generated one. Both codes are
+			// accepted by verifyCode, but users remembering "123456" across sessions
+			// get a smoother QA experience than chasing a fresh random every time.
+			const exposedCode = this.otpBypassCode ?? code;
 			this.logger.debug('Demo mode is activated: sending verification code in response payload.');
-			return { verificationId, code };
+			return { verificationId, code: exposedCode };
 		}
 
 		return { verificationId };
