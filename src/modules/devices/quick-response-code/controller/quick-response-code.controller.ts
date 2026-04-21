@@ -1,5 +1,6 @@
 import { Body, Controller, HttpCode, HttpStatus, Request, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '../../../tokens/guards';
 import { DeviceFingerprintService } from '../../services/device-fingerprint/device-fingerprint.service';
 import { QuickResponseCodeService } from '../services/quick-response-code.service';
@@ -36,7 +37,7 @@ export class QuickResponseCodeController {
 	@ApiResponse({ status: 200, description: 'QR code login successful' })
 	@ApiResponse({ status: 400, description: 'Invalid QR code data' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
-	async scanLogin(@Body() dto: ScanLoginDto, @Request() req: any) {
+	async scanLogin(@Body() dto: ScanLoginDto, @Request() req: ExpressRequest) {
 		const fingerprint = this.fingerprintService.extractFingerprint(req, dto.deviceType);
 		return this.quickResponseCodeService.scanLogin(dto, fingerprint);
 	}

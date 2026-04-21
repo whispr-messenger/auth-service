@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Request as ExpressRequest } from 'express';
 import { TokensController } from './tokens.controller';
 import { TokensService } from '../services/tokens.service';
 
@@ -33,7 +34,7 @@ describe('TokensController', () => {
 			const req = {
 				headers: { 'user-agent': 'Mozilla/5.0' },
 				ip: '127.0.0.1',
-			};
+			} as unknown as ExpressRequest;
 			const tokenPair = { accessToken: 'at', refreshToken: 'rt2', userId: 'u', deviceId: 'd' };
 			mockTokensService.refreshAccessToken.mockResolvedValue(tokenPair);
 

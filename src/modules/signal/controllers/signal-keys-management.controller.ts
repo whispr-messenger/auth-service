@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../tokens/guards';
+import { AuthenticatedRequest } from '../../tokens/types/authenticated-request.interface';
 import { SignalKeyRotationService, SignalKeyValidationService, SignalKeyStorageService } from '../services';
 import { DevicesService } from '../../devices/services';
 import {
@@ -79,7 +80,7 @@ export class SignalKeysManagementController {
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
 	async uploadSignedPreKey(
 		@Body() signedPreKey: SignedPreKeyDto,
-		@Req() req: any
+		@Req() req: AuthenticatedRequest
 	): Promise<SignedPreKeyUploadResponseDto> {
 		const userId = req.user.sub;
 		const deviceId = req.user.deviceId;
@@ -134,7 +135,7 @@ export class SignalKeysManagementController {
 	})
 	async uploadPreKeys(
 		@Body() uploadDto: UploadPreKeysDto,
-		@Req() req: any
+		@Req() req: AuthenticatedRequest
 	): Promise<PreKeysUploadResponseDto> {
 		const userId = req.user.sub;
 		const deviceId = req.user.deviceId;
@@ -175,7 +176,7 @@ export class SignalKeysManagementController {
 		status: 401,
 		description: 'Unauthorized',
 	})
-	async getRotationRecommendations(@Req() req: any): Promise<RotationRecommendationsDto> {
+	async getRotationRecommendations(@Req() req: AuthenticatedRequest): Promise<RotationRecommendationsDto> {
 		const userId = req.user.sub;
 		const deviceId = req.user.deviceId;
 
@@ -213,7 +214,10 @@ export class SignalKeysManagementController {
 		status: 403,
 		description: 'Forbidden - not your device',
 	})
-	async deleteDeviceKeys(@Param('deviceId') deviceId: string, @Req() req: any): Promise<void> {
+	async deleteDeviceKeys(
+		@Param('deviceId') deviceId: string,
+		@Req() req: AuthenticatedRequest
+	): Promise<void> {
 		const userId = req.user.sub;
 
 		this.logger.log(`Delete keys for device ${deviceId} by user ${userId}`);
@@ -246,7 +250,7 @@ export class SignalKeysManagementController {
 		status: 401,
 		description: 'Unauthorized',
 	})
-	async deleteAllKeys(@Req() req: any): Promise<void> {
+	async deleteAllKeys(@Req() req: AuthenticatedRequest): Promise<void> {
 		const userId = req.user.sub;
 
 		this.logger.log(`Delete all keys for user ${userId}`);

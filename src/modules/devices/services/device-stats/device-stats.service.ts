@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DeviceRepository } from '../../repositories/device.repository';
+import { Device } from '../../entities/device.entity';
 import { DeviceStats } from '../../types/device-stats.interface';
 
 @Injectable()
@@ -44,7 +45,7 @@ export class DeviceStatsService {
 		};
 	}
 
-	private groupByDeviceType(devices: any[]) {
+	private groupByDeviceType(devices: Device[]) {
 		return devices.reduce(
 			(acc, device) => {
 				acc[device.deviceType] = (acc[device.deviceType] || 0) + 1;

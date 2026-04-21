@@ -1,6 +1,7 @@
 import { Controller, Delete, Get, HttpCode, HttpStatus, Request, Param, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../tokens/guards';
+import { AuthenticatedRequest } from '../../tokens/types/authenticated-request.interface';
 import { DevicesService } from '../services/devices.service';
 import { DeviceResponseDto } from '../dto';
 
@@ -15,7 +16,7 @@ export class DevicesController {
 	@ApiOperation({ summary: 'Get all devices associated with user account' })
 	@ApiResponse({ status: 200, description: 'List of user devices', type: [DeviceResponseDto] })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
-	async getDevices(@Request() req: any): Promise<DeviceResponseDto[]> {
+	async getDevices(@Request() req: AuthenticatedRequest): Promise<DeviceResponseDto[]> {
 		return this.deviceService.getUserDevices(req.user.sub);
 	}
 
@@ -28,7 +29,7 @@ export class DevicesController {
 	@ApiResponse({ status: 204, description: 'Device successfully revoked' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
 	@ApiResponse({ status: 404, description: 'Device not found' })
-	async revokeDevice(@Request() req: any, @Param('deviceId') deviceId: string) {
+	async revokeDevice(@Request() req: AuthenticatedRequest, @Param('deviceId') deviceId: string) {
 		return this.deviceService.revokeDevice(req.user.sub, deviceId);
 	}
 }
