@@ -1,8 +1,10 @@
 import { Controller, Post, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { Request as ExpressRequest } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { PhoneAuthenticationService } from '../services/phone-authentication.service';
 import { JwtAuthGuard } from '../../tokens/guards';
+import { AuthenticatedRequest } from '../../tokens/types/authenticated-request.interface';
 import { DeviceFingerprintService } from '../../devices/services/device-fingerprint/device-fingerprint.service';
 import { RegisterDto, LoginDto, LogoutDto, RegisterResponseDto, LoginResponseDto } from '../dto';
 
@@ -22,7 +24,7 @@ export class PhoneAuthenticationController {
 	@ApiResponse({ status: 400, description: 'Invalid registration data' })
 	@ApiResponse({ status: 409, description: 'User already exists' })
 	@ApiBody({ type: RegisterDto })
-	async register(@Body() dto: RegisterDto, @Request() req: any): Promise<RegisterResponseDto> {
+	async register(@Body() dto: RegisterDto, @Request() req: ExpressRequest): Promise<RegisterResponseDto> {
 		const fingerprint = this.fingerprintService.extractFingerprint(req, dto.deviceType);
 		return this.authService.register(dto, fingerprint);
 	}
@@ -37,7 +39,7 @@ export class PhoneAuthenticationController {
 	})
 	@ApiResponse({ status: 401, description: 'Invalid credentials' })
 	@ApiBody({ type: LoginDto })
-	async login(@Body() dto: LoginDto, @Request() req: any): Promise<LoginResponseDto> {
+	async login(@Body() dto: LoginDto, @Request() req: ExpressRequest): Promise<LoginResponseDto> {
 		const fingerprint = this.fingerprintService.extractFingerprint(req, dto.deviceType);
 		return this.authService.login(dto, fingerprint);
 	}
@@ -51,7 +53,7 @@ export class PhoneAuthenticationController {
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
 	@ApiResponse({ status: 403, description: 'deviceId does not belong to the authenticated user' })
 	@ApiBody({ type: LogoutDto })
-	async logout(@Body() dto: LogoutDto, @Request() req: any) {
+	async logout(@Body() dto: LogoutDto, @Request() req: AuthenticatedRequest) {
 		return this.authService.logout(req.user.sub, req.user.deviceId, dto.deviceId);
 	}
 }

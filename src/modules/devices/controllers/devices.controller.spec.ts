@@ -4,6 +4,7 @@ import { DevicesController } from './devices.controller';
 import { DevicesService } from '../services/devices.service';
 import { DeviceResponseDto } from '../dto';
 import { JwtAuthGuard } from '../../tokens/guards';
+import { AuthenticatedRequest } from '../../tokens/types/authenticated-request.interface';
 
 describe('DevicesController', () => {
 	let controller: DevicesController;
@@ -29,7 +30,7 @@ describe('DevicesController', () => {
 		user: {
 			sub: mockUserId,
 		},
-	};
+	} as unknown as AuthenticatedRequest;
 
 	beforeEach(async () => {
 		const module: TestingModule = await Test.createTestingModule({
@@ -125,7 +126,7 @@ describe('DevicesController', () => {
 					user: {
 						sub: customUserId,
 					},
-				};
+				} as unknown as AuthenticatedRequest;
 
 				devicesService.getUserDevices.mockResolvedValue([]);
 
@@ -210,7 +211,7 @@ describe('DevicesController', () => {
 					user: {
 						sub: customUserId,
 					},
-				};
+				} as unknown as AuthenticatedRequest;
 
 				devicesService.revokeDevice.mockResolvedValue(undefined);
 
@@ -315,7 +316,7 @@ describe('DevicesController', () => {
 					sub: 'token-user-id',
 					email: 'test@example.com',
 				},
-			};
+			} as unknown as AuthenticatedRequest;
 
 			devicesService.getUserDevices.mockResolvedValue([]);
 

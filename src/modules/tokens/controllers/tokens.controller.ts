@@ -1,5 +1,6 @@
 import { Body, Controller, Headers, HttpCode, HttpStatus, Request, Post } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Request as ExpressRequest } from 'express';
 import { DeviceFingerprint } from '../../devices/types/device-fingerprint.interface';
 import { TokensService } from '../services/tokens.service';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
@@ -20,7 +21,7 @@ export class TokensController {
 	})
 	async refreshToken(
 		@Body() dto: RefreshTokenDto,
-		@Request() req: any,
+		@Request() req: ExpressRequest,
 		@Headers('x-device-type') deviceType?: string
 	) {
 		const fingerprint: DeviceFingerprint = {
