@@ -116,8 +116,10 @@ export class TokensService {
 
 	async revokeToken(token: string): Promise<void> {
 		try {
-			const decoded = this.jwtService.verify(token, { algorithms: ['ES256'] }) as any;
-			const tokenId = decoded?.jti ?? decoded?.tokenId;
+			const decoded: { jti?: string; tokenId?: string; exp: number } = this.jwtService.verify(token, {
+				algorithms: ['ES256'],
+			});
+			const tokenId = decoded.jti ?? decoded.tokenId;
 			if (decoded && tokenId) {
 				await this.cacheService.set(
 					`revoked:${tokenId}`,

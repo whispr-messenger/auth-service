@@ -16,6 +16,7 @@ import {
 } from '../dto';
 import { TwoFactorAuthenticationService } from '../services/two-factor-authentication.service';
 import { JwtAuthGuard } from '../../tokens/guards';
+import { AuthenticatedRequest } from '../../tokens/types/authenticated-request.interface';
 
 @ApiTags('Auth - Two Factor Authentication (2FA)')
 @Controller('2fa')
@@ -31,7 +32,7 @@ export class TwoFactorAuthenticationController {
 		type: TwoFactorSetupResponseDto,
 	})
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
-	async setupTwoFactor(@Request() req: any): Promise<TwoFactorSetupResponseDto> {
+	async setupTwoFactor(@Request() req: AuthenticatedRequest): Promise<TwoFactorSetupResponseDto> {
 		return this.twoFactorService.setupTwoFactor(req.user.sub);
 	}
 
@@ -47,7 +48,7 @@ export class TwoFactorAuthenticationController {
 	})
 	@ApiResponse({ status: 400, description: 'Invalid token or 2FA setup not initiated' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
-	async enableTwoFactor(@Request() req: any, @Body() dto: TwoFactorSetupDto) {
+	async enableTwoFactor(@Request() req: AuthenticatedRequest, @Body() dto: TwoFactorSetupDto) {
 		const backupCodes = await this.twoFactorService.enableTwoFactor(req.user.sub, dto.token);
 		return { backupCodes };
 	}
@@ -60,7 +61,7 @@ export class TwoFactorAuthenticationController {
 	@ApiBody({ type: TwoFactorVerifyDto })
 	@ApiResponse({ status: 200, description: 'Token verification result' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
-	async verifyTwoFactor(@Request() req: any, @Body() dto: TwoFactorVerifyDto) {
+	async verifyTwoFactor(@Request() req: AuthenticatedRequest, @Body() dto: TwoFactorVerifyDto) {
 		const isValid = await this.twoFactorService.verifyTwoFactor(req.user.sub, dto.token);
 		return { valid: isValid };
 	}
@@ -74,7 +75,7 @@ export class TwoFactorAuthenticationController {
 	@ApiResponse({ status: 200, description: '2FA disabled successfully' })
 	@ApiResponse({ status: 400, description: 'Invalid token' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
-	async disableTwoFactor(@Request() req: any, @Body() dto: TwoFactorVerifyDto) {
+	async disableTwoFactor(@Request() req: AuthenticatedRequest, @Body() dto: TwoFactorVerifyDto) {
 		await this.twoFactorService.disableTwoFactor(req.user.sub, dto.token);
 		return { disabled: true };
 	}
@@ -88,7 +89,7 @@ export class TwoFactorAuthenticationController {
 	@ApiOkResponse({ type: TwoFactorBackupCodesResponseDto, description: 'New backup codes generated' })
 	@ApiResponse({ status: 400, description: 'Invalid token' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
-	async generateBackupCodes(@Request() req: any, @Body() dto: TwoFactorVerifyDto) {
+	async generateBackupCodes(@Request() req: AuthenticatedRequest, @Body() dto: TwoFactorVerifyDto) {
 		const codes = await this.twoFactorService.generateNewBackupCodes(req.user.sub, dto.token);
 		return { backupCodes: codes };
 	}
@@ -99,7 +100,7 @@ export class TwoFactorAuthenticationController {
 	@ApiOperation({ summary: 'Get two-factor authentication status' })
 	@ApiResponse({ status: 200, description: 'Returns 2FA enabled status' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
-	async getTwoFactorStatus(@Request() req: any) {
+	async getTwoFactorStatus(@Request() req: AuthenticatedRequest) {
 		const enabled = await this.twoFactorService.isTwoFactorEnabled(req.user.sub);
 		return { enabled };
 	}
