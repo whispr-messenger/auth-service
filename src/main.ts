@@ -5,9 +5,12 @@ import { ConfigService } from '@nestjs/config';
 import { AppModule } from './modules/app/app.module';
 import { createSwaggerDocumentation } from './swagger';
 import { LoggingInterceptor } from './interceptors';
+import { getLogLevels } from './config/log-level';
 
 async function bootstrap() {
-	const app = await NestFactory.create<NestExpressApplication>(AppModule);
+	const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+		logger: getLogLevels(process.env.LOG_LEVEL),
+	});
 	const configService = app.get(ConfigService);
 	const logger = new Logger('Bootstrap');
 	const port = configService.get<number>('HTTP_PORT', 3001);

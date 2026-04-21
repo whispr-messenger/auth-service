@@ -52,6 +52,7 @@ describe('check-env', () => {
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
+			process.env.LOG_LEVEL = 'info';
 		});
 
 		it('should pass when all required environment variables are set', () => {
@@ -85,6 +86,7 @@ describe('check-env', () => {
 				'REDIS_HOST',
 				'REDIS_PORT',
 				'HTTP_PORT',
+				'LOG_LEVEL',
 				'TWILIO_ACCOUNT_SID',
 				'TWILIO_AUTH_TOKEN',
 				'TWILIO_FROM_NUMBER',
@@ -133,7 +135,6 @@ describe('check-env', () => {
 			runEnvChecks();
 
 			expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('DB_LOGGING is set'));
-			expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('LOG_LEVEL is set'));
 			expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('METRICS_ENABLED is set'));
 		});
 
@@ -157,6 +158,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
+			process.env.LOG_LEVEL = 'info';
 
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
@@ -176,6 +178,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
+			process.env.LOG_LEVEL = 'info';
 
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
@@ -201,6 +204,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
+			process.env.LOG_LEVEL = 'info';
 
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
@@ -226,6 +230,7 @@ describe('check-env', () => {
 			process.env.JWT_PRIVATE_KEY_FILE = '/run/secrets/jwt_private_key';
 			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.HTTP_PORT = '3000';
+			process.env.LOG_LEVEL = 'info';
 
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
@@ -252,6 +257,7 @@ describe('check-env', () => {
 			process.env.JWT_PUBLIC_KEY_FILE = '/run/secrets/jwt_public_key';
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
+			process.env.LOG_LEVEL = 'info';
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
@@ -275,6 +281,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
+			process.env.LOG_LEVEL = 'info';
 
 			expect(() => runEnvChecks()).toThrow('Missing required environment variables');
 
@@ -326,6 +333,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
+			process.env.LOG_LEVEL = 'info';
 
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
@@ -350,6 +358,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
+			process.env.LOG_LEVEL = 'info';
 
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
@@ -362,8 +371,7 @@ describe('check-env', () => {
 			);
 		});
 
-		it('should treat empty optional variables as missing', () => {
-			// Set all required variables
+		it('should treat empty strings as missing required LOG_LEVEL', () => {
 			process.env.NODE_ENV = 'production';
 			process.env.DB_HOST = 'localhost';
 			process.env.DB_PORT = '5432';
@@ -375,17 +383,17 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
+			process.env.LOG_LEVEL = '';
 
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
 			process.env.TWILIO_FROM_NUMBER = '+1234567890';
 
-			// Set optional variable to empty string
-			process.env.LOG_LEVEL = '';
+			expect(() => runEnvChecks()).toThrow('Missing required environment variables');
 
-			expect(() => runEnvChecks()).not.toThrow();
-
-			expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('LOG_LEVEL is NOT set'));
+			expect(consoleErrorSpy).toHaveBeenCalledWith(
+				expect.stringContaining('LOG_LEVEL is NOT set (REQUIRED)')
+			);
 		});
 	});
 
@@ -403,6 +411,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
+			process.env.LOG_LEVEL = 'info';
 
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
@@ -445,7 +454,6 @@ describe('check-env', () => {
 			expect(() => runEnvChecks()).not.toThrow();
 
 			expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('will use default: false'));
-			expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('will use default: info'));
 		});
 	});
 
@@ -463,6 +471,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
+			process.env.LOG_LEVEL = 'debug';
 
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
@@ -476,7 +485,6 @@ describe('check-env', () => {
 			process.env.REDIS_PASSWORD = 'redis-pass';
 			process.env.NODE_OPTIONS = '--max-old-space-size=4096';
 			process.env.PORT = '3000';
-			process.env.LOG_LEVEL = 'debug';
 			process.env.METRICS_ENABLED = 'true';
 			process.env.HEALTH_CHECK_TIMEOUT = '10000';
 
@@ -500,6 +508,7 @@ describe('check-env', () => {
 			process.env.REDIS_HOST = 'localhost';
 			process.env.REDIS_PORT = '6379';
 			process.env.HTTP_PORT = '3000';
+			process.env.LOG_LEVEL = 'info';
 
 			process.env.TWILIO_ACCOUNT_SID = 'AC123456789';
 			process.env.TWILIO_AUTH_TOKEN = 'token123';
