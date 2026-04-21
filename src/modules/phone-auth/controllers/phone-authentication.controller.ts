@@ -7,6 +7,15 @@ import { DeviceFingerprintService } from '../../devices/services/device-fingerpr
 import { RegisterDto, LoginDto, LogoutDto, RegisterResponseDto, LoginResponseDto } from '../dto';
 
 @ApiTags('Auth - Authentication by SMS')
+// Rate-limiting stratégie (WHISPR-996/997) :
+// - Throttler global (SHORT 3/s, MEDIUM 20/10s, LONG 100/min) défini dans
+//   AppModule, partagé entre tous les microservices via Redis.
+// - @Throttle() ci-dessous durcit le seuil sur les routes SMS (register/
+//   login/logout) : max 10 requêtes / 60 s / IP pour limiter l'abus des
+//   envois de SMS (coût externe) et le brute force de code.
+// - @Throttle() surcharge le throttler global `default` ; les trois tiers
+//   SHORT/MEDIUM/LONG continuent de s'appliquer en parallèle. Pas de
+//   second ThrottlerModule — une seule connexion Redis côté auth.
 @Throttle({ default: { ttl: 60000, limit: 10 } })
 @Controller('')
 export class PhoneAuthenticationController {
