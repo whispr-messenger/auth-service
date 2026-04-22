@@ -93,7 +93,10 @@ describe('QR code authentication endpoints (e2e)', () => {
 				.expect(201);
 
 			expect(text).toBe('signed-jwt-challenge-string');
-			expect(mockQrCodeService.generateQRChallenge).toHaveBeenCalledWith('device-id');
+			// WHISPR-762 hardening: the controller now passes the authenticated
+			// userId alongside the deviceId so the service can verify the device
+			// belongs to the caller before issuing a challenge.
+			expect(mockQrCodeService.generateQRChallenge).toHaveBeenCalledWith('device-id', 'user-id');
 		});
 
 		it('returns 401 without Authorization header', async () => {
