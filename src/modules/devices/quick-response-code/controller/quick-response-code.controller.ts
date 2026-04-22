@@ -2,6 +2,7 @@ import { Body, Controller, HttpCode, HttpStatus, Request, Param, Post, UseGuards
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '../../../tokens/guards';
+import { AuthenticatedRequest } from '../../../tokens/types/authenticated-request.interface';
 import { DeviceFingerprintService } from '../../services/device-fingerprint/device-fingerprint.service';
 import { QuickResponseCodeService } from '../services/quick-response-code.service';
 import { ScanLoginDto } from '../dto/scan-login.dto';
@@ -20,14 +21,16 @@ export class QuickResponseCodeController {
 	@ApiOperation({ summary: 'Generate QR code challenge for device authentication' })
 	@ApiParam({
 		name: 'deviceId',
-		description: 'UUID of the device to generate a QR challenge for',
+		description:
+			'UUID of the device to generate a QR challenge for. Must belong to the authenticated user.',
 		type: String,
 	})
 	@ApiResponse({ status: 200, description: 'QR challenge generated successfully' })
 	@ApiResponse({ status: 401, description: 'Unauthorized' })
+	@ApiResponse({ status: 403, description: 'Device does not belong to the authenticated user' })
 	@ApiResponse({ status: 404, description: 'Device not found' })
-	async generateQRChallenge(@Param('deviceId') deviceId: string) {
-		return this.quickResponseCodeService.generateQRChallenge(deviceId);
+	async generateQRChallenge(@Param('deviceId') deviceId: string, @Request() req: AuthenticatedRequest) {
+		return this.quickResponseCodeService.generateQRChallenge(deviceId, req.user.sub);
 	}
 
 	@Post('scan')
