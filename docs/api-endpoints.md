@@ -1,57 +1,41 @@
 # API Endpoints
 
+Tous les endpoints sont sous le préfixe `/auth/v1/` sauf JWKS (VERSION_NEUTRAL).
+
+## Vérification téléphone
+
+```
+POST /auth/v1/verify/register/request
+POST /auth/v1/verify/register/confirm
+POST /auth/v1/verify/login/request
+POST /auth/v1/verify/login/confirm
+```
+
 ## Authentification
 
-### Vérification téléphone
-
 ```
-POST /auth/phone/verify
+POST /auth/v1/register
+POST /auth/v1/login
+POST /auth/v1/logout
 ```
-
-Envoie un code OTP par SMS au numéro fourni.
-
-### Confirmation du code
-
-```
-POST /auth/phone/confirm
-```
-
-Vérifie le code OTP et retourne les tokens JWT.
 
 ## Tokens
 
-### Rafraîchir un token
-
 ```
-POST /auth/tokens/refresh
+POST /auth/v1/tokens/refresh
 ```
-
-Renouvelle l'access token à partir du refresh token.
-
-### Révoquer un token
-
-```
-POST /auth/tokens/revoke
-```
-
-Révoque un token (logout).
 
 ## Devices
 
-### Lister ses appareils
-
 ```
-GET /auth/devices
+GET /auth/v1/device
+DELETE /auth/v1/device/:deviceId
 ```
-
-Retourne la liste des appareils enregistrés pour l'utilisateur.
 
 ## JWKS
-
-### Clés publiques
 
 ```
 GET /auth/.well-known/jwks.json
 ```
 
-Endpoint public utilisé par les autres services pour vérifier les tokens JWT.
+Endpoint public (pas de versioning) pour la vérification des tokens JWT.
