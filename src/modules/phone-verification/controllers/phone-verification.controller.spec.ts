@@ -26,14 +26,18 @@ describe('PhoneVerificationController', () => {
 	describe('requestRegistrationVerification', () => {
 		it('should delegate to service and return result', async () => {
 			const dto = { phoneNumber: '+33612345678' };
+			const req = { ip: '1.2.3.4' } as any;
 			mockPhoneVerificationService.requestRegistrationVerification.mockResolvedValue({
 				verificationId: 'vid-1',
 			});
 
-			const result = await controller.requestRegistrationVerification(dto);
+			const result = await controller.requestRegistrationVerification(dto, req);
 
 			expect(result).toEqual({ verificationId: 'vid-1' });
-			expect(mockPhoneVerificationService.requestRegistrationVerification).toHaveBeenCalledWith(dto);
+			expect(mockPhoneVerificationService.requestRegistrationVerification).toHaveBeenCalledWith(
+				dto,
+				'1.2.3.4'
+			);
 		});
 	});
 
@@ -54,14 +58,18 @@ describe('PhoneVerificationController', () => {
 	describe('requestLoginVerification', () => {
 		it('should delegate to service and return result', async () => {
 			const dto = { phoneNumber: '+33612345678' };
+			const req = { ip: '5.6.7.8' } as any;
 			mockPhoneVerificationService.requestLoginVerification.mockResolvedValue({
 				verificationId: 'vid-2',
 			});
 
-			const result = await controller.requestLoginVerification(dto);
+			const result = await controller.requestLoginVerification(dto, req);
 
 			expect(result).toEqual({ verificationId: 'vid-2' });
-			expect(mockPhoneVerificationService.requestLoginVerification).toHaveBeenCalledWith(dto);
+			expect(mockPhoneVerificationService.requestLoginVerification).toHaveBeenCalledWith(
+				dto,
+				'5.6.7.8'
+			);
 		});
 	});
 
