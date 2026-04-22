@@ -94,6 +94,36 @@ export class TwoFactorAuthenticationController {
 		return { backupCodes: codes };
 	}
 
+	// WHISPR-1052: URL dédiée au flow de rotation — remplace tous les codes
+	// inutilisés après vérification TOTP/backup-code. Alias explicite du
+	// POST /backup-codes pour coller au vocabulaire côté mobile.
+	@Post('backup-codes/regenerate')
+	@UseGuards(JwtAuthGuard)
+	@HttpCode(HttpStatus.OK)
+	@ApiBearerAuth()
+	@ApiOperation({ summary: 'Rotate 2FA backup codes (replaces all existing codes)' })
+	@ApiBody({ type: TwoFactorVerifyDto })
+	@ApiOkResponse({ type: TwoFactorBackupCodesResponseDto, description: 'Backup codes rotated' })
+	@ApiResponse({ status: 400, description: 'Invalid token or 2FA not enabled' })
+	@ApiResponse({ status: 401, description: 'Unauthorized' })
+	async regenerateBackupCodes(@Request() req: AuthenticatedRequest, @Body() dto: TwoFactorVerifyDto) {
+		const codes = await this.twoFactorService.generateNewBackupCodes(req.user.sub, dto.token);
+		return { backupCodes: codes };
+	}
+
+	// WHISPR-1052: permet à l'UI Settings d'afficher le nombre de codes
+	// de secours restants sans les régénérer.
+	@Get('backup-codes/remaining')
+	@UseGuards(JwtAuthGuard)
+	@ApiBearerAuth()
+	@ApiOperation({ summary: 'Get remaining (unused) 2FA backup codes count' })
+	@ApiOkResponse({ description: 'Returns the number of unused backup codes' })
+	@ApiResponse({ status: 401, description: 'Unauthorized' })
+	async getRemainingBackupCodes(@Request() req: AuthenticatedRequest) {
+		const remaining = await this.twoFactorService.getRemainingBackupCodesCount(req.user.sub);
+		return { remaining };
+	}
+
 	@Get('status')
 	@UseGuards(JwtAuthGuard)
 	@ApiBearerAuth()

@@ -14,6 +14,7 @@ describe('TwoFactorAuthenticationController', () => {
 		disableTwoFactor: jest.fn(),
 		generateNewBackupCodes: jest.fn(),
 		isTwoFactorEnabled: jest.fn(),
+		getRemainingBackupCodesCount: jest.fn(),
 	};
 
 	const mockRequest = { user: { sub: 'user-id' } } as unknown as AuthenticatedRequest;
@@ -94,6 +95,46 @@ describe('TwoFactorAuthenticationController', () => {
 			const result = await controller.generateBackupCodes(mockRequest, { token: '123456' });
 
 			expect(result).toEqual({ backupCodes: ['CODE1', 'CODE2'] });
+		});
+	});
+
+	describe('regenerateBackupCodes', () => {
+		it('should rotate backup codes after TOTP verification', async () => {
+			mockTwoFactorService.generateNewBackupCodes.mockResolvedValue(['NEW1', 'NEW2']);
+
+			const result = await controller.regenerateBackupCodes(mockRequest, { token: '123456' });
+
+			expect(result).toEqual({ backupCodes: ['NEW1', 'NEW2'] });
+			expect(mockTwoFactorService.generateNewBackupCodes).toHaveBeenCalledWith('user-id', '123456');
+		});
+
+		it('should propagate service errors when token is invalid', async () => {
+			mockTwoFactorService.generateNewBackupCodes.mockRejectedValue(
+				new Error('Invalid verification code')
+			);
+
+			await expect(controller.regenerateBackupCodes(mockRequest, { token: 'bad' })).rejects.toThrow(
+				'Invalid verification code'
+			);
+		});
+	});
+
+	describe('getRemainingBackupCodes', () => {
+		it('should return the remaining codes count', async () => {
+			mockTwoFactorService.getRemainingBackupCodesCount.mockResolvedValue(7);
+
+			const result = await controller.getRemainingBackupCodes(mockRequest);
+
+			expect(result).toEqual({ remaining: 7 });
+			expect(mockTwoFactorService.getRemainingBackupCodesCount).toHaveBeenCalledWith('user-id');
+		});
+
+		it('should return 0 when user has no remaining codes', async () => {
+			mockTwoFactorService.getRemainingBackupCodesCount.mockResolvedValue(0);
+
+			const result = await controller.getRemainingBackupCodes(mockRequest);
+
+			expect(result).toEqual({ remaining: 0 });
 		});
 	});
 

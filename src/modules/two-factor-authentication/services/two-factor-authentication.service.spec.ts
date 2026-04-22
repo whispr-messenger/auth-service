@@ -21,6 +21,7 @@ describe('TwoFactorAuthenticationService', () => {
 		generateBackupCodes: jest.fn(),
 		verifyBackupCode: jest.fn(),
 		deleteAllBackupCodes: jest.fn(),
+		getRemainingCodesCount: jest.fn(),
 	};
 
 	const mockUser = {
@@ -283,6 +284,35 @@ describe('TwoFactorAuthenticationService', () => {
 			const result = await service.isTwoFactorEnabled('user-id');
 
 			expect(result).toBe(false);
+		});
+	});
+
+	describe('getRemainingBackupCodesCount', () => {
+		it('should return the repository count when 2FA is enabled', async () => {
+			mockUserAuthService.findById.mockResolvedValue({ ...mockUser, twoFactorEnabled: true });
+			mockBackupCodesService.getRemainingCodesCount.mockResolvedValue(4);
+
+			const result = await service.getRemainingBackupCodesCount('user-id');
+
+			expect(result).toBe(4);
+			expect(mockBackupCodesService.getRemainingCodesCount).toHaveBeenCalledWith('user-id');
+		});
+
+		it('should return 0 without hitting the repository when 2FA is disabled', async () => {
+			mockUserAuthService.findById.mockResolvedValue({ ...mockUser, twoFactorEnabled: false });
+
+			const result = await service.getRemainingBackupCodesCount('user-id');
+
+			expect(result).toBe(0);
+			expect(mockBackupCodesService.getRemainingCodesCount).not.toHaveBeenCalled();
+		});
+
+		it('should return 0 when user is not found', async () => {
+			mockUserAuthService.findById.mockResolvedValue(null);
+
+			const result = await service.getRemainingBackupCodesCount('user-id');
+
+			expect(result).toBe(0);
 		});
 	});
 });
