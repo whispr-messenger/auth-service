@@ -1,4 +1,13 @@
-import { Controller, Post, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+	Controller,
+	Post,
+	Body,
+	UseGuards,
+	Request,
+	HttpCode,
+	HttpStatus,
+	UseInterceptors,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
 import { Throttle } from '@nestjs/throttler';
@@ -6,6 +15,7 @@ import { PhoneAuthenticationService } from '../services/phone-authentication.ser
 import { JwtAuthGuard } from '../../tokens/guards';
 import { AuthenticatedRequest } from '../../tokens/types/authenticated-request.interface';
 import { DeviceFingerprintService } from '../../devices/services/device-fingerprint/device-fingerprint.service';
+import { AdaptiveRateLimitInterceptor } from '../../adaptive-rate-limit/adaptive-rate-limit.interceptor';
 import { RegisterDto, LoginDto, LogoutDto, RegisterResponseDto, LoginResponseDto } from '../dto';
 
 @ApiTags('Auth - Authentication by SMS')
@@ -27,6 +37,7 @@ export class PhoneAuthenticationController {
 	) {}
 
 	@Post('register')
+	@UseInterceptors(AdaptiveRateLimitInterceptor)
 	@HttpCode(HttpStatus.CREATED)
 	@ApiOperation({ summary: 'Register a new user account' })
 	@ApiResponse({ status: 201, description: 'User successfully registered', type: RegisterResponseDto })
@@ -39,6 +50,7 @@ export class PhoneAuthenticationController {
 	}
 
 	@Post('login')
+	@UseInterceptors(AdaptiveRateLimitInterceptor)
 	@HttpCode(HttpStatus.OK)
 	@ApiOperation({ summary: 'Login to user account' })
 	@ApiResponse({

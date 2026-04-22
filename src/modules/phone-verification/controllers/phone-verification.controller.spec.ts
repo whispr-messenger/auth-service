@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PhoneVerificationController } from './phone-verification.controller';
 import { PhoneVerificationService } from '../services';
+import { AdaptiveRateLimitService } from '../../adaptive-rate-limit/adaptive-rate-limit.service';
 
 describe('PhoneVerificationController', () => {
 	let controller: PhoneVerificationController;
@@ -17,7 +18,20 @@ describe('PhoneVerificationController', () => {
 
 		const module: TestingModule = await Test.createTestingModule({
 			controllers: [PhoneVerificationController],
-			providers: [{ provide: PhoneVerificationService, useValue: mockPhoneVerificationService }],
+			providers: [
+				{ provide: PhoneVerificationService, useValue: mockPhoneVerificationService },
+				{
+					provide: AdaptiveRateLimitService,
+					useValue: {
+						getFailureCount: jest.fn().mockResolvedValue(0),
+						recordFailure: jest.fn().mockResolvedValue(0),
+						recordSuccess: jest.fn().mockResolvedValue(undefined),
+						shouldBlock: jest.fn().mockReturnValue(false),
+						threshold: 5,
+						windowSeconds: 900,
+					},
+				},
+			],
 		}).compile();
 
 		controller = module.get<PhoneVerificationController>(PhoneVerificationController);
