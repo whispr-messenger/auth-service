@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseInterceptors } from '@nestjs/common';
 import type { Request } from 'express';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
@@ -9,6 +9,7 @@ import {
 	VerificationRequestResponseDto,
 } from '../dto';
 import { PhoneVerificationService } from '../services';
+import { AdaptiveRateLimitInterceptor } from '../../adaptive-rate-limit/adaptive-rate-limit.interceptor';
 import {
 	VERIFICATION_CONFIRM_EXAMPLES,
 	VERIFICATION_REQUEST_EXAMPLES,
@@ -16,6 +17,11 @@ import {
 
 @ApiTags('Auth - Phone Number Verification')
 @Controller('verify')
+// WHISPR-1054: confirm endpoints are the real brute-force target — an OTP
+// is only 6 digits, so we add an adaptive cooldown on top of the global
+// throttler. request endpoints rotate via the same interceptor to punish
+// fingerprint replay as well.
+@UseInterceptors(AdaptiveRateLimitInterceptor)
 export class PhoneVerificationController {
 	constructor(private readonly phoneVerificationService: PhoneVerificationService) {}
 
