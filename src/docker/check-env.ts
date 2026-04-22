@@ -80,6 +80,7 @@ export default function runEnvChecks(): void {
 	checkOptional('METRICS_ENABLED', 'true');
 	checkOptional('HEALTH_CHECK_TIMEOUT', '5000');
 	checkOptional('DEMO_MODE', 'false');
+	checkOptional('EXPOSE_DEMO_OTP', 'false');
 	checkOptional('CORS_ORIGINS', '(CORS disabled)');
 
 	console.log('\n==================================================');

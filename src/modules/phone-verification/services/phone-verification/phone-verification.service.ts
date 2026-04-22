@@ -33,6 +33,7 @@ import { VerificationPurpose, VerificationCode, VerificationCreationResult } fro
 export class PhoneVerificationService {
 	private readonly logger = new Logger(PhoneVerificationService.name);
 	private readonly isDemoMode: boolean;
+	private readonly exposeDemoOtp: boolean;
 	private readonly otpBypassCode: string | undefined;
 	private readonly VERIFICATION_TTL_MS = 15 * 60 * 1000; // 15 minutes in milliseconds
 	private readonly POST_CONFIRM_TTL_MS = 60 * 1000; // 60 seconds post-confirm in milliseconds
@@ -56,6 +57,13 @@ export class PhoneVerificationService {
 	) {
 		this.isDemoMode = this.configService.get<string>('DEMO_MODE') === 'true';
 		this.otpBypassCode = this.configService.get<string>('OTP_BYPASS_CODE');
+
+		// WHISPR-1117: the demo OTP must NEVER be returned in responses on prod,
+		// regardless of DEMO_MODE. Allow explicit override via EXPOSE_DEMO_OTP
+		// for tightly-controlled staging/QA scenarios, but default to hiding.
+		const nodeEnv = this.configService.get<string>('NODE_ENV');
+		const exposeFlag = this.configService.get<string>('EXPOSE_DEMO_OTP') === 'true';
+		this.exposeDemoOtp = nodeEnv !== 'production' || exposeFlag;
 
 		if (this.otpBypassCode) {
 			this.logger.warn(
@@ -221,7 +229,7 @@ export class PhoneVerificationService {
 	 * @returns Response with ID and optionally the code
 	 */
 	private buildVerificationResponse(verificationId: string, code: string): VerificationRequestResponseDto {
-		if (this.isDemoMode) {
+		if (this.isDemoMode && this.exposeDemoOtp) {
 			// When a bypass code is configured, surface that predictable value in
 			// demo responses instead of the randomly generated one. Both codes are
 			// accepted by verifyCode, but users remembering "123456" across sessions
@@ -229,6 +237,15 @@ export class PhoneVerificationService {
 			const exposedCode = this.otpBypassCode ?? code;
 			this.logger.debug('Demo mode is activated: sending verification code in response payload.');
 			return { verificationId, code: exposedCode };
+		}
+
+		if (this.isDemoMode && !this.exposeDemoOtp) {
+			// WHISPR-1117: demo mode still short-circuits the SMS provider, but we
+			// refuse to leak the plaintext OTP in the HTTP response on production
+			// unless the operator explicitly opts in via EXPOSE_DEMO_OTP=true.
+			this.logger.warn(
+				'[WHISPR-1117] Demo mode is active but EXPOSE_DEMO_OTP is not set in production — withholding OTP from response.'
+			);
 		}
 
 		return { verificationId };
