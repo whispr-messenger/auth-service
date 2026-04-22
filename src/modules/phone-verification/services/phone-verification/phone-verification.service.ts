@@ -39,6 +39,10 @@ export class PhoneVerificationService {
 	private readonly MAX_ATTEMPTS = 5;
 	private readonly RATE_LIMIT_TTL_SECONDS = 60 * 60; // 1 hour in seconds
 	private readonly MAX_REQUESTS_PER_HOUR = 5;
+	// WHISPR-762: tighter sliding window to mitigate OTP flooding/impersonation probes.
+	private readonly SHORT_WINDOW_TTL_SECONDS = 15 * 60; // 15 minutes
+	private readonly MAX_REQUESTS_PER_SHORT_WINDOW_PHONE = 3;
+	private readonly MAX_REQUESTS_PER_SHORT_WINDOW_IP = 10;
 
 	constructor(
 		@Inject('VerificationRepository') private readonly verificationRepo: VerificationRepository,
@@ -69,11 +73,13 @@ export class PhoneVerificationService {
 	private async requestVerification(
 		phoneNumber: string,
 		purpose: VerificationPurpose,
-		deviceId?: string
+		deviceId?: string,
+		ipAddress?: string
 	): Promise<VerificationRequestResponseDto> {
 		const normalizedPhone = this.phoneService.normalize(phoneNumber);
 
 		await this.checkRateLimit(normalizedPhone);
+		await this.checkShortWindowRateLimit(normalizedPhone, ipAddress);
 
 		const { verificationId, code, verificationData } = await this.createVerificationData(
 			normalizedPhone,
@@ -84,10 +90,47 @@ export class PhoneVerificationService {
 		await this.verificationRepo.save(verificationId, verificationData, this.VERIFICATION_TTL_MS);
 
 		await this.incrementRateLimit(normalizedPhone);
+		await this.incrementShortWindowRateLimit(normalizedPhone, ipAddress);
 
 		await this.sendVerificationCode(normalizedPhone, code, purpose);
 
 		return this.buildVerificationResponse(verificationId, code);
+	}
+
+	/**
+	 * WHISPR-762 — short-window rate limits to mitigate OTP flooding and
+	 * impersonation probing. Separate counters for phone and IP so one actor
+	 * cannot cycle numbers nor cycle IPs to exhaust a single phone.
+	 */
+	private async checkShortWindowRateLimit(phoneNumber: string, ipAddress?: string): Promise<void> {
+		await this.rateLimitService.checkLimit(
+			`rate_limit:short:phone:${phoneNumber}`,
+			this.MAX_REQUESTS_PER_SHORT_WINDOW_PHONE,
+			this.SHORT_WINDOW_TTL_SECONDS,
+			'Too many verification code requests for this phone number'
+		);
+
+		if (ipAddress) {
+			await this.rateLimitService.checkLimit(
+				`rate_limit:short:ip:${ipAddress}`,
+				this.MAX_REQUESTS_PER_SHORT_WINDOW_IP,
+				this.SHORT_WINDOW_TTL_SECONDS,
+				'Too many verification code requests from this IP'
+			);
+		}
+	}
+
+	private async incrementShortWindowRateLimit(phoneNumber: string, ipAddress?: string): Promise<void> {
+		await this.rateLimitService.increment(
+			`rate_limit:short:phone:${phoneNumber}`,
+			this.SHORT_WINDOW_TTL_SECONDS
+		);
+		if (ipAddress) {
+			await this.rateLimitService.increment(
+				`rate_limit:short:ip:${ipAddress}`,
+				this.SHORT_WINDOW_TTL_SECONDS
+			);
+		}
 	}
 
 	/**
@@ -328,7 +371,8 @@ export class PhoneVerificationService {
 	 * @throws ConflictException if user already exists
 	 */
 	public async requestRegistrationVerification(
-		dto: VerificationRequestDto
+		dto: VerificationRequestDto,
+		ipAddress?: string
 	): Promise<VerificationRequestResponseDto> {
 		// First check: fast-fail before issuing an OTP to a phone that already has an account.
 		// A second check is intentionally performed at register() time (TOCTOU protection): the
@@ -339,7 +383,7 @@ export class PhoneVerificationService {
 			throw new ConflictException('An account with this phone number already exists.');
 		}
 
-		return this.requestVerification(dto.phoneNumber, 'registration', dto.deviceId);
+		return this.requestVerification(dto.phoneNumber, 'registration', dto.deviceId, ipAddress);
 	}
 
 	/**
@@ -362,7 +406,8 @@ export class PhoneVerificationService {
 	 * @throws BadRequestException if user doesn't exist
 	 */
 	public async requestLoginVerification(
-		dto: VerificationRequestDto
+		dto: VerificationRequestDto,
+		ipAddress?: string
 	): Promise<VerificationRequestResponseDto> {
 		const user = await this.userAuthService.findByPhoneNumber(dto.phoneNumber);
 
@@ -370,7 +415,7 @@ export class PhoneVerificationService {
 			throw new BadRequestException('No account found with this phone number');
 		}
 
-		return this.requestVerification(dto.phoneNumber, 'login', dto.deviceId);
+		return this.requestVerification(dto.phoneNumber, 'login', dto.deviceId, ipAddress);
 	}
 
 	/**

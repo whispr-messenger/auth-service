@@ -1,4 +1,5 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Req } from '@nestjs/common';
+import type { Request } from 'express';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
 	VerificationConfirmDto,
@@ -26,9 +27,10 @@ export class PhoneVerificationController {
 	@ApiResponse({ status: 400, description: 'Bad request' })
 	@ApiResponse({ status: 429, description: 'Too many requests' })
 	async requestRegistrationVerification(
-		@Body() dto: VerificationRequestDto
+		@Body() dto: VerificationRequestDto,
+		@Req() req: Request
 	): Promise<VerificationRequestResponseDto> {
-		return this.phoneVerificationService.requestRegistrationVerification(dto);
+		return this.phoneVerificationService.requestRegistrationVerification(dto, req.ip);
 	}
 
 	@Post('register/confirm')
@@ -62,9 +64,10 @@ export class PhoneVerificationController {
 	@ApiResponse({ status: 400, description: 'Bad request' })
 	@ApiResponse({ status: 429, description: 'Too many requests' })
 	async requestLoginVerification(
-		@Body() dto: VerificationRequestDto
+		@Body() dto: VerificationRequestDto,
+		@Req() req: Request
 	): Promise<VerificationRequestResponseDto> {
-		return this.phoneVerificationService.requestLoginVerification(dto);
+		return this.phoneVerificationService.requestLoginVerification(dto, req.ip);
 	}
 
 	@Post('login/confirm')
