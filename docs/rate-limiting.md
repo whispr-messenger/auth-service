@@ -3,10 +3,12 @@
 ## Endpoints protégés
 
 ```
-POST /auth/phone/verify  ──▶ 3 req / 5min (par numéro)
-POST /auth/phone/confirm ──▶ 5 tentatives / code
-POST /auth/tokens/refresh──▶ 10 req / min
+POST /auth/v1/verify/*           ──▶ Limité par numéro de téléphone
+POST /auth/v1/tokens/refresh     ──▶ Limité par utilisateur
+POST /auth/v1/login              ──▶ Limité par IP
 ```
+
+Les seuils exacts sont configurés via le module Throttler de NestJS.
 
 ## Stockage
 
