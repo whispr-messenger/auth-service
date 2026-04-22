@@ -38,11 +38,14 @@ export class PhoneVerificationService {
 	private readonly VERIFICATION_TTL_MS = 15 * 60 * 1000; // 15 minutes in milliseconds
 	private readonly POST_CONFIRM_TTL_MS = 60 * 1000; // 60 seconds post-confirm in milliseconds
 	private readonly MAX_ATTEMPTS = 5;
+	// WHISPR-866: rate-limit thresholds are tunable via env vars so we can loosen
+	// them for QA/staging and tighten them for production without a code change.
 	private readonly RATE_LIMIT_TTL_SECONDS = 60 * 60; // 1 hour in seconds
-	private readonly MAX_REQUESTS_PER_HOUR = 5;
+	private readonly MAX_REQUESTS_PER_HOUR: number;
 	// WHISPR-762: tighter sliding window to mitigate OTP flooding/impersonation probes.
-	private readonly SHORT_WINDOW_TTL_SECONDS = 15 * 60; // 15 minutes
-	private readonly MAX_REQUESTS_PER_SHORT_WINDOW_PHONE = 3;
+	// WHISPR-866: phone-scoped short window maps to SMS_RATE_LIMIT_PER_MINUTE.
+	private readonly SHORT_WINDOW_TTL_SECONDS = 60; // 1 minute
+	private readonly MAX_REQUESTS_PER_SHORT_WINDOW_PHONE: number;
 	private readonly MAX_REQUESTS_PER_SHORT_WINDOW_IP = 10;
 
 	constructor(
@@ -65,11 +68,36 @@ export class PhoneVerificationService {
 		const exposeFlag = this.configService.get<string>('EXPOSE_DEMO_OTP') === 'true';
 		this.exposeDemoOtp = nodeEnv !== 'production' || exposeFlag;
 
+		// WHISPR-866: thresholds read from env with sensible prod defaults.
+		this.MAX_REQUESTS_PER_HOUR = this.readPositiveInt('SMS_RATE_LIMIT_PER_HOUR', 20);
+		this.MAX_REQUESTS_PER_SHORT_WINDOW_PHONE = this.readPositiveInt('SMS_RATE_LIMIT_PER_MINUTE', 5);
+
 		if (this.otpBypassCode) {
 			this.logger.warn(
 				'OTP_BYPASS_CODE is set — OTP bypass mode is active. SMS sending is disabled and the bypass code will be accepted for any phone number. Do NOT use this in production.'
 			);
 		}
+	}
+
+	/**
+	 * Reads a positive integer env var via ConfigService, falling back to the
+	 * provided default when unset or when the value is not a strictly positive
+	 * integer. Guards against misconfigurations that would accidentally disable
+	 * the rate limiter (e.g. `SMS_RATE_LIMIT_PER_HOUR=0`).
+	 */
+	private readPositiveInt(key: string, defaultValue: number): number {
+		const raw = this.configService.get<string>(key);
+		if (raw === undefined || raw === null || raw === '') {
+			return defaultValue;
+		}
+		const parsed = Number.parseInt(String(raw), 10);
+		if (!Number.isFinite(parsed) || parsed <= 0) {
+			this.logger.warn(
+				`[WHISPR-866] Invalid value for ${key} ("${raw}") — falling back to default ${defaultValue}.`
+			);
+			return defaultValue;
+		}
+		return parsed;
 	}
 
 	/**
