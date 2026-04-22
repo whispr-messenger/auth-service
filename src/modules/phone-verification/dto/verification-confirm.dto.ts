@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsUUID, IsString, Length, IsOptional } from 'class-validator';
+import { IsUUID, IsString, Length, IsOptional, Matches, MaxLength } from 'class-validator';
 
 export class VerificationConfirmDto {
 	@ApiProperty({
@@ -15,6 +15,7 @@ export class VerificationConfirmDto {
 	})
 	@IsString()
 	@Length(6, 6)
+	@Matches(/^\d{6}$/, { message: 'code must be exactly 6 digits' })
 	code: string;
 
 	@ApiPropertyOptional({
@@ -24,5 +25,6 @@ export class VerificationConfirmDto {
 	})
 	@IsOptional()
 	@IsString()
+	@MaxLength(128)
 	deviceId?: string;
 }
