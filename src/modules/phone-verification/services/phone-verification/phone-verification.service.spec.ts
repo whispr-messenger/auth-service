@@ -103,6 +103,52 @@ describe('PhoneVerificationService', () => {
 			expect(result.code).toBe('123456');
 		});
 
+		// WHISPR-1117 — demo OTP must never leak into HTTP responses on prod
+		// unless the operator explicitly opts in via EXPOSE_DEMO_OTP=true.
+		it('should NOT include code in response when demo mode is active in production', async () => {
+			service = await buildModule({ DEMO_MODE: 'true', NODE_ENV: 'production' });
+			mockUserAuthService.findByPhoneNumber.mockResolvedValue(null);
+			mockRateLimitService.checkLimit.mockResolvedValue(undefined);
+			mockRateLimitService.increment.mockResolvedValue(undefined);
+			mockVerificationRepo.save.mockResolvedValue(undefined);
+			mockVerificationChannel.sendVerification.mockResolvedValue(undefined);
+
+			const result = await service.requestRegistrationVerification({ phoneNumber: '+33612345678' });
+
+			expect(result.code).toBeUndefined();
+			expect(result).toHaveProperty('verificationId');
+		});
+
+		it('should include code in response when demo mode + EXPOSE_DEMO_OTP are set in production', async () => {
+			service = await buildModule({
+				DEMO_MODE: 'true',
+				NODE_ENV: 'production',
+				EXPOSE_DEMO_OTP: 'true',
+			});
+			mockUserAuthService.findByPhoneNumber.mockResolvedValue(null);
+			mockRateLimitService.checkLimit.mockResolvedValue(undefined);
+			mockRateLimitService.increment.mockResolvedValue(undefined);
+			mockVerificationRepo.save.mockResolvedValue(undefined);
+			mockVerificationChannel.sendVerification.mockResolvedValue(undefined);
+
+			const result = await service.requestRegistrationVerification({ phoneNumber: '+33612345678' });
+
+			expect(result.code).toBe('123456');
+		});
+
+		it('should include code in response when demo mode is active in development', async () => {
+			service = await buildModule({ DEMO_MODE: 'true', NODE_ENV: 'development' });
+			mockUserAuthService.findByPhoneNumber.mockResolvedValue(null);
+			mockRateLimitService.checkLimit.mockResolvedValue(undefined);
+			mockRateLimitService.increment.mockResolvedValue(undefined);
+			mockVerificationRepo.save.mockResolvedValue(undefined);
+			mockVerificationChannel.sendVerification.mockResolvedValue(undefined);
+
+			const result = await service.requestRegistrationVerification({ phoneNumber: '+33612345678' });
+
+			expect(result.code).toBe('123456');
+		});
+
 		it('should throw HttpException when rate limit is exceeded', async () => {
 			mockUserAuthService.findByPhoneNumber.mockResolvedValue(null);
 			mockRateLimitService.checkLimit.mockRejectedValue(
