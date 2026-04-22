@@ -68,7 +68,8 @@ export class PhoneVerificationService {
 	 */
 	private async requestVerification(
 		phoneNumber: string,
-		purpose: VerificationPurpose
+		purpose: VerificationPurpose,
+		deviceId?: string
 	): Promise<VerificationRequestResponseDto> {
 		const normalizedPhone = this.phoneService.normalize(phoneNumber);
 
@@ -76,7 +77,8 @@ export class PhoneVerificationService {
 
 		const { verificationId, code, verificationData } = await this.createVerificationData(
 			normalizedPhone,
-			purpose
+			purpose,
+			deviceId
 		);
 
 		await this.verificationRepo.save(verificationId, verificationData, this.VERIFICATION_TTL_MS);
@@ -122,7 +124,8 @@ export class PhoneVerificationService {
 	 */
 	private async createVerificationData(
 		phoneNumber: string,
-		purpose: VerificationPurpose
+		purpose: VerificationPurpose,
+		deviceId?: string
 	): Promise<VerificationCreationResult> {
 		const verificationId = uuidv4();
 		const code = this.codeGenerator.generateCode();
@@ -135,6 +138,7 @@ export class PhoneVerificationService {
 			purpose,
 			attempts: 0,
 			expiresAt: expirationTime,
+			...(deviceId ? { deviceId } : {}),
 		};
 
 		return { verificationId, code, verificationData };
@@ -195,12 +199,18 @@ export class PhoneVerificationService {
 	 * @throws BadRequestException if code is invalid or verification not found
 	 * @throws HttpException with TOO_MANY_REQUESTS if max attempts exceeded
 	 */
-	public async verifyCode(verificationId: string, code: string): Promise<VerificationCode> {
+	public async verifyCode(
+		verificationId: string,
+		code: string,
+		deviceId?: string
+	): Promise<VerificationCode> {
 		const verificationData = await this.verificationRepo.findById(verificationId);
 
 		if (!verificationData) {
 			throw new BadRequestException('Invalid or expired verification code');
 		}
+
+		this.assertDeviceBinding(verificationData, deviceId);
 
 		if (verificationData.verified) {
 			if (code === '') {
@@ -262,18 +272,45 @@ export class PhoneVerificationService {
 	 * @returns The verification data if it has been confirmed
 	 * @throws BadRequestException if verification not found or not confirmed
 	 */
-	public async getConfirmedVerification(verificationId: string): Promise<VerificationCode> {
+	public async getConfirmedVerification(
+		verificationId: string,
+		deviceId?: string
+	): Promise<VerificationCode> {
 		const verificationData = await this.verificationRepo.findById(verificationId);
 
 		if (!verificationData) {
 			throw new BadRequestException('Invalid or expired verification code');
 		}
 
+		this.assertDeviceBinding(verificationData, deviceId);
+
 		if (!verificationData.verified) {
 			throw new BadRequestException('Verification code has not been confirmed yet');
 		}
 
 		return verificationData;
+	}
+
+	/**
+	 * WHISPR-762 — enforce that if an OTP session was bound to a deviceId at
+	 * send time, all subsequent operations (confirm, consume) MUST present the
+	 * same deviceId. Prevents an attacker from verifying/consuming an OTP sent
+	 * to a victim's phone from a different device.
+	 *
+	 * Backward compatibility: sessions created before the binding rollout (no
+	 * deviceId stored) remain usable from any device. New clients that send a
+	 * deviceId on request get hard binding.
+	 */
+	private assertDeviceBinding(verificationData: VerificationCode, providedDeviceId?: string): void {
+		if (!verificationData.deviceId) {
+			return;
+		}
+		if (!providedDeviceId || providedDeviceId !== verificationData.deviceId) {
+			this.logger.warn(
+				`[WHISPR-762] OTP device binding mismatch — sessionDeviceId=${verificationData.deviceId} requestDeviceId=${providedDeviceId ?? 'none'}`
+			);
+			throw new BadRequestException('Invalid or expired verification code');
+		}
 	}
 
 	/**
@@ -302,7 +339,7 @@ export class PhoneVerificationService {
 			throw new ConflictException('An account with this phone number already exists.');
 		}
 
-		return this.requestVerification(dto.phoneNumber, 'registration');
+		return this.requestVerification(dto.phoneNumber, 'registration', dto.deviceId);
 	}
 
 	/**
@@ -313,7 +350,7 @@ export class PhoneVerificationService {
 	public async confirmRegistrationVerification(
 		dto: VerificationConfirmDto
 	): Promise<VerificationConfirmResponseDto> {
-		const verificationData = await this.verifyCode(dto.verificationId, dto.code);
+		const verificationData = await this.verifyCode(dto.verificationId, dto.code, dto.deviceId);
 		await this.markVerificationAsConfirmed(dto.verificationId, verificationData);
 		return { verified: true };
 	}
@@ -333,7 +370,7 @@ export class PhoneVerificationService {
 			throw new BadRequestException('No account found with this phone number');
 		}
 
-		return this.requestVerification(dto.phoneNumber, 'login');
+		return this.requestVerification(dto.phoneNumber, 'login', dto.deviceId);
 	}
 
 	/**
@@ -344,7 +381,7 @@ export class PhoneVerificationService {
 	public async confirmLoginVerification(
 		dto: VerificationConfirmDto
 	): Promise<VerificationLoginResponseDto> {
-		const verificationData = await this.verifyCode(dto.verificationId, dto.code);
+		const verificationData = await this.verifyCode(dto.verificationId, dto.code, dto.deviceId);
 		await this.markVerificationAsConfirmed(dto.verificationId, verificationData);
 
 		const user = await this.userAuthService.findByPhoneNumber(verificationData.phoneNumber);
