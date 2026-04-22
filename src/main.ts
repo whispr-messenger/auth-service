@@ -17,6 +17,7 @@ async function bootstrap() {
 			? new JsonLogger({ service: 'auth-service' })
 			: getLogLevels(process.env.LOG_LEVEL),
 	});
+	app.set('trust proxy', 1);
 	const configService = app.get(ConfigService);
 	const logger = new Logger('Bootstrap');
 	const port = configService.get<number>('HTTP_PORT', 3001);
