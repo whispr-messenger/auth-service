@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsPhoneNumber, IsString } from 'class-validator';
+import { IsOptional, IsPhoneNumber, IsString, MaxLength } from 'class-validator';
 
 export class VerificationRequestDto {
 	@ApiProperty({
@@ -16,5 +16,6 @@ export class VerificationRequestDto {
 	})
 	@IsOptional()
 	@IsString()
+	@MaxLength(128)
 	deviceId?: string;
 }
