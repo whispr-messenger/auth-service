@@ -6,10 +6,16 @@ import { AppModule } from './modules/app/app.module';
 import { createSwaggerDocumentation } from './swagger';
 import { LoggingInterceptor } from './interceptors';
 import { getLogLevels } from './config/log-level';
+import { JsonLogger } from './utils/json-logger';
 
 async function bootstrap() {
+	// WHISPR-1068 : logger JSON quand LOG_FORMAT=json pour Loki/ELK ;
+	// sinon on retombe sur le logger natif avec le filtre LOG_LEVEL.
+	const useJsonLogger = (process.env.LOG_FORMAT ?? '').toLowerCase() === 'json';
 	const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-		logger: getLogLevels(process.env.LOG_LEVEL),
+		logger: useJsonLogger
+			? new JsonLogger({ service: 'auth-service' })
+			: getLogLevels(process.env.LOG_LEVEL),
 	});
 	const configService = app.get(ConfigService);
 	const logger = new Logger('Bootstrap');
