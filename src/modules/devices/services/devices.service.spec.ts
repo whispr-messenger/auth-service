@@ -5,6 +5,7 @@ import { Device } from '../entities/device.entity';
 import { DeviceRepository } from '../repositories/device.repository';
 import { DeviceRegistrationService } from './device-registration/device-registration.service';
 import { DeviceActivityService } from './device-activity/device-activity.service';
+import { TokensService } from '../../tokens/services/tokens.service';
 
 describe('DevicesService', () => {
 	let service: DevicesService;
@@ -41,6 +42,10 @@ describe('DevicesService', () => {
 		create: jest.fn(),
 	};
 
+	const mockTokensService = {
+		revokeAllTokensForDevice: jest.fn(),
+	};
+
 	beforeEach(async () => {
 		jest.clearAllMocks();
 
@@ -58,6 +63,10 @@ describe('DevicesService', () => {
 				{
 					provide: DeviceActivityService,
 					useValue: {},
+				},
+				{
+					provide: TokensService,
+					useValue: mockTokensService,
 				},
 			],
 		}).compile();
@@ -244,6 +253,16 @@ describe('DevicesService', () => {
 			await service.revokeDevice('user-123', 'device-123');
 
 			expect(loggerSpy).toHaveBeenCalledWith('Device revoked: device-123 for user: user-123');
+		});
+
+		it('should revoke all tokens for the device before removing it', async () => {
+			deviceRepository.findByUserIdAndDeviceId.mockResolvedValue(mockDevice);
+			deviceRepository.remove.mockResolvedValue(mockDevice);
+
+			await service.revokeDevice('user-123', 'device-123');
+
+			expect(mockTokensService.revokeAllTokensForDevice).toHaveBeenCalledWith('device-123');
+			expect(mockTokensService.revokeAllTokensForDevice).toHaveBeenCalledTimes(1);
 		});
 
 		it('should throw NotFoundException when device does not exist', async () => {

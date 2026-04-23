@@ -30,10 +30,20 @@ export function makeMockRepository() {
 }
 
 export function makeMockCacheService() {
+	// In-memory counter store so incr/expire behave predictably across calls
+	// within a single test. Each test clears mocks, which resets the closure.
+	let counter = 0;
 	return {
 		get: jest.fn().mockResolvedValue(null),
 		set: jest.fn().mockResolvedValue(undefined),
 		del: jest.fn().mockResolvedValue(undefined),
+		delMany: jest.fn().mockResolvedValue(undefined),
+		exists: jest.fn().mockResolvedValue(false),
+		expire: jest.fn().mockResolvedValue(undefined),
+		keys: jest.fn().mockResolvedValue([]),
+		incr: jest.fn().mockImplementation(() => Promise.resolve(++counter)),
+		decr: jest.fn().mockImplementation(() => Promise.resolve(--counter)),
+		pipeline: jest.fn().mockResolvedValue([]),
 	};
 }
 

@@ -1,9 +1,11 @@
 import { Body, Controller, Headers, HttpCode, HttpStatus, Request, Post } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
 import { DeviceFingerprint } from '../../devices/types/device-fingerprint.interface';
 import { TokensService } from '../services/tokens.service';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
+import { RefreshTokenResponseDto } from '../dto/refresh-token-response.dto';
+import { ApiRefreshTokenEndpoint } from './tokens.controller.swagger';
 
 @ApiTags('Tokens')
 @Controller('tokens')
@@ -12,18 +14,12 @@ export class TokensController {
 
 	@Post('refresh')
 	@HttpCode(HttpStatus.OK)
-	@ApiOperation({ summary: 'Refresh access token using refresh token' })
-	@ApiBody({ type: RefreshTokenDto })
-	@ApiResponse({ status: 200, description: 'Token refreshed successfully' })
-	@ApiResponse({
-		status: 401,
-		description: 'Invalid or expired refresh token',
-	})
+	@ApiRefreshTokenEndpoint()
 	async refreshToken(
 		@Body() dto: RefreshTokenDto,
 		@Request() req: ExpressRequest,
 		@Headers('x-device-type') deviceType?: string
-	) {
+	): Promise<RefreshTokenResponseDto> {
 		const fingerprint: DeviceFingerprint = {
 			userAgent: req.headers['user-agent'],
 			ipAddress: req.ip,

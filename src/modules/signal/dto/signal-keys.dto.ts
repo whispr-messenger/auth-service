@@ -1,55 +1,51 @@
 import { IsString, IsNumber, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
 
-/**
- * DTO for a single PreKey (one-time use key)
- */
 export class PreKeyDto {
+	@ApiProperty({ description: 'One-time prekey identifier', example: 1 })
 	@IsNumber()
 	keyId: number;
 
+	@ApiProperty({ description: 'Base64-encoded public key', example: 'BZrt9...def456' })
 	@IsString()
 	publicKey: string;
 }
 
-/**
- * DTO for a Signed PreKey
- */
 export class SignedPreKeyDto {
+	@ApiProperty({ description: 'Signed prekey identifier', example: 1 })
 	@IsNumber()
 	keyId: number;
 
+	@ApiProperty({ description: 'Base64-encoded public key', example: 'BQXm8...abc123' })
 	@IsString()
 	publicKey: string;
 
+	@ApiProperty({ description: 'Base64-encoded signature of the public key', example: 'SGVsbG8...xyz789' })
 	@IsString()
 	signature: string;
 }
 
-/**
- * Complete Signal Protocol Key Bundle
- * Contains all cryptographic keys needed for X3DH key exchange
- */
 export class SignalKeyBundleDto {
-	/**
-	 * Device's long-term identity key (public part)
-	 * This key identifies the device uniquely in the Signal protocol
-	 */
+	@ApiProperty({
+		description: "Device's long-term identity key (base64-encoded public key)",
+		example: 'BRjK5...ghi789',
+	})
 	@IsString()
 	identityKey: string;
 
-	/**
-	 * Current signed prekey with signature
-	 * Used for forward secrecy and authenticated key exchange
-	 */
+	@ApiProperty({
+		description: 'Current signed prekey with signature (used for forward secrecy)',
+		type: SignedPreKeyDto,
+	})
 	@ValidateNested()
 	@Type(() => SignedPreKeyDto)
 	signedPreKey: SignedPreKeyDto;
 
-	/**
-	 * Batch of one-time prekeys (typically 100 keys)
-	 * Each key can only be used once for initiating a session
-	 */
+	@ApiProperty({
+		description: 'Batch of one-time prekeys (typically 100 keys). Each key can only be used once.',
+		type: [PreKeyDto],
+	})
 	@IsArray()
 	@ValidateNested({ each: true })
 	@Type(() => PreKeyDto)

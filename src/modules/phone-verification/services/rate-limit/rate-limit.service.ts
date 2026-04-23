@@ -32,13 +32,25 @@ export class RateLimitService {
 
 	/**
 	 * Increments the request counter for a given key.
+	 *
+	 * Uses Redis INCR for atomicity — a plain get+set sequence has a TOCTOU gap
+	 * under concurrent traffic (two parallel requests both read 4 and both write
+	 * 5, so a 5 / hour cap becomes a 6 / hour cap). INCR is O(1) and guaranteed
+	 * single-threaded by Redis, so parallel callers always see monotonic values.
+	 *
+	 * We set the TTL only the first time the counter is created (value === 1)
+	 * to preserve the sliding-window semantic — repeated increments must NOT
+	 * refresh the window, otherwise the window never actually closes when the
+	 * attacker keeps hammering.
+	 *
 	 * @param key - The unique key to increment
-	 * @param ttl - Time to live in seconds
+	 * @param ttl - Time to live in seconds, applied only when the key is created
 	 */
 	public async increment(key: string, ttl: number): Promise<void> {
-		let current = (await this.cacheManager.get<number>(key)) || 0;
-		current++;
-		await this.cacheManager.set(key, current, ttl);
+		const value = await this.cacheManager.incr(key);
+		if (value === 1) {
+			await this.cacheManager.expire(key, ttl);
+		}
 	}
 
 	/**

@@ -90,6 +90,10 @@ Variables d'environnement principales :
 | `JWT_SECRET` | Secret pour signer les tokens |
 | `SMS_PROVIDER_API_KEY` | Clé API du fournisseur SMS |
 | `NODE_ENV` | Environnement (development, production) |
+| `DEMO_MODE` | Active le mode démo (OTP non envoyé par SMS) - défaut: `false` |
+| `EXPOSE_DEMO_OTP` | Autorise l'exposition du code OTP dans la réponse HTTP quand `NODE_ENV=production` et `DEMO_MODE=true`. Hors prod, le code est toujours exposé en mode démo - défaut: `false` |
+| `SMS_RATE_LIMIT_PER_MINUTE` | Nombre max de demandes OTP par numéro sur 1 minute - défaut: `5` |
+| `SMS_RATE_LIMIT_PER_HOUR` | Nombre max de demandes OTP par numéro sur 1 heure - défaut: `20` |
 
 ## Testing
 

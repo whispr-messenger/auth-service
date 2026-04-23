@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsUUID, IsOptional } from 'class-validator';
+import { IsString, IsUUID, IsOptional, MaxLength, MinLength } from 'class-validator';
 
 export class ScanLoginDto {
 	@ApiProperty({
@@ -8,6 +8,8 @@ export class ScanLoginDto {
 		type: String,
 	})
 	@IsString()
+	@MinLength(1)
+	@MaxLength(4096)
 	challenge: string;
 
 	@ApiProperty({
@@ -26,6 +28,7 @@ export class ScanLoginDto {
 	})
 	@IsOptional()
 	@IsString()
+	@MaxLength(100)
 	deviceName?: string;
 
 	@ApiProperty({
@@ -36,5 +39,6 @@ export class ScanLoginDto {
 	})
 	@IsOptional()
 	@IsString()
+	@MaxLength(20)
 	deviceType?: string;
 }
