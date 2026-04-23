@@ -2,7 +2,7 @@
 
 ## Accès
 
-- Local : `http://localhost:3000/swagger`
+- Local : `http://localhost:3001/auth/swagger`
 - Production : `https://whispr.epitech.beer/auth/swagger`
 
 ## Génération
