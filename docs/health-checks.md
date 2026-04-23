@@ -1,9 +1,11 @@
 # Health Checks
 
-## Endpoint
+## Endpoints
 
 ```
-GET /health
+GET /auth/v1/health        - Health check principal
+GET /auth/v1/health/ready  - Readiness probe (K8s)
+GET /auth/v1/health/live   - Liveness probe (K8s)
 ```
 
 ## Composants vérifiés
