@@ -1,14 +1,14 @@
 import {
-	Controller,
-	Post,
 	Body,
-	UseGuards,
-	Request,
+	Controller,
 	HttpCode,
 	HttpStatus,
+	Post,
+	Request,
+	UseGuards,
 	UseInterceptors,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { PhoneAuthenticationService } from '../services/phone-authentication.service';
@@ -17,6 +17,11 @@ import { AuthenticatedRequest } from '../../tokens/types/authenticated-request.i
 import { DeviceFingerprintService } from '../../devices/services/device-fingerprint/device-fingerprint.service';
 import { AdaptiveRateLimitInterceptor } from '../../adaptive-rate-limit/adaptive-rate-limit.interceptor';
 import { RegisterDto, LoginDto, LogoutDto, RegisterResponseDto, LoginResponseDto } from '../dto';
+import {
+	ApiLoginEndpoint,
+	ApiLogoutEndpoint,
+	ApiRegisterEndpoint,
+} from './phone-authentication.controller.swagger';
 
 @ApiTags('Auth - Authentication by SMS')
 // Rate-limiting stratégie (WHISPR-996/997) :
@@ -39,11 +44,7 @@ export class PhoneAuthenticationController {
 	@Post('register')
 	@UseInterceptors(AdaptiveRateLimitInterceptor)
 	@HttpCode(HttpStatus.CREATED)
-	@ApiOperation({ summary: 'Register a new user account' })
-	@ApiResponse({ status: 201, description: 'User successfully registered', type: RegisterResponseDto })
-	@ApiResponse({ status: 400, description: 'Invalid registration data' })
-	@ApiResponse({ status: 409, description: 'User already exists' })
-	@ApiBody({ type: RegisterDto })
+	@ApiRegisterEndpoint()
 	async register(@Body() dto: RegisterDto, @Request() req: ExpressRequest): Promise<RegisterResponseDto> {
 		const fingerprint = this.fingerprintService.extractFingerprint(req, dto.deviceType);
 		return this.authService.register(dto, fingerprint);
@@ -52,14 +53,7 @@ export class PhoneAuthenticationController {
 	@Post('login')
 	@UseInterceptors(AdaptiveRateLimitInterceptor)
 	@HttpCode(HttpStatus.OK)
-	@ApiOperation({ summary: 'Login to user account' })
-	@ApiResponse({
-		status: 200,
-		description: 'Login successful, returns access and refresh tokens',
-		type: LoginResponseDto,
-	})
-	@ApiResponse({ status: 401, description: 'Invalid credentials' })
-	@ApiBody({ type: LoginDto })
+	@ApiLoginEndpoint()
 	async login(@Body() dto: LoginDto, @Request() req: ExpressRequest): Promise<LoginResponseDto> {
 		const fingerprint = this.fingerprintService.extractFingerprint(req, dto.deviceType);
 		return this.authService.login(dto, fingerprint);
@@ -68,12 +62,7 @@ export class PhoneAuthenticationController {
 	@Post('logout')
 	@UseGuards(JwtAuthGuard)
 	@HttpCode(HttpStatus.NO_CONTENT)
-	@ApiBearerAuth()
-	@ApiOperation({ summary: 'Logout and invalidate current session' })
-	@ApiResponse({ status: 204, description: 'Successfully logged out' })
-	@ApiResponse({ status: 401, description: 'Unauthorized' })
-	@ApiResponse({ status: 403, description: 'deviceId does not belong to the authenticated user' })
-	@ApiBody({ type: LogoutDto })
+	@ApiLogoutEndpoint()
 	async logout(@Body() dto: LogoutDto, @Request() req: AuthenticatedRequest) {
 		return this.authService.logout(req.user.sub, req.user.deviceId, dto.deviceId);
 	}
