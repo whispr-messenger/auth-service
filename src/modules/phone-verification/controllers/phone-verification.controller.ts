@@ -1,6 +1,6 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseInterceptors } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
 	VerificationConfirmDto,
 	VerificationConfirmResponseDto,
@@ -11,9 +11,11 @@ import {
 import { PhoneVerificationService } from '../services';
 import { AdaptiveRateLimitInterceptor } from '../../adaptive-rate-limit/adaptive-rate-limit.interceptor';
 import {
-	VERIFICATION_CONFIRM_EXAMPLES,
-	VERIFICATION_REQUEST_EXAMPLES,
-} from '../swagger/phone-verification.examples';
+	ApiConfirmLoginVerificationEndpoint,
+	ApiConfirmRegistrationVerificationEndpoint,
+	ApiRequestLoginVerificationEndpoint,
+	ApiRequestRegistrationVerificationEndpoint,
+} from './phone-verification.controller.swagger';
 
 @ApiTags('Auth - Phone Number Verification')
 @Controller('verify')
@@ -27,11 +29,7 @@ export class PhoneVerificationController {
 
 	@Post('register/request')
 	@HttpCode(HttpStatus.OK)
-	@ApiOperation({ summary: 'Request registration verification code' })
-	@ApiBody({ type: VerificationRequestDto, examples: VERIFICATION_REQUEST_EXAMPLES })
-	@ApiResponse({ status: 200, description: 'Verification code sent successfully' })
-	@ApiResponse({ status: 400, description: 'Bad request' })
-	@ApiResponse({ status: 429, description: 'Too many requests' })
+	@ApiRequestRegistrationVerificationEndpoint()
 	async requestRegistrationVerification(
 		@Body() dto: VerificationRequestDto,
 		@Req() req: Request
@@ -41,21 +39,7 @@ export class PhoneVerificationController {
 
 	@Post('register/confirm')
 	@HttpCode(HttpStatus.OK)
-	@ApiOperation({ summary: 'Confirm registration verification code' })
-	@ApiBody({ type: VerificationConfirmDto, examples: VERIFICATION_CONFIRM_EXAMPLES })
-	@ApiResponse({
-		status: 200,
-		description: 'Verification code confirmed',
-		type: VerificationConfirmResponseDto,
-	})
-	@ApiResponse({
-		status: 400,
-		description: 'Incorrect verification code — or invalid/expired verification session',
-	})
-	@ApiResponse({
-		status: 429,
-		description: 'Too many verification attempts — session deleted, subsequent requests return 400',
-	})
+	@ApiConfirmRegistrationVerificationEndpoint()
 	async confirmRegistrationVerification(
 		@Body() dto: VerificationConfirmDto
 	): Promise<VerificationConfirmResponseDto> {
@@ -64,11 +48,7 @@ export class PhoneVerificationController {
 
 	@Post('login/request')
 	@HttpCode(HttpStatus.OK)
-	@ApiOperation({ summary: 'Request login verification code' })
-	@ApiBody({ type: VerificationRequestDto, examples: VERIFICATION_REQUEST_EXAMPLES })
-	@ApiResponse({ status: 200, description: 'Verification code sent successfully' })
-	@ApiResponse({ status: 400, description: 'Bad request' })
-	@ApiResponse({ status: 429, description: 'Too many requests' })
+	@ApiRequestLoginVerificationEndpoint()
 	async requestLoginVerification(
 		@Body() dto: VerificationRequestDto,
 		@Req() req: Request
@@ -78,21 +58,7 @@ export class PhoneVerificationController {
 
 	@Post('login/confirm')
 	@HttpCode(HttpStatus.OK)
-	@ApiOperation({ summary: 'Confirm login verification code' })
-	@ApiBody({ type: VerificationConfirmDto, examples: VERIFICATION_CONFIRM_EXAMPLES })
-	@ApiResponse({
-		status: 200,
-		description: 'Verification code confirmed',
-		type: VerificationLoginResponseDto,
-	})
-	@ApiResponse({
-		status: 400,
-		description: 'Incorrect verification code, invalid/expired verification session, or user not found',
-	})
-	@ApiResponse({
-		status: 429,
-		description: 'Too many verification attempts — session deleted, subsequent requests return 400',
-	})
+	@ApiConfirmLoginVerificationEndpoint()
 	async confirmLoginVerification(
 		@Body() dto: VerificationConfirmDto
 	): Promise<VerificationLoginResponseDto> {

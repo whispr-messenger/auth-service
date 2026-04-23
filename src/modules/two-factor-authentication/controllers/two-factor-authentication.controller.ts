@@ -1,22 +1,27 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Request, Post, UseGuards } from '@nestjs/common';
-import {
-	ApiBearerAuth,
-	ApiBody,
-	ApiCreatedResponse,
-	ApiOkResponse,
-	ApiOperation,
-	ApiResponse,
-	ApiTags,
-} from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import {
 	TwoFactorBackupCodesResponseDto,
+	TwoFactorDisableResponseDto,
 	TwoFactorSetupDto,
 	TwoFactorSetupResponseDto,
+	TwoFactorStatusResponseDto,
 	TwoFactorVerifyDto,
+	TwoFactorVerifyResponseDto,
 } from '../dto';
 import { TwoFactorAuthenticationService } from '../services/two-factor-authentication.service';
 import { JwtAuthGuard } from '../../tokens/guards';
 import { AuthenticatedRequest } from '../../tokens/types/authenticated-request.interface';
+import {
+	ApiDisableTwoFactorEndpoint,
+	ApiEnableTwoFactorEndpoint,
+	ApiGenerateBackupCodesEndpoint,
+	ApiGetRemainingBackupCodesEndpoint,
+	ApiGetTwoFactorStatusEndpoint,
+	ApiRegenerateBackupCodesEndpoint,
+	ApiSetupTwoFactorEndpoint,
+	ApiVerifyTwoFactorEndpoint,
+} from './two-factor-authentication.controller.swagger';
 
 @ApiTags('Auth - Two Factor Authentication (2FA)')
 @Controller('2fa')
@@ -25,13 +30,7 @@ export class TwoFactorAuthenticationController {
 
 	@Post('setup')
 	@UseGuards(JwtAuthGuard)
-	@ApiBearerAuth()
-	@ApiOperation({ summary: 'Setup two-factor authentication (2FA)' })
-	@ApiCreatedResponse({
-		description: 'Returns QR code URL, secret, and otpauthUri for 2FA setup',
-		type: TwoFactorSetupResponseDto,
-	})
-	@ApiResponse({ status: 401, description: 'Unauthorized' })
+	@ApiSetupTwoFactorEndpoint()
 	async setupTwoFactor(@Request() req: AuthenticatedRequest): Promise<TwoFactorSetupResponseDto> {
 		return this.twoFactorService.setupTwoFactor(req.user.sub);
 	}
@@ -39,16 +38,11 @@ export class TwoFactorAuthenticationController {
 	@Post('enable')
 	@UseGuards(JwtAuthGuard)
 	@HttpCode(HttpStatus.OK)
-	@ApiBearerAuth()
-	@ApiOperation({ summary: 'Enable two-factor authentication' })
-	@ApiBody({ type: TwoFactorSetupDto })
-	@ApiOkResponse({
-		type: TwoFactorBackupCodesResponseDto,
-		description: '2FA enabled successfully; returns backup codes',
-	})
-	@ApiResponse({ status: 400, description: 'Invalid token or 2FA setup not initiated' })
-	@ApiResponse({ status: 401, description: 'Unauthorized' })
-	async enableTwoFactor(@Request() req: AuthenticatedRequest, @Body() dto: TwoFactorSetupDto) {
+	@ApiEnableTwoFactorEndpoint()
+	async enableTwoFactor(
+		@Request() req: AuthenticatedRequest,
+		@Body() dto: TwoFactorSetupDto
+	): Promise<TwoFactorBackupCodesResponseDto> {
 		const backupCodes = await this.twoFactorService.enableTwoFactor(req.user.sub, dto.token);
 		return { backupCodes };
 	}
@@ -56,12 +50,11 @@ export class TwoFactorAuthenticationController {
 	@Post('verify')
 	@UseGuards(JwtAuthGuard)
 	@HttpCode(HttpStatus.OK)
-	@ApiBearerAuth()
-	@ApiOperation({ summary: 'Verify two-factor authentication token' })
-	@ApiBody({ type: TwoFactorVerifyDto })
-	@ApiResponse({ status: 200, description: 'Token verification result' })
-	@ApiResponse({ status: 401, description: 'Unauthorized' })
-	async verifyTwoFactor(@Request() req: AuthenticatedRequest, @Body() dto: TwoFactorVerifyDto) {
+	@ApiVerifyTwoFactorEndpoint()
+	async verifyTwoFactor(
+		@Request() req: AuthenticatedRequest,
+		@Body() dto: TwoFactorVerifyDto
+	): Promise<TwoFactorVerifyResponseDto> {
 		const isValid = await this.twoFactorService.verifyTwoFactor(req.user.sub, dto.token);
 		return { valid: isValid };
 	}
@@ -69,13 +62,11 @@ export class TwoFactorAuthenticationController {
 	@Post('disable')
 	@UseGuards(JwtAuthGuard)
 	@HttpCode(HttpStatus.OK)
-	@ApiBearerAuth()
-	@ApiOperation({ summary: 'Disable two-factor authentication' })
-	@ApiBody({ type: TwoFactorVerifyDto })
-	@ApiResponse({ status: 200, description: '2FA disabled successfully' })
-	@ApiResponse({ status: 400, description: 'Invalid token' })
-	@ApiResponse({ status: 401, description: 'Unauthorized' })
-	async disableTwoFactor(@Request() req: AuthenticatedRequest, @Body() dto: TwoFactorVerifyDto) {
+	@ApiDisableTwoFactorEndpoint()
+	async disableTwoFactor(
+		@Request() req: AuthenticatedRequest,
+		@Body() dto: TwoFactorVerifyDto
+	): Promise<TwoFactorDisableResponseDto> {
 		await this.twoFactorService.disableTwoFactor(req.user.sub, dto.token);
 		return { disabled: true };
 	}
@@ -83,13 +74,11 @@ export class TwoFactorAuthenticationController {
 	@Post('backup-codes')
 	@UseGuards(JwtAuthGuard)
 	@HttpCode(HttpStatus.OK)
-	@ApiBearerAuth()
-	@ApiOperation({ summary: 'Generate new 2FA backup codes' })
-	@ApiBody({ type: TwoFactorVerifyDto })
-	@ApiOkResponse({ type: TwoFactorBackupCodesResponseDto, description: 'New backup codes generated' })
-	@ApiResponse({ status: 400, description: 'Invalid token' })
-	@ApiResponse({ status: 401, description: 'Unauthorized' })
-	async generateBackupCodes(@Request() req: AuthenticatedRequest, @Body() dto: TwoFactorVerifyDto) {
+	@ApiGenerateBackupCodesEndpoint()
+	async generateBackupCodes(
+		@Request() req: AuthenticatedRequest,
+		@Body() dto: TwoFactorVerifyDto
+	): Promise<TwoFactorBackupCodesResponseDto> {
 		const codes = await this.twoFactorService.generateNewBackupCodes(req.user.sub, dto.token);
 		return { backupCodes: codes };
 	}
@@ -100,12 +89,7 @@ export class TwoFactorAuthenticationController {
 	@Post('backup-codes/regenerate')
 	@UseGuards(JwtAuthGuard)
 	@HttpCode(HttpStatus.OK)
-	@ApiBearerAuth()
-	@ApiOperation({ summary: 'Rotate 2FA backup codes (replaces all existing codes)' })
-	@ApiBody({ type: TwoFactorVerifyDto })
-	@ApiOkResponse({ type: TwoFactorBackupCodesResponseDto, description: 'Backup codes rotated' })
-	@ApiResponse({ status: 400, description: 'Invalid token or 2FA not enabled' })
-	@ApiResponse({ status: 401, description: 'Unauthorized' })
+	@ApiRegenerateBackupCodesEndpoint()
 	async regenerateBackupCodes(@Request() req: AuthenticatedRequest, @Body() dto: TwoFactorVerifyDto) {
 		const codes = await this.twoFactorService.generateNewBackupCodes(req.user.sub, dto.token);
 		return { backupCodes: codes };
@@ -115,10 +99,7 @@ export class TwoFactorAuthenticationController {
 	// de secours restants sans les régénérer.
 	@Get('backup-codes/remaining')
 	@UseGuards(JwtAuthGuard)
-	@ApiBearerAuth()
-	@ApiOperation({ summary: 'Get remaining (unused) 2FA backup codes count' })
-	@ApiOkResponse({ description: 'Returns the number of unused backup codes' })
-	@ApiResponse({ status: 401, description: 'Unauthorized' })
+	@ApiGetRemainingBackupCodesEndpoint()
 	async getRemainingBackupCodes(@Request() req: AuthenticatedRequest) {
 		const remaining = await this.twoFactorService.getRemainingBackupCodesCount(req.user.sub);
 		return { remaining };
@@ -126,11 +107,8 @@ export class TwoFactorAuthenticationController {
 
 	@Get('status')
 	@UseGuards(JwtAuthGuard)
-	@ApiBearerAuth()
-	@ApiOperation({ summary: 'Get two-factor authentication status' })
-	@ApiResponse({ status: 200, description: 'Returns 2FA enabled status' })
-	@ApiResponse({ status: 401, description: 'Unauthorized' })
-	async getTwoFactorStatus(@Request() req: AuthenticatedRequest) {
+	@ApiGetTwoFactorStatusEndpoint()
+	async getTwoFactorStatus(@Request() req: AuthenticatedRequest): Promise<TwoFactorStatusResponseDto> {
 		const enabled = await this.twoFactorService.isTwoFactorEnabled(req.user.sub);
 		return { enabled };
 	}

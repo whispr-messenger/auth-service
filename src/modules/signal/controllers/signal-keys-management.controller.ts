@@ -11,7 +11,7 @@ import {
 	HttpStatus,
 	Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../tokens/guards';
 import { AuthenticatedRequest } from '../../tokens/types/authenticated-request.interface';
 import { SignalKeyRotationService, SignalKeyValidationService, SignalKeyStorageService } from '../services';
@@ -24,13 +24,12 @@ import {
 	PreKeysUploadResponseDto,
 } from '../dto';
 import {
-	SIGNED_PREKEY_UPLOAD_RESPONSE_SCHEMA,
-	SIGNED_PREKEY_UPLOAD_EXAMPLES,
-	SIGNED_PREKEY_UPLOAD_RESPONSE_EXAMPLES,
-	PREKEYS_UPLOAD_RESPONSE_SCHEMA,
-	PREKEYS_UPLOAD_EXAMPLES,
-	PREKEYS_UPLOAD_RESPONSE_EXAMPLES,
-} from '../swagger/signal-keys-management.schemas';
+	ApiDeleteAllKeysEndpoint,
+	ApiDeleteDeviceKeysEndpoint,
+	ApiGetRotationRecommendationsEndpoint,
+	ApiUploadPreKeysEndpoint,
+	ApiUploadSignedPreKeyEndpoint,
+} from './signal-keys-management.controller.swagger';
 
 /**
  * Controller for managing Signal Protocol keys
@@ -52,32 +51,9 @@ export class SignalKeysManagementController {
 		private readonly devicesService: DevicesService
 	) {}
 
-	/**
-	 * POST /api/v1/signal/keys/signed-prekey
-	 *
-	 * Upload a new signed prekey (for rotation)
-	 */
 	@Post('signed-prekey')
 	@HttpCode(HttpStatus.CREATED)
-	@ApiOperation({
-		summary: 'Upload a new signed prekey',
-		description:
-			'Uploads a new signed prekey for key rotation. This should be done every 7 days to maintain forward secrecy.',
-	})
-	@ApiBody({
-		type: SignedPreKeyDto,
-		description: 'The new signed prekey to upload',
-		examples: SIGNED_PREKEY_UPLOAD_EXAMPLES,
-	})
-	@ApiResponse({
-		status: 201,
-		description: 'Signed prekey uploaded successfully',
-		type: SignedPreKeyUploadResponseDto,
-		schema: SIGNED_PREKEY_UPLOAD_RESPONSE_SCHEMA,
-		examples: SIGNED_PREKEY_UPLOAD_RESPONSE_EXAMPLES,
-	})
-	@ApiResponse({ status: 400, description: 'Invalid key format or validation failed' })
-	@ApiResponse({ status: 401, description: 'Unauthorized' })
+	@ApiUploadSignedPreKeyEndpoint()
 	async uploadSignedPreKey(
 		@Body() signedPreKey: SignedPreKeyDto,
 		@Req() req: AuthenticatedRequest
@@ -101,38 +77,9 @@ export class SignalKeysManagementController {
 		};
 	}
 
-	/**
-	 * POST /api/v1/signal/keys/prekeys
-	 *
-	 * Upload new prekeys (replenishment)
-	 */
 	@Post('prekeys')
 	@HttpCode(HttpStatus.CREATED)
-	@ApiOperation({
-		summary: 'Upload new prekeys',
-		description:
-			'Uploads a batch of new one-time prekeys. Should be called when prekey count falls below 20.',
-	})
-	@ApiBody({
-		type: UploadPreKeysDto,
-		description: 'Array of prekeys to upload',
-		examples: PREKEYS_UPLOAD_EXAMPLES,
-	})
-	@ApiResponse({
-		status: 201,
-		description: 'PreKeys uploaded successfully',
-		type: PreKeysUploadResponseDto,
-		schema: PREKEYS_UPLOAD_RESPONSE_SCHEMA,
-		examples: PREKEYS_UPLOAD_RESPONSE_EXAMPLES,
-	})
-	@ApiResponse({
-		status: 400,
-		description: 'Invalid key format or too many keys',
-	})
-	@ApiResponse({
-		status: 401,
-		description: 'Unauthorized',
-	})
+	@ApiUploadPreKeysEndpoint()
 	async uploadPreKeys(
 		@Body() uploadDto: UploadPreKeysDto,
 		@Req() req: AuthenticatedRequest
@@ -156,26 +103,9 @@ export class SignalKeysManagementController {
 		};
 	}
 
-	/**
-	 * GET /api/v1/signal/keys/recommendations
-	 *
-	 * Get rotation recommendations for the authenticated user
-	 */
 	@Get('recommendations')
 	@HttpCode(HttpStatus.OK)
-	@ApiOperation({
-		summary: 'Get key rotation recommendations',
-		description: 'Returns recommendations about which keys need to be rotated or replenished.',
-	})
-	@ApiResponse({
-		status: 200,
-		description: 'Rotation recommendations retrieved',
-		type: RotationRecommendationsDto,
-	})
-	@ApiResponse({
-		status: 401,
-		description: 'Unauthorized',
-	})
+	@ApiGetRotationRecommendationsEndpoint()
 	async getRotationRecommendations(@Req() req: AuthenticatedRequest): Promise<RotationRecommendationsDto> {
 		const userId = req.user.sub;
 		const deviceId = req.user.deviceId;
@@ -185,35 +115,9 @@ export class SignalKeysManagementController {
 		return await this.rotationService.getRotationRecommendations(userId, deviceId);
 	}
 
-	/**
-	 * DELETE /api/v1/signal/keys/device/:deviceId
-	 *
-	 * Delete all keys associated with a device
-	 */
 	@Delete('device/:deviceId')
 	@HttpCode(HttpStatus.NO_CONTENT)
-	@ApiOperation({
-		summary: 'Delete keys for a device',
-		description:
-			'Deletes all Signal Protocol keys associated with a specific device. Used when removing a device.',
-	})
-	@ApiParam({
-		name: 'deviceId',
-		description: 'The UUID of the device',
-		example: '987fcdeb-51a2-43f7-9c8d-123456789abc',
-	})
-	@ApiResponse({
-		status: 204,
-		description: 'Device keys deleted successfully',
-	})
-	@ApiResponse({
-		status: 401,
-		description: 'Unauthorized',
-	})
-	@ApiResponse({
-		status: 403,
-		description: 'Forbidden - not your device',
-	})
+	@ApiDeleteDeviceKeysEndpoint()
 	async deleteDeviceKeys(
 		@Param('deviceId') deviceId: string,
 		@Req() req: AuthenticatedRequest
@@ -231,25 +135,9 @@ export class SignalKeysManagementController {
 		this.logger.log(`Successfully deleted keys for device ${deviceId}`);
 	}
 
-	/**
-	 * DELETE /api/v1/signal/keys
-	 *
-	 * Delete all keys for the authenticated user
-	 */
 	@Delete()
 	@HttpCode(HttpStatus.NO_CONTENT)
-	@ApiOperation({
-		summary: 'Delete all keys',
-		description: 'Deletes all Signal Protocol keys for the authenticated user. Use with caution.',
-	})
-	@ApiResponse({
-		status: 204,
-		description: 'All keys deleted successfully',
-	})
-	@ApiResponse({
-		status: 401,
-		description: 'Unauthorized',
-	})
+	@ApiDeleteAllKeysEndpoint()
 	async deleteAllKeys(@Req() req: AuthenticatedRequest): Promise<void> {
 		const userId = req.user.sub;
 

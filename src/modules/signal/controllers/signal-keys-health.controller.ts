@@ -1,15 +1,13 @@
 import { Controller, Get, Post, HttpCode, HttpStatus, Logger, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../tokens/guards/jwt-auth.guard';
 import { SignalKeySchedulerService } from '../services/signal-key-scheduler.service';
 import { PreKeyRepository } from '../repositories';
-import {
-	SIGNAL_HEALTH_STATUS_SCHEMA,
-	SIGNAL_HEALTH_STATUS_EXAMPLES,
-	CLEANUP_RESULT_SCHEMA,
-	CLEANUP_RESULT_EXAMPLES,
-} from '../swagger/signal-keys-health.schemas';
 import { SignalHealthStatusDto, CleanupResultDto } from '../dto';
+import {
+	ApiGetSignalHealthEndpoint,
+	ApiTriggerManualCleanupEndpoint,
+} from './signal-keys-health.controller.swagger';
 
 /**
  * Health check and monitoring endpoint for Signal Protocol keys
@@ -29,25 +27,9 @@ export class SignalKeysHealthController {
 		private readonly preKeyRepository: PreKeyRepository
 	) {}
 
-	/**
-	 * GET /api/v1/signal/health
-	 *
-	 * Get overall health status of Signal key management system
-	 */
 	@Get()
 	@HttpCode(HttpStatus.OK)
-	@ApiOperation({
-		summary: 'Get Signal keys health status',
-		description:
-			'Returns comprehensive health information about the Signal Protocol key management system',
-	})
-	@ApiResponse({
-		status: 200,
-		description: 'Health status retrieved successfully',
-		type: SignalHealthStatusDto,
-		schema: SIGNAL_HEALTH_STATUS_SCHEMA,
-		examples: SIGNAL_HEALTH_STATUS_EXAMPLES,
-	})
+	@ApiGetSignalHealthEndpoint()
 	async getHealth(): Promise<SignalHealthStatusDto> {
 		this.logger.debug('Health check requested');
 
@@ -117,28 +99,10 @@ export class SignalKeysHealthController {
 		};
 	}
 
-	/**
-	 * POST /api/v1/signal/health/cleanup
-	 *
-	 * Manually trigger cleanup operations (for admin use)
-	 */
 	@Post('cleanup')
 	@UseGuards(JwtAuthGuard)
-	@ApiBearerAuth()
 	@HttpCode(HttpStatus.OK)
-	@ApiOperation({
-		summary: 'Manually trigger cleanup',
-		description:
-			'Triggers manual cleanup of expired keys and old prekeys. Useful for testing or immediate cleanup needs.',
-	})
-	@ApiResponse({
-		status: 200,
-		description: 'Cleanup completed successfully',
-		type: CleanupResultDto,
-		schema: CLEANUP_RESULT_SCHEMA,
-		examples: CLEANUP_RESULT_EXAMPLES,
-	})
-	@ApiResponse({ status: 401, description: 'Unauthorized — valid JWT required' })
+	@ApiTriggerManualCleanupEndpoint()
 	async triggerManualCleanup(): Promise<CleanupResultDto> {
 		this.logger.log('Manual cleanup triggered via API');
 
