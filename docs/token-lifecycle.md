@@ -10,7 +10,7 @@
 ## Rotation
 
 ```
-Access expiré ──▶ POST /auth/tokens/refresh
+Access expiré ──▶ POST /auth/v1/tokens/refresh
                        │
                  ┌─────▼──────┐
                  │ Ancien     │
