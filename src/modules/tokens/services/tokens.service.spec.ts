@@ -175,6 +175,51 @@ describe('TokensService', () => {
 		});
 	});
 
+	describe('generateWsToken', () => {
+		it('returns a signed token and the 60s lifetime', () => {
+			jwtService.sign.mockReturnValue('ws-jwt');
+
+			const result = service.generateWsToken('user-id', 'device-id');
+
+			expect(result).toEqual({ wsToken: 'ws-jwt', expiresIn: 60 });
+			expect(jwtService.sign).toHaveBeenCalledTimes(1);
+		});
+
+		it('signs the payload with aud=ws, iss=whispr-auth, sub and deviceId', () => {
+			jwtService.sign.mockReturnValue('ws-jwt');
+
+			service.generateWsToken('user-id', 'device-id');
+
+			const [payload] = jwtService.sign.mock.calls[0];
+			expect(payload).toMatchObject({
+				sub: 'user-id',
+				deviceId: 'device-id',
+				aud: 'ws',
+				iss: 'whispr-auth',
+			});
+		});
+
+		it('sets exp to iat + 60s', () => {
+			jwtService.sign.mockReturnValue('ws-jwt');
+			const before = Math.floor(Date.now() / 1000);
+
+			service.generateWsToken('user-id', 'device-id');
+
+			const [payload] = jwtService.sign.mock.calls[0] as [{ iat: number; exp: number }];
+			expect(payload.exp - payload.iat).toBe(60);
+			expect(payload.iat).toBeGreaterThanOrEqual(before);
+		});
+
+		it('uses ES256 + the JWKS-published kid (so messaging-service can verify)', () => {
+			jwtService.sign.mockReturnValue('ws-jwt');
+
+			service.generateWsToken('user-id', 'device-id');
+
+			const [, options] = jwtService.sign.mock.calls[0];
+			expect(options).toMatchObject({ algorithm: 'ES256', keyid: 'test-kid' });
+		});
+	});
+
 	describe('refreshAccessToken', () => {
 		it('should refresh tokens successfully', async () => {
 			const refreshToken = 'valid-refresh-token';
