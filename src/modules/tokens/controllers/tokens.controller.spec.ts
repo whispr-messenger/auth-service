@@ -2,12 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Request as ExpressRequest } from 'express';
 import { TokensController } from './tokens.controller';
 import { TokensService } from '../services/tokens.service';
+import { JwtAuthGuard } from '../guards';
 
 describe('TokensController', () => {
 	let controller: TokensController;
 
 	const mockTokensService = {
 		refreshAccessToken: jest.fn(),
+		generateWsToken: jest.fn(),
 	};
 
 	beforeEach(async () => {
@@ -19,9 +21,13 @@ describe('TokensController', () => {
 					useValue: mockTokensService,
 				},
 			],
-		}).compile();
+		})
+			.overrideGuard(JwtAuthGuard)
+			.useValue({ canActivate: () => true })
+			.compile();
 
 		controller = module.get<TokensController>(TokensController);
+		jest.clearAllMocks();
 	});
 
 	it('should be defined', () => {
@@ -47,6 +53,21 @@ describe('TokensController', () => {
 				timestamp: expect.any(Number),
 			});
 			expect(result).toEqual(tokenPair);
+		});
+	});
+
+	describe('issueWsToken', () => {
+		it('returns the service result for the user/device extracted from the JWT-decorated request', () => {
+			const wsToken = { wsToken: 'short-ws-jwt', expiresIn: 60 };
+			mockTokensService.generateWsToken.mockReturnValue(wsToken);
+			const req = {
+				user: { sub: 'user-id', deviceId: 'device-id' },
+			} as unknown as ExpressRequest & { user: { sub: string; deviceId: string } };
+
+			const result = controller.issueWsToken(req);
+
+			expect(mockTokensService.generateWsToken).toHaveBeenCalledWith('user-id', 'device-id');
+			expect(result).toEqual(wsToken);
 		});
 	});
 });

@@ -12,6 +12,12 @@ import { JwksService } from '../../jwks/jwks.service';
 export class TokensService {
 	private readonly ACCESS_TOKEN_TTL = 60 * 60;
 	private readonly REFRESH_TOKEN_TTL = 30 * 24 * 60 * 60;
+	// Court-vivant — WHISPR-1214. Le token transite dans la query string
+	// Phoenix Channels, donc reverse-proxies, HAR exports et Sentry
+	// breadcrumbs le capturent ; 60 s borne le préjudice d'une fuite.
+	private readonly WS_TOKEN_TTL = 60;
+	private static readonly WS_TOKEN_AUDIENCE = 'ws';
+	private static readonly TOKEN_ISSUER = 'whispr-auth';
 	/**
 	 * TTL des clés de revocation (WHISPR-919).
 	 * Doit être supérieur au TTL maximum d'un refresh token pour garantir
@@ -75,6 +81,25 @@ export class TokensService {
 		);
 
 		return { accessToken, refreshToken, userId, deviceId };
+	}
+
+	generateWsToken(userId: string, deviceId: string): { wsToken: string; expiresIn: number } {
+		const now = Math.floor(Date.now() / 1000);
+		const payload = {
+			sub: userId,
+			deviceId,
+			aud: TokensService.WS_TOKEN_AUDIENCE,
+			iss: TokensService.TOKEN_ISSUER,
+			iat: now,
+			exp: now + this.WS_TOKEN_TTL,
+		};
+
+		const wsToken = this.jwtService.sign(payload, {
+			algorithm: 'ES256',
+			keyid: this.jwksService.getKid(),
+		});
+
+		return { wsToken, expiresIn: this.WS_TOKEN_TTL };
 	}
 
 	async refreshAccessToken(refreshToken: string, fingerprint: DeviceFingerprint): Promise<TokenPair> {
