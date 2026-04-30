@@ -19,7 +19,8 @@ export const ApiGenerateQRChallengeEndpoint = () =>
 		}),
 		ApiResponse({
 			status: 201,
-			description: 'QR challenge generated successfully — returns the signed JWT challenge as a JSON string',
+			description:
+				'QR challenge generated successfully — returns the signed JWT challenge as a JSON string',
 			schema: {
 				type: 'string',
 				example: 'eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...',
