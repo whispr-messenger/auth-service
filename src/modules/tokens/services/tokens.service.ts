@@ -17,7 +17,6 @@ export class TokensService {
 	// breadcrumbs le capturent ; 60 s borne le préjudice d'une fuite.
 	private readonly WS_TOKEN_TTL = 60;
 	private static readonly WS_TOKEN_AUDIENCE = 'ws';
-	private static readonly TOKEN_ISSUER = 'whispr-auth';
 	/**
 	 * TTL des clés de revocation (WHISPR-919).
 	 * Doit être supérieur au TTL maximum d'un refresh token pour garantir
@@ -85,10 +84,11 @@ export class TokensService {
 
 	generateWsToken(userId: string, deviceId: string): { wsToken: string; expiresIn: number } {
 		const now = Math.floor(Date.now() / 1000);
-		// aud/iss passent en options de sign() — pas dans le payload — pour
-		// overrider proprement les valeurs globales injectées par
-		// jwtModuleOptionsFactory. La lib jsonwebtoken refuse de définir un
-		// claim s'il existe déjà dans le payload (WHISPR-1236).
+		// aud passe en option pour overrider la valeur globale (HTTP) avec "ws"
+		// — sans collision avec le payload (WHISPR-1236). iss n'est PAS overridé :
+		// messaging-service valide iss strict contre la même valeur que pour
+		// les access tokens HTTP, donc on laisse jwtModuleOptionsFactory injecter
+		// JWT_ISSUER (WHISPR-1249).
 		const payload = {
 			sub: userId,
 			deviceId,
@@ -100,7 +100,6 @@ export class TokensService {
 			algorithm: 'ES256',
 			keyid: this.jwksService.getKid(),
 			audience: TokensService.WS_TOKEN_AUDIENCE,
-			issuer: TokensService.TOKEN_ISSUER,
 		});
 
 		return { wsToken, expiresIn: this.WS_TOKEN_TTL };

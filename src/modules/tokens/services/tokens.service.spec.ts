@@ -197,11 +197,15 @@ describe('TokensService', () => {
 			});
 		});
 
-		// WHISPR-1236 : aud et iss DOIVENT être passés en options de sign()
-		// et NON dans le payload. La lib jsonwebtoken throw "Bad
-		// options.audience option" si les deux coexistent, ce qui se produit
-		// dès que JWT_AUDIENCE est défini globalement (preprod, prod, e2e).
-		it('passes aud=ws and iss=whispr-auth via sign options, not via payload', () => {
+		// WHISPR-1236 : aud DOIT être passé en option de sign() et NON dans le
+		// payload. La lib jsonwebtoken throw "Bad options.audience option" si
+		// les deux coexistent, ce qui se produit dès que JWT_AUDIENCE est
+		// défini globalement (preprod, prod, e2e).
+		// WHISPR-1249 : iss n'est PAS overridé — la valeur globale JWT_ISSUER
+		// (injectée par jwtModuleOptionsFactory) doit s'appliquer pour que le
+		// ws-token partage le même iss que les access tokens HTTP, sinon
+		// messaging-service rejette le handshake.
+		it('passes aud=ws via sign options and does NOT override issuer', () => {
 			jwtService.sign.mockReturnValue('ws-jwt');
 
 			service.generateWsToken('user-id', 'device-id');
@@ -209,7 +213,8 @@ describe('TokensService', () => {
 			const [payload, options] = jwtService.sign.mock.calls[0];
 			expect(payload).not.toHaveProperty('aud');
 			expect(payload).not.toHaveProperty('iss');
-			expect(options).toMatchObject({ audience: 'ws', issuer: 'whispr-auth' });
+			expect(options).toMatchObject({ audience: 'ws' });
+			expect(options).not.toHaveProperty('issuer');
 		});
 
 		// WHISPR-1236 : test de régression. Reproduit le throw réel de
