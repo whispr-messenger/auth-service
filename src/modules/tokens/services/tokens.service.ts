@@ -85,11 +85,13 @@ export class TokensService {
 
 	generateWsToken(userId: string, deviceId: string): { wsToken: string; expiresIn: number } {
 		const now = Math.floor(Date.now() / 1000);
+		// aud/iss passent en options de sign() — pas dans le payload — pour
+		// overrider proprement les valeurs globales injectées par
+		// jwtModuleOptionsFactory. La lib jsonwebtoken refuse de définir un
+		// claim s'il existe déjà dans le payload (WHISPR-1236).
 		const payload = {
 			sub: userId,
 			deviceId,
-			aud: TokensService.WS_TOKEN_AUDIENCE,
-			iss: TokensService.TOKEN_ISSUER,
 			iat: now,
 			exp: now + this.WS_TOKEN_TTL,
 		};
@@ -97,6 +99,8 @@ export class TokensService {
 		const wsToken = this.jwtService.sign(payload, {
 			algorithm: 'ES256',
 			keyid: this.jwksService.getKid(),
+			audience: TokensService.WS_TOKEN_AUDIENCE,
+			issuer: TokensService.TOKEN_ISSUER,
 		});
 
 		return { wsToken, expiresIn: this.WS_TOKEN_TTL };
