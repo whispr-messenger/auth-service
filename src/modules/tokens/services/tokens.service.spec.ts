@@ -185,7 +185,7 @@ describe('TokensService', () => {
 			expect(jwtService.sign).toHaveBeenCalledTimes(1);
 		});
 
-		it('signs the payload with aud=ws, iss=whispr-auth, sub and deviceId', () => {
+		it('puts sub and deviceId in the payload', () => {
 			jwtService.sign.mockReturnValue('ws-jwt');
 
 			service.generateWsToken('user-id', 'device-id');
@@ -194,9 +194,43 @@ describe('TokensService', () => {
 			expect(payload).toMatchObject({
 				sub: 'user-id',
 				deviceId: 'device-id',
-				aud: 'ws',
-				iss: 'whispr-auth',
 			});
+		});
+
+		// WHISPR-1236 : aud et iss DOIVENT être passés en options de sign()
+		// et NON dans le payload. La lib jsonwebtoken throw "Bad
+		// options.audience option" si les deux coexistent, ce qui se produit
+		// dès que JWT_AUDIENCE est défini globalement (preprod, prod, e2e).
+		it('passes aud=ws and iss=whispr-auth via sign options, not via payload', () => {
+			jwtService.sign.mockReturnValue('ws-jwt');
+
+			service.generateWsToken('user-id', 'device-id');
+
+			const [payload, options] = jwtService.sign.mock.calls[0];
+			expect(payload).not.toHaveProperty('aud');
+			expect(payload).not.toHaveProperty('iss');
+			expect(options).toMatchObject({ audience: 'ws', issuer: 'whispr-auth' });
+		});
+
+		// WHISPR-1236 : test de régression. Reproduit le throw réel de
+		// jsonwebtoken quand payload.aud et options.audience coexistent —
+		// si quelqu'un réintroduit aud dans le payload, ce test casse.
+		it('does not trigger the jsonwebtoken aud-conflict error', () => {
+			jwtService.sign.mockImplementation((payload: any, options: any) => {
+				if (
+					payload &&
+					Object.prototype.hasOwnProperty.call(payload, 'aud') &&
+					options &&
+					options.audience !== undefined
+				) {
+					throw new Error(
+						'Bad "options.audience" option. The payload already has an "aud" property.'
+					);
+				}
+				return 'ws-jwt';
+			});
+
+			expect(() => service.generateWsToken('user-id', 'device-id')).not.toThrow();
 		});
 
 		it('sets exp to iat + 60s', () => {
