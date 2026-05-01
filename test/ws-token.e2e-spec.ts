@@ -1,12 +1,14 @@
 /**
- * E2E tests for POST /auth/v1/tokens/ws-token (WHISPR-1236).
+ * E2E tests for POST /auth/v1/tokens/ws-token (WHISPR-1236, WHISPR-1249).
  *
  * Exercises the real TokensService + JwtService stack with JWT_AUDIENCE /
- * JWT_ISSUER set in the environment (see test/setup-e2e.ts). A previous
- * version put aud and iss inside the payload, which collided with the
- * audience/issuer options injected globally by jwtModuleOptionsFactory and
- * made jsonwebtoken throw `Bad "options.audience" option`. This e2e blocks
- * any future regression by hitting the real signing path.
+ * JWT_ISSUER set in the environment (see test/setup-e2e.ts).
+ *
+ * - WHISPR-1236 : aud="ws" must be passed in sign() options, not the payload,
+ *   otherwise jsonwebtoken throws on the audience collision.
+ * - WHISPR-1249 : iss must inherit the global JWT_ISSUER (same value as the
+ *   access tokens) — messaging-service validates iss strict against that
+ *   value and rejects anything else.
  */
 import { INestApplication } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
@@ -62,7 +64,7 @@ describe('POST /auth/v1/tokens/ws-token (e2e)', () => {
 		});
 	});
 
-	it('signs a ws-token whose aud and iss are the WS-specific values, not the global JWT_AUDIENCE / JWT_ISSUER', async () => {
+	it('signs a ws-token with aud="ws" and iss inherited from the global JWT_ISSUER', async () => {
 		const res = await request(app.getHttpServer())
 			.post('/auth/v1/tokens/ws-token')
 			.set('Authorization', 'Bearer ignored-by-mocked-guard')
@@ -72,12 +74,15 @@ describe('POST /auth/v1/tokens/ws-token (e2e)', () => {
 		expect(decoded).toMatchObject({
 			sub: TEST_USER_ID,
 			deviceId: TEST_DEVICE_ID,
+			// WHISPR-1236 : aud must be "ws", not the global JWT_AUDIENCE.
 			aud: 'ws',
-			iss: 'whispr-auth',
+			// WHISPR-1249 : iss MUST be the global JWT_ISSUER (same value the
+			// access tokens carry) so messaging-service accepts the handshake.
+			iss: process.env.JWT_ISSUER,
 		});
 		// Sanity check: the global JWT_AUDIENCE from setup-e2e.ts must NOT
 		// leak into a ws-token (messaging-service rejects anything other
 		// than nil | "whispr" | "ws").
-		expect(decoded.aud).not.toBe('whispr-test-audience');
+		expect(decoded.aud).not.toBe(process.env.JWT_AUDIENCE);
 	});
 });
