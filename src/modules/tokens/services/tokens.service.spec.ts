@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { UnauthorizedException } from '@nestjs/common';
+import { ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 
 import { TokensService } from './tokens.service';
 import { CacheService } from '../../cache';
@@ -43,6 +43,7 @@ describe('TokensService', () => {
 					provide: CacheService,
 					useValue: {
 						get: jest.fn(),
+						getReliable: jest.fn(),
 						set: jest.fn(),
 						del: jest.fn(),
 					},
@@ -175,6 +176,90 @@ describe('TokensService', () => {
 		});
 	});
 
+	describe('generateWsToken', () => {
+		it('returns a signed token and the 60s lifetime', () => {
+			jwtService.sign.mockReturnValue('ws-jwt');
+
+			const result = service.generateWsToken('user-id', 'device-id');
+
+			expect(result).toEqual({ wsToken: 'ws-jwt', expiresIn: 60 });
+			expect(jwtService.sign).toHaveBeenCalledTimes(1);
+		});
+
+		it('puts sub and deviceId in the payload', () => {
+			jwtService.sign.mockReturnValue('ws-jwt');
+
+			service.generateWsToken('user-id', 'device-id');
+
+			const [payload] = jwtService.sign.mock.calls[0];
+			expect(payload).toMatchObject({
+				sub: 'user-id',
+				deviceId: 'device-id',
+			});
+		});
+
+		// WHISPR-1236 : aud DOIT être passé en option de sign() et NON dans le
+		// payload. La lib jsonwebtoken throw "Bad options.audience option" si
+		// les deux coexistent, ce qui se produit dès que JWT_AUDIENCE est
+		// défini globalement (preprod, prod, e2e).
+		// WHISPR-1249 : iss n'est PAS overridé — la valeur globale JWT_ISSUER
+		// (injectée par jwtModuleOptionsFactory) doit s'appliquer pour que le
+		// ws-token partage le même iss que les access tokens HTTP, sinon
+		// messaging-service rejette le handshake.
+		it('passes aud=ws via sign options and does NOT override issuer', () => {
+			jwtService.sign.mockReturnValue('ws-jwt');
+
+			service.generateWsToken('user-id', 'device-id');
+
+			const [payload, options] = jwtService.sign.mock.calls[0];
+			expect(payload).not.toHaveProperty('aud');
+			expect(payload).not.toHaveProperty('iss');
+			expect(options).toMatchObject({ audience: 'ws' });
+			expect(options).not.toHaveProperty('issuer');
+		});
+
+		// WHISPR-1236 : test de régression. Reproduit le throw réel de
+		// jsonwebtoken quand payload.aud et options.audience coexistent —
+		// si quelqu'un réintroduit aud dans le payload, ce test casse.
+		it('does not trigger the jsonwebtoken aud-conflict error', () => {
+			jwtService.sign.mockImplementation((payload: any, options: any) => {
+				if (
+					payload &&
+					Object.prototype.hasOwnProperty.call(payload, 'aud') &&
+					options &&
+					options.audience !== undefined
+				) {
+					throw new Error(
+						'Bad "options.audience" option. The payload already has an "aud" property.'
+					);
+				}
+				return 'ws-jwt';
+			});
+
+			expect(() => service.generateWsToken('user-id', 'device-id')).not.toThrow();
+		});
+
+		it('sets exp to iat + 60s', () => {
+			jwtService.sign.mockReturnValue('ws-jwt');
+			const before = Math.floor(Date.now() / 1000);
+
+			service.generateWsToken('user-id', 'device-id');
+
+			const [payload] = jwtService.sign.mock.calls[0] as [{ iat: number; exp: number }];
+			expect(payload.exp - payload.iat).toBe(60);
+			expect(payload.iat).toBeGreaterThanOrEqual(before);
+		});
+
+		it('uses ES256 + the JWKS-published kid (so messaging-service can verify)', () => {
+			jwtService.sign.mockReturnValue('ws-jwt');
+
+			service.generateWsToken('user-id', 'device-id');
+
+			const [, options] = jwtService.sign.mock.calls[0];
+			expect(options).toMatchObject({ algorithm: 'ES256', keyid: 'test-kid' });
+		});
+	});
+
 	describe('refreshAccessToken', () => {
 		it('should refresh tokens successfully', async () => {
 			const refreshToken = 'valid-refresh-token';
@@ -202,7 +287,7 @@ describe('TokensService', () => {
 			};
 
 			jwtService.verify.mockReturnValue(decodedToken);
-			cacheService.get.mockResolvedValue(cachedData);
+			cacheService.getReliable.mockResolvedValue(cachedData);
 			jwtService.sign.mockReturnValueOnce(newAccessToken).mockReturnValueOnce(newRefreshToken);
 			cacheService.del.mockResolvedValue(undefined);
 			cacheService.set.mockResolvedValue(undefined);
@@ -213,7 +298,7 @@ describe('TokensService', () => {
 			expect(jwtService.verify).toHaveBeenCalledWith(refreshToken, {
 				algorithms: ['ES256'],
 			});
-			expect(cacheService.get).toHaveBeenCalledWith(`refresh_token:${tokenId}`);
+			expect(cacheService.getReliable).toHaveBeenCalledWith(`refresh_token:${tokenId}`);
 			expect(result).toEqual({
 				accessToken: newAccessToken,
 				refreshToken: newRefreshToken,
@@ -246,10 +331,23 @@ describe('TokensService', () => {
 			};
 
 			jwtService.verify.mockReturnValue(decodedToken);
-			cacheService.get.mockResolvedValue(null);
+			cacheService.getReliable.mockResolvedValue(null);
 
 			await expect(service.refreshAccessToken(refreshToken, mockFingerprint)).rejects.toThrow(
 				UnauthorizedException
+			);
+		});
+
+		// WHISPR : une panne Redis (ECONNREFUSED, failover Sentinel, timeout TLS)
+		// ne doit pas se confondre avec une révocation — sinon tout le fleet
+		// utilisateur est délogué dès que l'infra hoquette. On surface 503 pour
+		// que le client retry au lieu de purger ses tokens.
+		it('should throw ServiceUnavailableException when Redis errors on refresh lookup', async () => {
+			jwtService.verify.mockReturnValue({ type: 'refresh', tokenId: 'tid' });
+			cacheService.getReliable.mockRejectedValue(new Error('ECONNREFUSED'));
+
+			await expect(service.refreshAccessToken('some-token', mockFingerprint)).rejects.toThrow(
+				ServiceUnavailableException
 			);
 		});
 
@@ -263,7 +361,7 @@ describe('TokensService', () => {
 
 		it('should preserve the specific error message when token is expired or revoked', async () => {
 			jwtService.verify.mockReturnValue({ type: 'refresh', tokenId: 'some-id' });
-			cacheService.get.mockResolvedValue(null);
+			cacheService.getReliable.mockResolvedValue(null);
 
 			await expect(service.refreshAccessToken('some-token', mockFingerprint)).rejects.toThrow(
 				'ERROR_REFRESH_TOKEN_EXPIRED_OR_REVOKED'
@@ -273,7 +371,7 @@ describe('TokensService', () => {
 		it('should preserve the specific error message when fingerprint is invalid', async () => {
 			const tokenId = 'token-id';
 			jwtService.verify.mockReturnValue({ type: 'refresh', tokenId });
-			cacheService.get.mockResolvedValue({ userId: 'u', deviceId: 'd', fingerprint: 'aaaaaa' });
+			cacheService.getReliable.mockResolvedValue({ userId: 'u', deviceId: 'd', fingerprint: 'aaaaaa' });
 			cacheService.del.mockResolvedValue(undefined);
 			jest.spyOn(service as any, 'generateDeviceFingerprint').mockReturnValue('bbbbbb');
 

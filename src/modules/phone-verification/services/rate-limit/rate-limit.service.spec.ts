@@ -10,6 +10,8 @@ describe('RateLimitService', () => {
 		get: jest.fn(),
 		set: jest.fn(),
 		del: jest.fn(),
+		incr: jest.fn(),
+		expire: jest.fn(),
 	};
 
 	beforeEach(async () => {
@@ -59,22 +61,22 @@ describe('RateLimitService', () => {
 	});
 
 	describe('increment', () => {
-		it('should increment from 0 when key does not exist', async () => {
-			mockCacheService.get.mockResolvedValue(null);
-			mockCacheService.set.mockResolvedValue(undefined);
+		it('should INCR and set expiry when key is first created', async () => {
+			mockCacheService.incr.mockResolvedValue(1);
 
 			await service.increment('key', 3600);
 
-			expect(mockCacheService.set).toHaveBeenCalledWith('key', 1, 3600);
+			expect(mockCacheService.incr).toHaveBeenCalledWith('key');
+			expect(mockCacheService.expire).toHaveBeenCalledWith('key', 3600);
 		});
 
-		it('should increment existing count', async () => {
-			mockCacheService.get.mockResolvedValue(3);
-			mockCacheService.set.mockResolvedValue(undefined);
+		it('should INCR without refreshing expiry on subsequent calls', async () => {
+			mockCacheService.incr.mockResolvedValue(4);
 
 			await service.increment('key', 3600);
 
-			expect(mockCacheService.set).toHaveBeenCalledWith('key', 4, 3600);
+			expect(mockCacheService.incr).toHaveBeenCalledWith('key');
+			expect(mockCacheService.expire).not.toHaveBeenCalled();
 		});
 	});
 

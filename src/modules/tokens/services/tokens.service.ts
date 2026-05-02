@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'node:crypto';
@@ -12,6 +12,11 @@ import { JwksService } from '../../jwks/jwks.service';
 export class TokensService {
 	private readonly ACCESS_TOKEN_TTL = 60 * 60;
 	private readonly REFRESH_TOKEN_TTL = 30 * 24 * 60 * 60;
+	// Court-vivant — WHISPR-1214. Le token transite dans la query string
+	// Phoenix Channels, donc reverse-proxies, HAR exports et Sentry
+	// breadcrumbs le capturent ; 60 s borne le préjudice d'une fuite.
+	private readonly WS_TOKEN_TTL = 60;
+	private static readonly WS_TOKEN_AUDIENCE = 'ws';
 	/**
 	 * TTL des clés de revocation (WHISPR-919).
 	 * Doit être supérieur au TTL maximum d'un refresh token pour garantir
@@ -77,6 +82,29 @@ export class TokensService {
 		return { accessToken, refreshToken, userId, deviceId };
 	}
 
+	generateWsToken(userId: string, deviceId: string): { wsToken: string; expiresIn: number } {
+		const now = Math.floor(Date.now() / 1000);
+		// aud passe en option pour overrider la valeur globale (HTTP) avec "ws"
+		// — sans collision avec le payload (WHISPR-1236). iss n'est PAS overridé :
+		// messaging-service valide iss strict contre la même valeur que pour
+		// les access tokens HTTP, donc on laisse jwtModuleOptionsFactory injecter
+		// JWT_ISSUER (WHISPR-1249).
+		const payload = {
+			sub: userId,
+			deviceId,
+			iat: now,
+			exp: now + this.WS_TOKEN_TTL,
+		};
+
+		const wsToken = this.jwtService.sign(payload, {
+			algorithm: 'ES256',
+			keyid: this.jwksService.getKid(),
+			audience: TokensService.WS_TOKEN_AUDIENCE,
+		});
+
+		return { wsToken, expiresIn: this.WS_TOKEN_TTL };
+	}
+
 	async refreshAccessToken(refreshToken: string, fingerprint: DeviceFingerprint): Promise<TokenPair> {
 		try {
 			const decoded = this.jwtService.verify(refreshToken, {
@@ -87,11 +115,18 @@ export class TokensService {
 				throw new UnauthorizedException('ERROR_INVALID_REFRESH_TOKEN');
 			}
 
-			const storedData = await this.cacheService.get<{
-				userId: string;
-				deviceId: string;
-				fingerprint: string;
-			}>(`refresh_token:${decoded.tokenId}`);
+			let storedData: { userId: string; deviceId: string; fingerprint: string } | null;
+			try {
+				storedData = await this.cacheService.getReliable<{
+					userId: string;
+					deviceId: string;
+					fingerprint: string;
+				}>(`refresh_token:${decoded.tokenId}`);
+			} catch {
+				// Redis indisponible : ne pas confondre avec une révocation. Sinon
+				// une panne réseau ou un failover Sentinel déconnecte tout le fleet.
+				throw new ServiceUnavailableException('ERROR_REDIS_UNAVAILABLE');
+			}
 			if (!storedData) {
 				throw new UnauthorizedException('ERROR_REFRESH_TOKEN_EXPIRED_OR_REVOKED');
 			}
@@ -108,6 +143,9 @@ export class TokensService {
 			return this.generateTokenPair(storedData.userId, storedData.deviceId, fingerprint);
 		} catch (error) {
 			if (error instanceof UnauthorizedException) {
+				throw error;
+			}
+			if (error instanceof ServiceUnavailableException) {
 				throw error;
 			}
 			throw new UnauthorizedException('ERROR_INVALID_REFRESH_TOKEN');

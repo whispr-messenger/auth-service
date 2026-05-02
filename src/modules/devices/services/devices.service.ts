@@ -4,6 +4,7 @@ import { DeviceRepository } from '../repositories/device.repository';
 import { DeviceRegistrationData } from '../types/device-registration-data.interface';
 import { DeviceRegistrationService } from './device-registration/device-registration.service';
 import { DeviceActivityService } from './device-activity/device-activity.service';
+import { TokensService } from '../../tokens/services/tokens.service';
 
 /**
  * Main device management service.
@@ -21,7 +22,8 @@ export class DevicesService {
 	constructor(
 		private readonly deviceRepository: DeviceRepository,
 		private readonly deviceRegistrationService: DeviceRegistrationService,
-		private readonly deviceActivityService: DeviceActivityService
+		private readonly deviceActivityService: DeviceActivityService,
+		private readonly tokensService: TokensService
 	) {}
 
 	async getUserDevices(userId: string): Promise<Device[]> {
@@ -54,6 +56,11 @@ export class DevicesService {
 			throw new NotFoundException('Device not found');
 		}
 
+		// Revoke all tokens bound to this device BEFORE deleting the row.
+		// Otherwise an access token emitted for the device stays valid until its
+		// natural expiry, which defeats the "revoke device" action the user just
+		// performed from the UI.
+		await this.tokensService.revokeAllTokensForDevice(deviceId);
 		await this.deviceRepository.remove(device);
 		this.logger.log(`Device revoked: ${deviceId} for user: ${userId}`);
 	}

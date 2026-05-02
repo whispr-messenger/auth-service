@@ -31,9 +31,13 @@ LABEL maintainer="Whisper Team" \
     gcp.gke="compatible" \
     monitoring.prometheus="enabled"
 
-# Patch CVE-2026-28390 (libssl3) and other security updates
+# Patch CVE-2026-28390 by pinning libssl3 to the Debian bookworm-security
+# revision that carries the fix. Using `apt-get install =<version>` instead
+# of `apt-get upgrade` guarantees reproducible builds regardless of the
+# freshness of the Docker layer cache. Bump this exact version when a new
+# security advisory lands.
 RUN apt-get update \
-    && apt-get upgrade -y --no-install-recommends libssl3 \
+    && apt-get install -y --no-install-recommends libssl3=3.0.19-1~deb12u2 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

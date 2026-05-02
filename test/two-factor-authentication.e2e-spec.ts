@@ -280,7 +280,9 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 				twoFactorEnabled: true,
 				twoFactorSecret: 'JBSWY3DPEHPK3PXP',
 			});
-			// No backup codes available — UnauthorizedException from backup-codes service
+			// No backup codes — verifyBackupCode now returns false (no disclosure
+			// that the user has zero codes) so the disable flow surfaces the
+			// generic "Invalid verification code" error from verifyTwoFactor.
 			backupCodeRepo.find.mockResolvedValue([]);
 
 			const { status, body } = await request(app.getHttpServer())
@@ -288,7 +290,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 				.send({ token: '000000' });
 
 			expect(status).toBe(401);
-			expect(body.message).toBe('Invalid backup code');
+			expect(body.message).toBe('Invalid verification code');
 		});
 	});
 
@@ -320,7 +322,7 @@ describe('Two-Factor Authentication endpoints (e2e)', () => {
 				.send({ token: '000000' });
 
 			expect(status).toBe(401);
-			expect(body.message).toBe('Invalid backup code');
+			expect(body.message).toBe('Invalid verification code');
 		});
 	});
 

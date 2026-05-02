@@ -103,6 +103,52 @@ describe('PhoneVerificationService', () => {
 			expect(result.code).toBe('123456');
 		});
 
+		// WHISPR-1117 — demo OTP must never leak into HTTP responses on prod
+		// unless the operator explicitly opts in via EXPOSE_DEMO_OTP=true.
+		it('should NOT include code in response when demo mode is active in production', async () => {
+			service = await buildModule({ DEMO_MODE: 'true', NODE_ENV: 'production' });
+			mockUserAuthService.findByPhoneNumber.mockResolvedValue(null);
+			mockRateLimitService.checkLimit.mockResolvedValue(undefined);
+			mockRateLimitService.increment.mockResolvedValue(undefined);
+			mockVerificationRepo.save.mockResolvedValue(undefined);
+			mockVerificationChannel.sendVerification.mockResolvedValue(undefined);
+
+			const result = await service.requestRegistrationVerification({ phoneNumber: '+33612345678' });
+
+			expect(result.code).toBeUndefined();
+			expect(result).toHaveProperty('verificationId');
+		});
+
+		it('should include code in response when demo mode + EXPOSE_DEMO_OTP are set in production', async () => {
+			service = await buildModule({
+				DEMO_MODE: 'true',
+				NODE_ENV: 'production',
+				EXPOSE_DEMO_OTP: 'true',
+			});
+			mockUserAuthService.findByPhoneNumber.mockResolvedValue(null);
+			mockRateLimitService.checkLimit.mockResolvedValue(undefined);
+			mockRateLimitService.increment.mockResolvedValue(undefined);
+			mockVerificationRepo.save.mockResolvedValue(undefined);
+			mockVerificationChannel.sendVerification.mockResolvedValue(undefined);
+
+			const result = await service.requestRegistrationVerification({ phoneNumber: '+33612345678' });
+
+			expect(result.code).toBe('123456');
+		});
+
+		it('should include code in response when demo mode is active in development', async () => {
+			service = await buildModule({ DEMO_MODE: 'true', NODE_ENV: 'development' });
+			mockUserAuthService.findByPhoneNumber.mockResolvedValue(null);
+			mockRateLimitService.checkLimit.mockResolvedValue(undefined);
+			mockRateLimitService.increment.mockResolvedValue(undefined);
+			mockVerificationRepo.save.mockResolvedValue(undefined);
+			mockVerificationChannel.sendVerification.mockResolvedValue(undefined);
+
+			const result = await service.requestRegistrationVerification({ phoneNumber: '+33612345678' });
+
+			expect(result.code).toBe('123456');
+		});
+
 		it('should throw HttpException when rate limit is exceeded', async () => {
 			mockUserAuthService.findByPhoneNumber.mockResolvedValue(null);
 			mockRateLimitService.checkLimit.mockRejectedValue(
@@ -111,6 +157,40 @@ describe('PhoneVerificationService', () => {
 
 			await expect(
 				service.requestRegistrationVerification({ phoneNumber: '+33612345678' })
+			).rejects.toThrow(HttpException);
+		});
+
+		it('should also check and increment short-window IP rate limit when ipAddress is provided', async () => {
+			mockUserAuthService.findByPhoneNumber.mockResolvedValue(null);
+			mockRateLimitService.checkLimit.mockResolvedValue(undefined);
+			mockRateLimitService.increment.mockResolvedValue(undefined);
+			mockVerificationRepo.save.mockResolvedValue(undefined);
+			mockVerificationChannel.sendVerification.mockResolvedValue(undefined);
+
+			await service.requestRegistrationVerification({ phoneNumber: '+33612345678' }, '203.0.113.42');
+
+			expect(mockRateLimitService.checkLimit).toHaveBeenCalledWith(
+				expect.stringContaining('rate_limit:short:ip:203.0.113.42'),
+				expect.any(Number),
+				expect.any(Number),
+				expect.any(String)
+			);
+			expect(mockRateLimitService.increment).toHaveBeenCalledWith(
+				expect.stringContaining('rate_limit:short:ip:203.0.113.42'),
+				expect.any(Number)
+			);
+		});
+
+		it('should throw HttpException when short-window IP rate limit is exceeded', async () => {
+			mockUserAuthService.findByPhoneNumber.mockResolvedValue(null);
+			mockRateLimitService.checkLimit
+				.mockResolvedValueOnce(undefined)
+				.mockRejectedValueOnce(
+					new HttpException('Too many requests from this IP', HttpStatus.TOO_MANY_REQUESTS)
+				);
+
+			await expect(
+				service.requestRegistrationVerification({ phoneNumber: '+33612345678' }, '203.0.113.42')
 			).rejects.toThrow(HttpException);
 		});
 	});
@@ -437,6 +517,40 @@ describe('PhoneVerificationService', () => {
 			const result = await service.verifyCode('verification-id', 'BYPASS123');
 
 			expect(result).toEqual(verificationData);
+		});
+
+		it('should throw BadRequestException when session deviceId is set and request deviceId does not match', async () => {
+			const verificationData: VerificationCode = {
+				phoneNumber: '+33612345678',
+				hashedCode: 'hashed-123456',
+				purpose: 'registration',
+				attempts: 0,
+				expiresAt: Date.now() + 900000,
+				deviceId: 'device-A',
+			};
+			mockVerificationRepo.findById.mockResolvedValue(verificationData);
+			mockCodeGenerator.compareCode.mockResolvedValue(true);
+
+			await expect(service.verifyCode('verification-id', '123456', 'device-B')).rejects.toThrow(
+				new BadRequestException('Invalid or expired verification code')
+			);
+		});
+
+		it('should throw BadRequestException when session deviceId is set and request has no deviceId', async () => {
+			const verificationData: VerificationCode = {
+				phoneNumber: '+33612345678',
+				hashedCode: 'hashed-123456',
+				purpose: 'registration',
+				attempts: 0,
+				expiresAt: Date.now() + 900000,
+				deviceId: 'device-A',
+			};
+			mockVerificationRepo.findById.mockResolvedValue(verificationData);
+			mockCodeGenerator.compareCode.mockResolvedValue(true);
+
+			await expect(service.verifyCode('verification-id', '123456')).rejects.toThrow(
+				new BadRequestException('Invalid or expired verification code')
+			);
 		});
 	});
 
