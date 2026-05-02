@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { UnauthorizedException } from '@nestjs/common';
+import { ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 
 import { TokensService } from './tokens.service';
 import { CacheService } from '../../cache';
@@ -43,6 +43,7 @@ describe('TokensService', () => {
 					provide: CacheService,
 					useValue: {
 						get: jest.fn(),
+						getReliable: jest.fn(),
 						set: jest.fn(),
 						del: jest.fn(),
 					},
@@ -286,7 +287,7 @@ describe('TokensService', () => {
 			};
 
 			jwtService.verify.mockReturnValue(decodedToken);
-			cacheService.get.mockResolvedValue(cachedData);
+			cacheService.getReliable.mockResolvedValue(cachedData);
 			jwtService.sign.mockReturnValueOnce(newAccessToken).mockReturnValueOnce(newRefreshToken);
 			cacheService.del.mockResolvedValue(undefined);
 			cacheService.set.mockResolvedValue(undefined);
@@ -297,7 +298,7 @@ describe('TokensService', () => {
 			expect(jwtService.verify).toHaveBeenCalledWith(refreshToken, {
 				algorithms: ['ES256'],
 			});
-			expect(cacheService.get).toHaveBeenCalledWith(`refresh_token:${tokenId}`);
+			expect(cacheService.getReliable).toHaveBeenCalledWith(`refresh_token:${tokenId}`);
 			expect(result).toEqual({
 				accessToken: newAccessToken,
 				refreshToken: newRefreshToken,
@@ -330,10 +331,23 @@ describe('TokensService', () => {
 			};
 
 			jwtService.verify.mockReturnValue(decodedToken);
-			cacheService.get.mockResolvedValue(null);
+			cacheService.getReliable.mockResolvedValue(null);
 
 			await expect(service.refreshAccessToken(refreshToken, mockFingerprint)).rejects.toThrow(
 				UnauthorizedException
+			);
+		});
+
+		// WHISPR : une panne Redis (ECONNREFUSED, failover Sentinel, timeout TLS)
+		// ne doit pas se confondre avec une révocation — sinon tout le fleet
+		// utilisateur est délogué dès que l'infra hoquette. On surface 503 pour
+		// que le client retry au lieu de purger ses tokens.
+		it('should throw ServiceUnavailableException when Redis errors on refresh lookup', async () => {
+			jwtService.verify.mockReturnValue({ type: 'refresh', tokenId: 'tid' });
+			cacheService.getReliable.mockRejectedValue(new Error('ECONNREFUSED'));
+
+			await expect(service.refreshAccessToken('some-token', mockFingerprint)).rejects.toThrow(
+				ServiceUnavailableException
 			);
 		});
 
@@ -347,7 +361,7 @@ describe('TokensService', () => {
 
 		it('should preserve the specific error message when token is expired or revoked', async () => {
 			jwtService.verify.mockReturnValue({ type: 'refresh', tokenId: 'some-id' });
-			cacheService.get.mockResolvedValue(null);
+			cacheService.getReliable.mockResolvedValue(null);
 
 			await expect(service.refreshAccessToken('some-token', mockFingerprint)).rejects.toThrow(
 				'ERROR_REFRESH_TOKEN_EXPIRED_OR_REVOKED'
@@ -357,7 +371,7 @@ describe('TokensService', () => {
 		it('should preserve the specific error message when fingerprint is invalid', async () => {
 			const tokenId = 'token-id';
 			jwtService.verify.mockReturnValue({ type: 'refresh', tokenId });
-			cacheService.get.mockResolvedValue({ userId: 'u', deviceId: 'd', fingerprint: 'aaaaaa' });
+			cacheService.getReliable.mockResolvedValue({ userId: 'u', deviceId: 'd', fingerprint: 'aaaaaa' });
 			cacheService.del.mockResolvedValue(undefined);
 			jest.spyOn(service as any, 'generateDeviceFingerprint').mockReturnValue('bbbbbb');
 

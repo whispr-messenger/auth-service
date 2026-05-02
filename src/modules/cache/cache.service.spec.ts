@@ -78,6 +78,33 @@ describe('CacheService', () => {
 		});
 	});
 
+	describe('getReliable', () => {
+		it('should return parsed value when key exists', async () => {
+			mockRedis.get.mockResolvedValue(JSON.stringify({ foo: 'bar' }));
+
+			const result = await service.getReliable('key');
+
+			expect(result).toEqual({ foo: 'bar' });
+		});
+
+		it('should return null when key does not exist', async () => {
+			mockRedis.get.mockResolvedValue(null);
+
+			const result = await service.getReliable('key');
+
+			expect(result).toBeNull();
+		});
+
+		// Différence avec get() : on relance pour que l'appelant puisse
+		// distinguer « clé absente » d'une panne Redis (sinon le caller traite
+		// une panne comme une révocation).
+		it('should rethrow on redis error instead of returning null', async () => {
+			mockRedis.get.mockRejectedValue(new Error('ECONNREFUSED'));
+
+			await expect(service.getReliable('key')).rejects.toThrow('ECONNREFUSED');
+		});
+	});
+
 	describe('del', () => {
 		it('should delete a key', async () => {
 			mockRedis.del.mockResolvedValue(1);
