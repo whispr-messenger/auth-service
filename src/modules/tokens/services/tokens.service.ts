@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'node:crypto';
@@ -115,11 +115,18 @@ export class TokensService {
 				throw new UnauthorizedException('ERROR_INVALID_REFRESH_TOKEN');
 			}
 
-			const storedData = await this.cacheService.get<{
-				userId: string;
-				deviceId: string;
-				fingerprint: string;
-			}>(`refresh_token:${decoded.tokenId}`);
+			let storedData: { userId: string; deviceId: string; fingerprint: string } | null;
+			try {
+				storedData = await this.cacheService.getReliable<{
+					userId: string;
+					deviceId: string;
+					fingerprint: string;
+				}>(`refresh_token:${decoded.tokenId}`);
+			} catch {
+				// Redis indisponible : ne pas confondre avec une révocation. Sinon
+				// une panne réseau ou un failover Sentinel déconnecte tout le fleet.
+				throw new ServiceUnavailableException('ERROR_REDIS_UNAVAILABLE');
+			}
 			if (!storedData) {
 				throw new UnauthorizedException('ERROR_REFRESH_TOKEN_EXPIRED_OR_REVOKED');
 			}
@@ -136,6 +143,9 @@ export class TokensService {
 			return this.generateTokenPair(storedData.userId, storedData.deviceId, fingerprint);
 		} catch (error) {
 			if (error instanceof UnauthorizedException) {
+				throw error;
+			}
+			if (error instanceof ServiceUnavailableException) {
 				throw error;
 			}
 			throw new UnauthorizedException('ERROR_INVALID_REFRESH_TOKEN');
