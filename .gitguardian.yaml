@@ -1,0 +1,6 @@
+version: 2
+
+paths-ignore:
+  - "**/*.spec.ts"
+  - "**/*.e2e-spec.ts"
+  - "test/**"
