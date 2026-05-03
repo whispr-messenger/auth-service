@@ -1,4 +1,4 @@
-import { IsUUID, IsString, IsOptional, ValidateNested } from 'class-validator';
+import { IsUUID, IsString, IsOptional, ValidateNested, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { SignalKeyBundleDto } from './signal-keys.dto';
@@ -18,31 +18,37 @@ export class BaseAuthDto implements DeviceInfo {
 	})
 	@IsOptional()
 	@IsString()
+	@MaxLength(128)
 	deviceId?: string;
 
 	@ApiPropertyOptional({ description: 'Name of the device', example: 'iPhone 15 Pro' })
 	@IsOptional()
 	@IsString()
+	@MaxLength(100)
 	deviceName?: string;
 
 	@ApiPropertyOptional({ description: 'Type of the device', example: 'ios' })
 	@IsOptional()
 	@IsString()
+	@MaxLength(20)
 	deviceType?: string;
 
 	@ApiPropertyOptional({ description: 'Device model', example: 'iPhone 15 Pro' })
 	@IsOptional()
 	@IsString()
+	@MaxLength(100)
 	model?: string;
 
 	@ApiPropertyOptional({ description: 'Operating system version', example: 'iOS 17.2' })
 	@IsOptional()
 	@IsString()
+	@MaxLength(50)
 	osVersion?: string;
 
 	@ApiPropertyOptional({ description: 'Application version', example: '1.0.0' })
 	@IsOptional()
 	@IsString()
+	@MaxLength(20)
 	appVersion?: string;
 
 	@ApiPropertyOptional({
@@ -51,11 +57,13 @@ export class BaseAuthDto implements DeviceInfo {
 	})
 	@IsOptional()
 	@IsString()
+	@MaxLength(255)
 	fcmToken?: string;
 
 	@ApiPropertyOptional({ description: 'Apple Push Notification Service token', example: 'a1b2c3d4...' })
 	@IsOptional()
 	@IsString()
+	@MaxLength(255)
 	apnsToken?: string;
 
 	@ApiPropertyOptional({ description: 'Signal Protocol key bundle for E2EE', type: SignalKeyBundleDto })

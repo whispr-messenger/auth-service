@@ -1,10 +1,15 @@
 import { Controller, Get, Logger, ServiceUnavailableException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { DataSource } from 'typeorm';
 import { CacheService } from '../cache/cache.service';
 import { RedisConfig } from '../../config/redis.config';
 import { TwilioHealthIndicator } from './twilio-health.indicator';
+import {
+	ApiHealthCheckEndpoint,
+	ApiLivenessEndpoint,
+	ApiReadinessEndpoint,
+} from './health.controller.swagger';
 
 @SkipThrottle()
 @ApiTags('Health')
@@ -20,12 +25,7 @@ export class HealthController {
 	private readonly logger = new Logger(HealthController.name);
 
 	@Get()
-	@ApiOperation({
-		summary: 'Check service health',
-		description: 'Returns the health status of the service and its dependencies (database and cache)',
-	})
-	@ApiResponse({ status: 200, description: 'Health check completed successfully' })
-	@ApiResponse({ status: 503, description: 'One or more services are unhealthy' })
+	@ApiHealthCheckEndpoint()
 	async check() {
 		this.logger.debug('Health check started');
 
@@ -76,12 +76,7 @@ export class HealthController {
 	}
 
 	@Get('ready')
-	@ApiOperation({
-		summary: 'Check service readiness',
-		description: 'Returns whether the service is ready to accept traffic',
-	})
-	@ApiResponse({ status: 200, description: 'Service is ready' })
-	@ApiResponse({ status: 503, description: 'Service is not ready' })
+	@ApiReadinessEndpoint()
 	async readiness() {
 		try {
 			await this.dataSource.query('SELECT 1');
@@ -124,12 +119,7 @@ export class HealthController {
 	}
 
 	@Get('live')
-	@ApiOperation({
-		summary: 'Check service liveness',
-		description:
-			'Returns whether the process is alive. This is a lightweight probe that does not check external dependencies — use /health/ready for dependency checks.',
-	})
-	@ApiResponse({ status: 200, description: 'Service is alive' })
+	@ApiLivenessEndpoint()
 	alive() {
 		return {
 			status: 'alive',

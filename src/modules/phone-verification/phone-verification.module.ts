@@ -8,6 +8,7 @@ import { RateLimitService } from './services/rate-limit/rate-limit.service';
 import { CacheVerificationRepository } from './repositories/cache-verification.repository';
 import { SmsVerificationStrategy } from './strategies/sms-verification.strategy';
 import { CommonModule } from '../common/common.module';
+import { AdaptiveRateLimitModule } from '../adaptive-rate-limit/adaptive-rate-limit.module';
 
 @Module({
 	providers: [
@@ -26,7 +27,7 @@ import { CommonModule } from '../common/common.module';
 		},
 	],
 	controllers: [PhoneVerificationController],
-	imports: [CommonModule],
+	imports: [CommonModule, AdaptiveRateLimitModule],
 	exports: [PhoneVerificationService],
 })
 export class PhoneVerificationModule {}

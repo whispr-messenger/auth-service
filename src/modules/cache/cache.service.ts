@@ -42,6 +42,22 @@ export class CacheService {
 	}
 
 	/**
+	 * Same contract as `get<T>` mais relance les erreurs Redis au lieu de retourner `null`.
+	 * À utiliser quand `null` doit signifier strictement « clé absente » et non
+	 * « Redis indisponible » — sinon une panne d'infrastructure se confond avec
+	 * une révocation légitime (ex. lookup du refresh token).
+	 */
+	async getReliable<T>(key: string): Promise<T | null> {
+		try {
+			const value = await this.redis.get(key);
+			return value ? JSON.parse(value) : null;
+		} catch (error) {
+			this.logger.error(`Failed to get cache key ${key} (reliable):`, error);
+			throw error;
+		}
+	}
+
+	/**
 	 * Delete a key from cache
 	 */
 	async del(key: string): Promise<void> {
