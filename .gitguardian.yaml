@@ -1,6 +1,8 @@
 version: 2
 
-paths-ignore:
+# Les fichiers de test contiennent des credentials bidons (postgres://alice:secret@...,
+# 'shh', 'p') qui matchent les regex GG mais ne sont pas de vrais secrets.
+paths_ignore:
   - "**/*.spec.ts"
   - "**/*.e2e-spec.ts"
   - "test/**"
