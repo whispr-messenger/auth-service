@@ -85,10 +85,10 @@ describe('QuickResponseCodeController', () => {
 			it('should generate QR challenge successfully with valid deviceId', async () => {
 				service.generateQRChallenge.mockResolvedValue(mockChallenge);
 
-				const result = await controller.generateQRChallenge(mockDeviceId);
+				const result = await controller.generateQRChallenge(mockDeviceId, mockRequest as any);
 
 				expect(result).toBe(mockChallenge);
-				expect(service.generateQRChallenge).toHaveBeenCalledWith(mockDeviceId);
+				expect(service.generateQRChallenge).toHaveBeenCalledWith(mockDeviceId, mockUserId);
 				expect(service.generateQRChallenge).toHaveBeenCalledTimes(1);
 			});
 
@@ -96,16 +96,16 @@ describe('QuickResponseCodeController', () => {
 				const customDeviceId = 'custom-device-uuid';
 				service.generateQRChallenge.mockResolvedValue(mockChallenge);
 
-				await controller.generateQRChallenge(customDeviceId);
+				await controller.generateQRChallenge(customDeviceId, mockRequest as any);
 
-				expect(service.generateQRChallenge).toHaveBeenCalledWith(customDeviceId);
+				expect(service.generateQRChallenge).toHaveBeenCalledWith(customDeviceId, mockUserId);
 			});
 
 			it('should return a string challenge token', async () => {
 				const challengeToken = 'jwt-challenge-token-string';
 				service.generateQRChallenge.mockResolvedValue(challengeToken);
 
-				const result = await controller.generateQRChallenge(mockDeviceId);
+				const result = await controller.generateQRChallenge(mockDeviceId, mockRequest as any);
 
 				expect(typeof result).toBe('string');
 				expect(result).toBe(challengeToken);
@@ -125,18 +125,23 @@ describe('QuickResponseCodeController', () => {
 			it('should throw NotFoundException when device does not exist', async () => {
 				service.generateQRChallenge.mockRejectedValue(new NotFoundException('Appareil non trouvé'));
 
-				await expect(controller.generateQRChallenge('non-existent-device-id')).rejects.toThrow(
-					NotFoundException
-				);
+				await expect(
+					controller.generateQRChallenge('non-existent-device-id', mockRequest as any)
+				).rejects.toThrow(NotFoundException);
 
-				expect(service.generateQRChallenge).toHaveBeenCalledWith('non-existent-device-id');
+				expect(service.generateQRChallenge).toHaveBeenCalledWith(
+					'non-existent-device-id',
+					mockUserId
+				);
 			});
 
 			it('should throw NotFoundException with correct message', async () => {
 				const errorMessage = 'Appareil non trouvé';
 				service.generateQRChallenge.mockRejectedValue(new NotFoundException(errorMessage));
 
-				await expect(controller.generateQRChallenge(mockDeviceId)).rejects.toThrow(errorMessage);
+				await expect(
+					controller.generateQRChallenge(mockDeviceId, mockRequest as any)
+				).rejects.toThrow(errorMessage);
 			});
 		});
 
@@ -145,18 +150,18 @@ describe('QuickResponseCodeController', () => {
 				const uuidDeviceId = '123e4567-e89b-12d3-a456-426614174000';
 				service.generateQRChallenge.mockResolvedValue(mockChallenge);
 
-				await controller.generateQRChallenge(uuidDeviceId);
+				await controller.generateQRChallenge(uuidDeviceId, mockRequest as any);
 
-				expect(service.generateQRChallenge).toHaveBeenCalledWith(uuidDeviceId);
+				expect(service.generateQRChallenge).toHaveBeenCalledWith(uuidDeviceId, mockUserId);
 			});
 
 			it('should handle invalid deviceId format gracefully (service responsibility)', async () => {
 				const invalidDeviceId = 'invalid-uuid-format';
 				service.generateQRChallenge.mockRejectedValue(new NotFoundException('Appareil non trouvé'));
 
-				await expect(controller.generateQRChallenge(invalidDeviceId)).rejects.toThrow(
-					NotFoundException
-				);
+				await expect(
+					controller.generateQRChallenge(invalidDeviceId, mockRequest as any)
+				).rejects.toThrow(NotFoundException);
 			});
 		});
 
@@ -165,7 +170,9 @@ describe('QuickResponseCodeController', () => {
 				const error = new Error('Unexpected service error');
 				service.generateQRChallenge.mockRejectedValue(error);
 
-				await expect(controller.generateQRChallenge(mockDeviceId)).rejects.toThrow(error);
+				await expect(
+					controller.generateQRChallenge(mockDeviceId, mockRequest as any)
+				).rejects.toThrow(error);
 			});
 		});
 	});

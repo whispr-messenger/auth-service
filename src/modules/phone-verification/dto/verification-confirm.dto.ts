@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsUUID, IsString, Length } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsUUID, IsString, Length, IsOptional, Matches, MaxLength } from 'class-validator';
 
 export class VerificationConfirmDto {
 	@ApiProperty({
@@ -15,5 +15,16 @@ export class VerificationConfirmDto {
 	})
 	@IsString()
 	@Length(6, 6)
+	@Matches(/^\d{6}$/, { message: 'code must be exactly 6 digits' })
 	code: string;
+
+	@ApiPropertyOptional({
+		description:
+			'Client-generated stable UUID identifying the device confirming the OTP. Must match the deviceId that requested the OTP when the session is device-bound (WHISPR-762).',
+		example: '550e8400-e29b-41d4-a716-446655440000',
+	})
+	@IsOptional()
+	@IsString()
+	@MaxLength(128)
+	deviceId?: string;
 }

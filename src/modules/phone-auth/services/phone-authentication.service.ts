@@ -48,9 +48,13 @@ export class PhoneAuthenticationService {
 
 	private async verifyPhoneNumberForPurpose(
 		verificationId: string,
-		purpose: VerificationPurpose
+		purpose: VerificationPurpose,
+		deviceId?: string
 	): Promise<string> {
-		const verificationData = await this.phoneVerificationService.getConfirmedVerification(verificationId);
+		const verificationData = await this.phoneVerificationService.getConfirmedVerification(
+			verificationId,
+			deviceId
+		);
 
 		if (verificationData.purpose !== purpose) {
 			throw new BadRequestException(this.getWrongPurposeMessage(purpose));
@@ -116,8 +120,11 @@ export class PhoneAuthenticationService {
 		return this.tokenService.generateTokenPair(user.id, deviceId, fingerprint);
 	}
 
-	private async validatePhoneNumberAvailability(verificationId: string): Promise<string> {
-		const phoneNumber = await this.verifyPhoneNumberForPurpose(verificationId, 'registration');
+	private async validatePhoneNumberAvailability(
+		verificationId: string,
+		deviceId?: string
+	): Promise<string> {
+		const phoneNumber = await this.verifyPhoneNumberForPurpose(verificationId, 'registration', deviceId);
 
 		// Second check: re-verify availability at the moment of actual account creation.
 		// This is intentional TOCTOU protection — another concurrent request may have registered
@@ -141,7 +148,7 @@ export class PhoneAuthenticationService {
 	}
 
 	public async register(dto: RegisterDto, fingerprint: DeviceFingerprint): Promise<TokenPair> {
-		const phoneNumber = await this.validatePhoneNumberAvailability(dto.verificationId);
+		const phoneNumber = await this.validatePhoneNumberAvailability(dto.verificationId, dto.deviceId);
 		const savedUser = await this.createAndSaveUser(phoneNumber);
 		const deviceId = await this.handleDeviceRegistration(savedUser.id, dto, fingerprint);
 
@@ -172,7 +179,7 @@ export class PhoneAuthenticationService {
 	}
 
 	public async login(dto: LoginDto, fingerprint: DeviceFingerprint): Promise<TokenPair> {
-		const phoneNumber = await this.verifyPhoneNumberForPurpose(dto.verificationId, 'login');
+		const phoneNumber = await this.verifyPhoneNumberForPurpose(dto.verificationId, 'login', dto.deviceId);
 
 		const user = await this.userAuthService.findByPhoneNumber(phoneNumber);
 		if (!user) {

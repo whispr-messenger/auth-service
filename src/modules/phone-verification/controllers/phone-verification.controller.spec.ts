@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PhoneVerificationController } from './phone-verification.controller';
 import { PhoneVerificationService } from '../services';
+import { AdaptiveRateLimitService } from '../../adaptive-rate-limit/adaptive-rate-limit.service';
 
 describe('PhoneVerificationController', () => {
 	let controller: PhoneVerificationController;
@@ -17,7 +18,20 @@ describe('PhoneVerificationController', () => {
 
 		const module: TestingModule = await Test.createTestingModule({
 			controllers: [PhoneVerificationController],
-			providers: [{ provide: PhoneVerificationService, useValue: mockPhoneVerificationService }],
+			providers: [
+				{ provide: PhoneVerificationService, useValue: mockPhoneVerificationService },
+				{
+					provide: AdaptiveRateLimitService,
+					useValue: {
+						getFailureCount: jest.fn().mockResolvedValue(0),
+						recordFailure: jest.fn().mockResolvedValue(0),
+						recordSuccess: jest.fn().mockResolvedValue(undefined),
+						shouldBlock: jest.fn().mockReturnValue(false),
+						threshold: 5,
+						windowSeconds: 900,
+					},
+				},
+			],
 		}).compile();
 
 		controller = module.get<PhoneVerificationController>(PhoneVerificationController);
@@ -26,14 +40,18 @@ describe('PhoneVerificationController', () => {
 	describe('requestRegistrationVerification', () => {
 		it('should delegate to service and return result', async () => {
 			const dto = { phoneNumber: '+33612345678' };
+			const req = { ip: '1.2.3.4' } as any;
 			mockPhoneVerificationService.requestRegistrationVerification.mockResolvedValue({
 				verificationId: 'vid-1',
 			});
 
-			const result = await controller.requestRegistrationVerification(dto);
+			const result = await controller.requestRegistrationVerification(dto, req);
 
 			expect(result).toEqual({ verificationId: 'vid-1' });
-			expect(mockPhoneVerificationService.requestRegistrationVerification).toHaveBeenCalledWith(dto);
+			expect(mockPhoneVerificationService.requestRegistrationVerification).toHaveBeenCalledWith(
+				dto,
+				'1.2.3.4'
+			);
 		});
 	});
 
@@ -54,14 +72,18 @@ describe('PhoneVerificationController', () => {
 	describe('requestLoginVerification', () => {
 		it('should delegate to service and return result', async () => {
 			const dto = { phoneNumber: '+33612345678' };
+			const req = { ip: '5.6.7.8' } as any;
 			mockPhoneVerificationService.requestLoginVerification.mockResolvedValue({
 				verificationId: 'vid-2',
 			});
 
-			const result = await controller.requestLoginVerification(dto);
+			const result = await controller.requestLoginVerification(dto, req);
 
 			expect(result).toEqual({ verificationId: 'vid-2' });
-			expect(mockPhoneVerificationService.requestLoginVerification).toHaveBeenCalledWith(dto);
+			expect(mockPhoneVerificationService.requestLoginVerification).toHaveBeenCalledWith(
+				dto,
+				'5.6.7.8'
+			);
 		});
 	});
 

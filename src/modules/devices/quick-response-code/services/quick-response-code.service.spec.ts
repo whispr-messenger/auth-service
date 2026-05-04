@@ -223,6 +223,22 @@ describe('QuickResponseCodeService', () => {
 					new NotFoundException('Appareil non trouvé')
 				);
 			});
+
+			it('should throw ForbiddenException when device belongs to another user', async () => {
+				deviceRepository.findOne.mockResolvedValue(mockDevice);
+
+				await expect(service.generateQRChallenge('device-123', 'some-other-user')).rejects.toThrow(
+					ForbiddenException
+				);
+				expect(jwtService.sign).not.toHaveBeenCalled();
+			});
+
+			it('should allow challenge generation when userId matches device owner', async () => {
+				deviceRepository.findOne.mockResolvedValue(mockDevice);
+				jwtService.sign.mockReturnValue('mock-jwt');
+
+				await expect(service.generateQRChallenge('device-123', 'user-456')).resolves.toBe('mock-jwt');
+			});
 		});
 
 		describe('Validation du Format', () => {

@@ -12,7 +12,8 @@ export class VerificationRequestResponseDto {
 	verificationId: string;
 
 	@ApiPropertyOptional({
-		description: 'Verification code (only included in demo mode)',
+		description:
+			'Verification code (only included in demo mode on non-production environments, or when EXPOSE_DEMO_OTP=true is set)',
 		example: '123456',
 	})
 	code?: string;

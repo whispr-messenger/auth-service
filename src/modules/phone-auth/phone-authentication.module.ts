@@ -8,6 +8,7 @@ import { PhoneVerificationModule } from '../phone-verification/phone-verificatio
 import { CommonModule } from '../common/common.module';
 import { TwoFactorAuthenticationModule } from '../two-factor-authentication/two-factor-authentication.module';
 import { SignalModule } from '../signal/signal.module';
+import { AdaptiveRateLimitModule } from '../adaptive-rate-limit/adaptive-rate-limit.module';
 import { RedisStreamProducer } from '../../shared/redis';
 
 @Module({
@@ -21,6 +22,7 @@ import { RedisStreamProducer } from '../../shared/redis';
 		TokensModule,
 		TwoFactorAuthenticationModule,
 		SignalModule,
+		AdaptiveRateLimitModule,
 	],
 	exports: [PhoneAuthenticationService],
 })

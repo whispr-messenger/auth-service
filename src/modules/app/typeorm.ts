@@ -37,12 +37,25 @@ function parseDatabaseUrl(url: string): DatabaseConfig {
 }
 
 /**
+ * Coerces an env-provided port (souvent une string vu que process.env est
+ * String→String) en number. Fallback sur le port Postgres par défaut si la
+ * valeur est manquante ou non-numérique.
+ */
+function coercePort(raw: unknown): number {
+	if (typeof raw === 'number' && Number.isFinite(raw)) {
+		return raw;
+	}
+	const parsed = Number.parseInt(String(raw ?? ''), 10);
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_POSTGRES_PORT;
+}
+
+/**
  * Retrieves database configuration from individual environment variables
  */
 function getEnvDatabaseConfig(configService: ConfigService): DatabaseConfig {
 	return {
 		host: configService.get('DB_HOST', 'localhost'),
-		port: configService.get('DB_PORT', DEFAULT_POSTGRES_PORT),
+		port: coercePort(configService.get('DB_PORT', DEFAULT_POSTGRES_PORT)),
 		username: configService.get('DB_USERNAME', 'postgres'),
 		password: configService.get('DB_PASSWORD', 'password'),
 		database: configService.get('DB_NAME', 'auth_service'),
@@ -70,11 +83,24 @@ function getDataSourceOptions(configService: ConfigService): DataSourceOptions {
 
 /**
  * Factory function to create TypeORM configuration based on environment
+ *
+ * Précédence : si les 5 variables discrètes (DB_HOST, DB_PORT, DB_NAME,
+ * DB_USERNAME, DB_PASSWORD) sont toutes définies, elles l'emportent sur
+ * DB_URL. C'est le cas en cluster Kubernetes où les Secrets exposent les
+ * champs séparément ; la fallback DB_URL héritée des configs locales ne
+ * doit pas écraser cette source plus précise.
  */
 export async function typeOrmModuleOptionsFactory(
 	configService: ConfigService
 ): Promise<TypeOrmModuleOptions> {
-	const databaseUrl = configService.get('DB_URL');
+	const dbHost = configService.get('DB_HOST');
+	const dbPort = configService.get('DB_PORT');
+	const dbName = configService.get('DB_NAME');
+	const dbUser = configService.get('DB_USERNAME');
+	const dbPassword = configService.get('DB_PASSWORD');
+	const hasDiscreteDbConfig = Boolean(dbHost && dbPort && dbName && dbUser && dbPassword);
+
+	const databaseUrl = hasDiscreteDbConfig ? undefined : configService.get('DB_URL');
 	const databaseConfig = databaseUrl ? parseDatabaseUrl(databaseUrl) : getEnvDatabaseConfig(configService);
 
 	const dataSourceOptions: DataSourceOptions = getDataSourceOptions(configService);

@@ -58,16 +58,55 @@ jest.mock(
 );
 
 // Mock ioredis to avoid real Redis connections during e2e tests.
+// Kept intentionally generous (WHISPR-1000) so that new code paths calling
+// rarer ioredis methods don't crash with "redis.foo is not a function"
+// during CI. Extend this list rather than fall back to real Redis.
 jest.mock('ioredis', () => {
 	const mockRedisInstance = {
+		// Basic key/value
 		get: jest.fn().mockResolvedValue(null),
 		set: jest.fn().mockResolvedValue('OK'),
 		setex: jest.fn().mockResolvedValue('OK'),
 		del: jest.fn().mockResolvedValue(1),
+		exists: jest.fn().mockResolvedValue(0),
 		keys: jest.fn().mockResolvedValue([]),
+		mget: jest.fn().mockResolvedValue([]),
+		// Counters & TTL
+		incr: jest.fn().mockResolvedValue(1),
+		decr: jest.fn().mockResolvedValue(0),
+		expire: jest.fn().mockResolvedValue(1),
+		ttl: jest.fn().mockResolvedValue(-1),
+		// Hashes
+		hget: jest.fn().mockResolvedValue(null),
+		hset: jest.fn().mockResolvedValue(1),
+		hdel: jest.fn().mockResolvedValue(1),
+		hgetall: jest.fn().mockResolvedValue({}),
+		// Lists
+		lpush: jest.fn().mockResolvedValue(1),
+		rpush: jest.fn().mockResolvedValue(1),
+		lrange: jest.fn().mockResolvedValue([]),
+		// Sets
+		sadd: jest.fn().mockResolvedValue(1),
+		srem: jest.fn().mockResolvedValue(1),
+		smembers: jest.fn().mockResolvedValue([]),
+		// Pub/Sub (retained for legacy paths even though Streams is preferred)
+		publish: jest.fn().mockResolvedValue(1),
+		subscribe: jest.fn().mockResolvedValue(1),
+		unsubscribe: jest.fn().mockResolvedValue(1),
+		// Streams (WHISPR-952/953)
+		xadd: jest.fn().mockResolvedValue('1-0'),
+		xreadgroup: jest.fn().mockResolvedValue(null),
+		xack: jest.fn().mockResolvedValue(1),
+		xgroup: jest.fn().mockResolvedValue('OK'),
+		xlen: jest.fn().mockResolvedValue(0),
+		// Connection / admin
+		select: jest.fn().mockResolvedValue('OK'),
+		info: jest.fn().mockResolvedValue(''),
 		ping: jest.fn().mockResolvedValue('PONG'),
 		quit: jest.fn().mockResolvedValue('OK'),
+		disconnect: jest.fn(),
 		on: jest.fn(),
+		off: jest.fn(),
 		status: 'ready',
 	};
 	const mockCtor = jest.fn().mockImplementation(() => mockRedisInstance);

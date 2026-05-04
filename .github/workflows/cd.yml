@@ -12,6 +12,11 @@ on:
         required: false
         type: string
         default: 'main'
+      target_env:
+        description: 'Target environment: preprod (preprod cluster only) or prod (prod + production clusters)'
+        required: false
+        type: string
+        default: 'prod'
     secrets:
       ACTIONS_CD:
         required: true
@@ -23,6 +28,14 @@ on:
         description: 'Commit SHA to deploy (leave empty for latest)'
         required: false
         type: string
+      target_env:
+        description: 'Target environment'
+        required: false
+        type: choice
+        options:
+          - preprod
+          - prod
+        default: 'prod'
 
 env:
   REGISTRY: ghcr.io
@@ -94,6 +107,32 @@ jobs:
           ref: main
           token: ${{ steps.generate_token.outputs.token }}
 
+      - name: Resolve target manifests
+        id: resolve_targets
+        run: |
+          TARGET_ENV="${{ inputs.target_env || 'prod' }}"
+          echo "Target environment: ${TARGET_ENV}"
+
+          case "${TARGET_ENV}" in
+            preprod)
+              FILES="k8s/whispr/preprod/auth-service/deployment.yaml"
+              ;;
+            prod)
+              FILES="k8s/whispr/prod/auth-service/deployment.yaml k8s/whispr/production/auth-service/deployment.yaml"
+              ;;
+            *)
+              echo "❌ Error: Unknown target_env '${TARGET_ENV}' (expected 'preprod' or 'prod')."
+              exit 1
+              ;;
+          esac
+
+          {
+            echo "target_env=${TARGET_ENV}"
+            echo "files<<EOF"
+            echo "${FILES}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Update image tag in deployment
         id: update_image
         run: |
@@ -114,33 +153,26 @@ jobs:
           echo "Short SHA: $SHORT_SHA"
           echo "Image tag: $IMAGE_TAG"
           echo "Updating deployment image to: ${FULL_IMAGE}"
+          echo "Target environment: ${{ steps.resolve_targets.outputs.target_env }}"
 
-          echo "Updating preprod, prod, and production manifests..."
-
-          echo "Updating k8s/whispr/preprod/auth-service/deployment.yaml"
-          yq -i 'select(.kind == "Deployment").spec.template.spec.containers[0].image = "'"${FULL_IMAGE}"'"' k8s/whispr/preprod/auth-service/deployment.yaml
-
-          echo "Updating k8s/whispr/prod/auth-service/deployment.yaml"
-          yq -i 'select(.kind == "Deployment").spec.template.spec.containers[0].image = "'"${FULL_IMAGE}"'"' k8s/whispr/prod/auth-service/deployment.yaml
-
-          echo "Updating k8s/whispr/production/auth-service/deployment.yaml"
-          yq -i 'select(.kind == "Deployment").spec.template.spec.containers[0].image = "'"${FULL_IMAGE}"'"' k8s/whispr/production/auth-service/deployment.yaml
+          for FILE in ${{ steps.resolve_targets.outputs.files }}; do
+            echo "Updating ${FILE}"
+            yq -i 'select(.kind == "Deployment").spec.template.spec.containers[0].image = "'"${FULL_IMAGE}"'"' "${FILE}"
+          done
 
       - name: Verify update
         run: |
-          echo "=== preprod ==="
-          yq '.spec.template.spec.containers[0].image' k8s/whispr/preprod/auth-service/deployment.yaml
-          echo "=== prod ==="
-          yq '.spec.template.spec.containers[0].image' k8s/whispr/prod/auth-service/deployment.yaml
-          echo "=== production ==="
-          yq '.spec.template.spec.containers[0].image' k8s/whispr/production/auth-service/deployment.yaml
+          for FILE in ${{ steps.resolve_targets.outputs.files }}; do
+            echo "=== ${FILE} ==="
+            yq '.spec.template.spec.containers[0].image' "${FILE}"
+          done
 
       - name: Commit and push changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
-          FILES="k8s/whispr/preprod/auth-service/deployment.yaml k8s/whispr/prod/auth-service/deployment.yaml k8s/whispr/production/auth-service/deployment.yaml"
+          FILES="${{ steps.resolve_targets.outputs.files }}"
 
           # Check if there are changes to commit
           if git diff --quiet $FILES; then
@@ -150,12 +182,13 @@ jobs:
 
           # Use the validated commit SHA determined in the previous step
           COMMIT_SHA="${{ steps.validate_commit.outputs.commit_sha }}"
+          TARGET_ENV="${{ steps.resolve_targets.outputs.target_env }}"
 
           # Build commit message based on trigger type
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            COMMIT_MSG="🔧 chore(deploy/auth-service): update image to ${COMMIT_SHA:0:7} (manual trigger)"
+            COMMIT_MSG="🔧 chore(deploy/auth-service): update ${TARGET_ENV} image to ${COMMIT_SHA:0:7} (manual trigger)"
           else
-            COMMIT_MSG="🔧 chore(deploy/auth-service): update image to ${COMMIT_SHA:0:7}"
+            COMMIT_MSG="🔧 chore(deploy/auth-service): update ${TARGET_ENV} image to ${COMMIT_SHA:0:7}"
           fi
 
           git add $FILES

@@ -1,4 +1,4 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BackupCode } from '../entities/backup-code.entity';
@@ -49,14 +49,18 @@ export class BackupCodesService {
 			where: { userId, used: false },
 		});
 
+		// A user with no unused codes is behaviourally identical to a user
+		// whose code just doesn't match — both return false. Throwing an
+		// UnauthorizedException in the first case used to leak whether any
+		// codes existed at all, and callers like verifyTwoFactor expect a
+		// boolean to uniformly fall back to the error path.
 		if (backupCodes.length === 0) {
-			throw new UnauthorizedException('Invalid backup code');
+			return false;
 		}
 
 		for (const backupCode of backupCodes) {
 			const isValid = await bcrypt.compare(code, backupCode.codeHash);
 			if (isValid) {
-				// Mark the code as used
 				backupCode.used = true;
 				backupCode.usedAt = new Date();
 				await this.backupCodeRepository.save(backupCode);
