@@ -38,8 +38,16 @@ export class QuickResponseCodeService {
 		return device;
 	}
 
-	async generateQRChallenge(authenticatedDeviceId: string): Promise<string> {
+	async generateQRChallenge(authenticatedDeviceId: string, authenticatedUserId?: string): Promise<string> {
 		const device = await this.getDevice(authenticatedDeviceId);
+
+		// Hard check: the caller can only issue a challenge for one of THEIR devices.
+		// Without this, any logged-in user could mint a challenge for another user's
+		// device — the returned challenge carries the victim's userId and scanLogin
+		// would then hand out tokens for that user.
+		if (authenticatedUserId && device.userId !== authenticatedUserId) {
+			throw new ForbiddenException('Device does not belong to the authenticated user');
+		}
 
 		const challengeId = uuidv4();
 		const challengeData: QRChallengeData = {

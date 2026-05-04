@@ -1,7 +1,8 @@
 import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { JwksDocument, JwksService } from './jwks.service';
+import { ApiGetJwksEndpoint } from './jwks.controller.swagger';
 
 @ApiTags('Auth - JWKS')
 @Controller({ path: '.well-known', version: VERSION_NEUTRAL })
@@ -10,8 +11,7 @@ export class JwksController {
 
 	@SkipThrottle()
 	@Get('jwks.json')
-	@ApiOperation({ summary: 'Return the JSON Web Key Set (JWKS) for ES256 token verification' })
-	@ApiResponse({ status: 200, description: 'JWKS document containing the EC public key' })
+	@ApiGetJwksEndpoint()
 	getJwks(): JwksDocument {
 		return this.jwksService.getJwks();
 	}

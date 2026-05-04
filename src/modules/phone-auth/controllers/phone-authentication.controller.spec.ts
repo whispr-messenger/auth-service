@@ -4,6 +4,7 @@ import { PhoneAuthenticationService } from '../services/phone-authentication.ser
 import { DeviceFingerprintService } from '../../devices/services/device-fingerprint/device-fingerprint.service';
 import { JwtAuthGuard } from '../../tokens/guards';
 import { AuthenticatedRequest } from '../../tokens/types/authenticated-request.interface';
+import { AdaptiveRateLimitService } from '../../adaptive-rate-limit/adaptive-rate-limit.service';
 
 describe('PhoneAuthenticationController', () => {
 	let controller: PhoneAuthenticationController;
@@ -31,6 +32,17 @@ describe('PhoneAuthenticationController', () => {
 			providers: [
 				{ provide: PhoneAuthenticationService, useValue: mockAuthService },
 				{ provide: DeviceFingerprintService, useValue: mockFingerprintService },
+				{
+					provide: AdaptiveRateLimitService,
+					useValue: {
+						getFailureCount: jest.fn().mockResolvedValue(0),
+						recordFailure: jest.fn().mockResolvedValue(0),
+						recordSuccess: jest.fn().mockResolvedValue(undefined),
+						shouldBlock: jest.fn().mockReturnValue(false),
+						threshold: 5,
+						windowSeconds: 900,
+					},
+				},
 			],
 		})
 			.overrideGuard(JwtAuthGuard)

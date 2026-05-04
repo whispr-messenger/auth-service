@@ -152,4 +152,15 @@ export class TwoFactorAuthenticationService {
 		const user = await this.userAuthService.findById(userId);
 		return user?.twoFactorEnabled ?? false;
 	}
+
+	// WHISPR-1052: nombre de codes de secours non consommés, exposé par
+	// GET /2fa/backup-codes/remaining pour que l'UI Settings alerte quand il
+	// ne reste presque plus de codes.
+	async getRemainingBackupCodesCount(userId: string): Promise<number> {
+		const user = await this.userAuthService.findById(userId);
+		if (!user?.twoFactorEnabled) {
+			return 0;
+		}
+		return this.backupCodesService.getRemainingCodesCount(userId);
+	}
 }

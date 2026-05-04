@@ -41,14 +41,7 @@ export class SignalKeyRotationService {
 		this.logger.log(`Rotating signed prekey for user ${userId}, device ${deviceId}`);
 
 		try {
-			// Store the new signed prekey
 			await this.keyStorage.storeSignedPreKey(userId, deviceId, newSignedPreKey);
-
-			// Optional: Delete expired signed prekeys (older than 30 days)
-			// Keep recent ones for a grace period
-			const thirtyDaysAgo = new Date();
-			thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
 			this.logger.log(`Successfully rotated signed prekey ${newSignedPreKey.keyId} for user ${userId}`);
 		} catch (error) {
 			this.logger.error(`Failed to rotate signed prekey for user ${userId}`, error.stack);

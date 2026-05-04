@@ -33,12 +33,20 @@ import { VerificationPurpose, VerificationCode, VerificationCreationResult } fro
 export class PhoneVerificationService {
 	private readonly logger = new Logger(PhoneVerificationService.name);
 	private readonly isDemoMode: boolean;
+	private readonly exposeDemoOtp: boolean;
 	private readonly otpBypassCode: string | undefined;
 	private readonly VERIFICATION_TTL_MS = 15 * 60 * 1000; // 15 minutes in milliseconds
 	private readonly POST_CONFIRM_TTL_MS = 60 * 1000; // 60 seconds post-confirm in milliseconds
 	private readonly MAX_ATTEMPTS = 5;
+	// WHISPR-866: rate-limit thresholds are tunable via env vars so we can loosen
+	// them for QA/staging and tighten them for production without a code change.
 	private readonly RATE_LIMIT_TTL_SECONDS = 60 * 60; // 1 hour in seconds
-	private readonly MAX_REQUESTS_PER_HOUR = 5;
+	private readonly MAX_REQUESTS_PER_HOUR: number;
+	// WHISPR-762: tighter sliding window to mitigate OTP flooding/impersonation probes.
+	// WHISPR-866: phone-scoped short window maps to SMS_RATE_LIMIT_PER_MINUTE.
+	private readonly SHORT_WINDOW_TTL_SECONDS = 60; // 1 minute
+	private readonly MAX_REQUESTS_PER_SHORT_WINDOW_PHONE: number;
+	private readonly MAX_REQUESTS_PER_SHORT_WINDOW_IP = 10;
 
 	constructor(
 		@Inject('VerificationRepository') private readonly verificationRepo: VerificationRepository,
@@ -53,11 +61,43 @@ export class PhoneVerificationService {
 		this.isDemoMode = this.configService.get<string>('DEMO_MODE') === 'true';
 		this.otpBypassCode = this.configService.get<string>('OTP_BYPASS_CODE');
 
+		// WHISPR-1117: the demo OTP must NEVER be returned in responses on prod,
+		// regardless of DEMO_MODE. Allow explicit override via EXPOSE_DEMO_OTP
+		// for tightly-controlled staging/QA scenarios, but default to hiding.
+		const nodeEnv = this.configService.get<string>('NODE_ENV');
+		const exposeFlag = this.configService.get<string>('EXPOSE_DEMO_OTP') === 'true';
+		this.exposeDemoOtp = nodeEnv !== 'production' || exposeFlag;
+
+		// WHISPR-866: thresholds read from env with sensible prod defaults.
+		this.MAX_REQUESTS_PER_HOUR = this.readPositiveInt('SMS_RATE_LIMIT_PER_HOUR', 20);
+		this.MAX_REQUESTS_PER_SHORT_WINDOW_PHONE = this.readPositiveInt('SMS_RATE_LIMIT_PER_MINUTE', 5);
+
 		if (this.otpBypassCode) {
 			this.logger.warn(
 				'OTP_BYPASS_CODE is set — OTP bypass mode is active. SMS sending is disabled and the bypass code will be accepted for any phone number. Do NOT use this in production.'
 			);
 		}
+	}
+
+	/**
+	 * Reads a positive integer env var via ConfigService, falling back to the
+	 * provided default when unset or when the value is not a strictly positive
+	 * integer. Guards against misconfigurations that would accidentally disable
+	 * the rate limiter (e.g. `SMS_RATE_LIMIT_PER_HOUR=0`).
+	 */
+	private readPositiveInt(key: string, defaultValue: number): number {
+		const raw = this.configService.get<string>(key);
+		if (raw === undefined || raw === null || raw === '') {
+			return defaultValue;
+		}
+		const parsed = Number.parseInt(String(raw), 10);
+		if (!Number.isFinite(parsed) || parsed <= 0) {
+			this.logger.warn(
+				`[WHISPR-866] Invalid value for ${key} ("${raw}") — falling back to default ${defaultValue}.`
+			);
+			return defaultValue;
+		}
+		return parsed;
 	}
 
 	/**
@@ -68,24 +108,65 @@ export class PhoneVerificationService {
 	 */
 	private async requestVerification(
 		phoneNumber: string,
-		purpose: VerificationPurpose
+		purpose: VerificationPurpose,
+		deviceId?: string,
+		ipAddress?: string
 	): Promise<VerificationRequestResponseDto> {
 		const normalizedPhone = this.phoneService.normalize(phoneNumber);
 
 		await this.checkRateLimit(normalizedPhone);
+		await this.checkShortWindowRateLimit(normalizedPhone, ipAddress);
 
 		const { verificationId, code, verificationData } = await this.createVerificationData(
 			normalizedPhone,
-			purpose
+			purpose,
+			deviceId
 		);
 
 		await this.verificationRepo.save(verificationId, verificationData, this.VERIFICATION_TTL_MS);
 
 		await this.incrementRateLimit(normalizedPhone);
+		await this.incrementShortWindowRateLimit(normalizedPhone, ipAddress);
 
 		await this.sendVerificationCode(normalizedPhone, code, purpose);
 
 		return this.buildVerificationResponse(verificationId, code);
+	}
+
+	/**
+	 * WHISPR-762 — short-window rate limits to mitigate OTP flooding and
+	 * impersonation probing. Separate counters for phone and IP so one actor
+	 * cannot cycle numbers nor cycle IPs to exhaust a single phone.
+	 */
+	private async checkShortWindowRateLimit(phoneNumber: string, ipAddress?: string): Promise<void> {
+		await this.rateLimitService.checkLimit(
+			`rate_limit:short:phone:${phoneNumber}`,
+			this.MAX_REQUESTS_PER_SHORT_WINDOW_PHONE,
+			this.SHORT_WINDOW_TTL_SECONDS,
+			'Too many verification code requests for this phone number'
+		);
+
+		if (ipAddress) {
+			await this.rateLimitService.checkLimit(
+				`rate_limit:short:ip:${ipAddress}`,
+				this.MAX_REQUESTS_PER_SHORT_WINDOW_IP,
+				this.SHORT_WINDOW_TTL_SECONDS,
+				'Too many verification code requests from this IP'
+			);
+		}
+	}
+
+	private async incrementShortWindowRateLimit(phoneNumber: string, ipAddress?: string): Promise<void> {
+		await this.rateLimitService.increment(
+			`rate_limit:short:phone:${phoneNumber}`,
+			this.SHORT_WINDOW_TTL_SECONDS
+		);
+		if (ipAddress) {
+			await this.rateLimitService.increment(
+				`rate_limit:short:ip:${ipAddress}`,
+				this.SHORT_WINDOW_TTL_SECONDS
+			);
+		}
 	}
 
 	/**
@@ -122,7 +203,8 @@ export class PhoneVerificationService {
 	 */
 	private async createVerificationData(
 		phoneNumber: string,
-		purpose: VerificationPurpose
+		purpose: VerificationPurpose,
+		deviceId?: string
 	): Promise<VerificationCreationResult> {
 		const verificationId = uuidv4();
 		const code = this.codeGenerator.generateCode();
@@ -135,6 +217,7 @@ export class PhoneVerificationService {
 			purpose,
 			attempts: 0,
 			expiresAt: expirationTime,
+			...(deviceId ? { deviceId } : {}),
 		};
 
 		return { verificationId, code, verificationData };
@@ -174,7 +257,7 @@ export class PhoneVerificationService {
 	 * @returns Response with ID and optionally the code
 	 */
 	private buildVerificationResponse(verificationId: string, code: string): VerificationRequestResponseDto {
-		if (this.isDemoMode) {
+		if (this.isDemoMode && this.exposeDemoOtp) {
 			// When a bypass code is configured, surface that predictable value in
 			// demo responses instead of the randomly generated one. Both codes are
 			// accepted by verifyCode, but users remembering "123456" across sessions
@@ -182,6 +265,15 @@ export class PhoneVerificationService {
 			const exposedCode = this.otpBypassCode ?? code;
 			this.logger.debug('Demo mode is activated: sending verification code in response payload.');
 			return { verificationId, code: exposedCode };
+		}
+
+		if (this.isDemoMode && !this.exposeDemoOtp) {
+			// WHISPR-1117: demo mode still short-circuits the SMS provider, but we
+			// refuse to leak the plaintext OTP in the HTTP response on production
+			// unless the operator explicitly opts in via EXPOSE_DEMO_OTP=true.
+			this.logger.warn(
+				'[WHISPR-1117] Demo mode is active but EXPOSE_DEMO_OTP is not set in production — withholding OTP from response.'
+			);
 		}
 
 		return { verificationId };
@@ -195,12 +287,18 @@ export class PhoneVerificationService {
 	 * @throws BadRequestException if code is invalid or verification not found
 	 * @throws HttpException with TOO_MANY_REQUESTS if max attempts exceeded
 	 */
-	public async verifyCode(verificationId: string, code: string): Promise<VerificationCode> {
+	public async verifyCode(
+		verificationId: string,
+		code: string,
+		deviceId?: string
+	): Promise<VerificationCode> {
 		const verificationData = await this.verificationRepo.findById(verificationId);
 
 		if (!verificationData) {
 			throw new BadRequestException('Invalid or expired verification code');
 		}
+
+		this.assertDeviceBinding(verificationData, deviceId);
 
 		if (verificationData.verified) {
 			if (code === '') {
@@ -262,18 +360,45 @@ export class PhoneVerificationService {
 	 * @returns The verification data if it has been confirmed
 	 * @throws BadRequestException if verification not found or not confirmed
 	 */
-	public async getConfirmedVerification(verificationId: string): Promise<VerificationCode> {
+	public async getConfirmedVerification(
+		verificationId: string,
+		deviceId?: string
+	): Promise<VerificationCode> {
 		const verificationData = await this.verificationRepo.findById(verificationId);
 
 		if (!verificationData) {
 			throw new BadRequestException('Invalid or expired verification code');
 		}
 
+		this.assertDeviceBinding(verificationData, deviceId);
+
 		if (!verificationData.verified) {
 			throw new BadRequestException('Verification code has not been confirmed yet');
 		}
 
 		return verificationData;
+	}
+
+	/**
+	 * WHISPR-762 — enforce that if an OTP session was bound to a deviceId at
+	 * send time, all subsequent operations (confirm, consume) MUST present the
+	 * same deviceId. Prevents an attacker from verifying/consuming an OTP sent
+	 * to a victim's phone from a different device.
+	 *
+	 * Backward compatibility: sessions created before the binding rollout (no
+	 * deviceId stored) remain usable from any device. New clients that send a
+	 * deviceId on request get hard binding.
+	 */
+	private assertDeviceBinding(verificationData: VerificationCode, providedDeviceId?: string): void {
+		if (!verificationData.deviceId) {
+			return;
+		}
+		if (!providedDeviceId || providedDeviceId !== verificationData.deviceId) {
+			this.logger.warn(
+				`[WHISPR-762] OTP device binding mismatch — sessionDeviceId=${verificationData.deviceId} requestDeviceId=${providedDeviceId ?? 'none'}`
+			);
+			throw new BadRequestException('Invalid or expired verification code');
+		}
 	}
 
 	/**
@@ -291,7 +416,8 @@ export class PhoneVerificationService {
 	 * @throws ConflictException if user already exists
 	 */
 	public async requestRegistrationVerification(
-		dto: VerificationRequestDto
+		dto: VerificationRequestDto,
+		ipAddress?: string
 	): Promise<VerificationRequestResponseDto> {
 		// First check: fast-fail before issuing an OTP to a phone that already has an account.
 		// A second check is intentionally performed at register() time (TOCTOU protection): the
@@ -302,7 +428,7 @@ export class PhoneVerificationService {
 			throw new ConflictException('An account with this phone number already exists.');
 		}
 
-		return this.requestVerification(dto.phoneNumber, 'registration');
+		return this.requestVerification(dto.phoneNumber, 'registration', dto.deviceId, ipAddress);
 	}
 
 	/**
@@ -313,7 +439,7 @@ export class PhoneVerificationService {
 	public async confirmRegistrationVerification(
 		dto: VerificationConfirmDto
 	): Promise<VerificationConfirmResponseDto> {
-		const verificationData = await this.verifyCode(dto.verificationId, dto.code);
+		const verificationData = await this.verifyCode(dto.verificationId, dto.code, dto.deviceId);
 		await this.markVerificationAsConfirmed(dto.verificationId, verificationData);
 		return { verified: true };
 	}
@@ -325,7 +451,8 @@ export class PhoneVerificationService {
 	 * @throws BadRequestException if user doesn't exist
 	 */
 	public async requestLoginVerification(
-		dto: VerificationRequestDto
+		dto: VerificationRequestDto,
+		ipAddress?: string
 	): Promise<VerificationRequestResponseDto> {
 		const user = await this.userAuthService.findByPhoneNumber(dto.phoneNumber);
 
@@ -333,7 +460,7 @@ export class PhoneVerificationService {
 			throw new BadRequestException('No account found with this phone number');
 		}
 
-		return this.requestVerification(dto.phoneNumber, 'login');
+		return this.requestVerification(dto.phoneNumber, 'login', dto.deviceId, ipAddress);
 	}
 
 	/**
@@ -344,7 +471,7 @@ export class PhoneVerificationService {
 	public async confirmLoginVerification(
 		dto: VerificationConfirmDto
 	): Promise<VerificationLoginResponseDto> {
-		const verificationData = await this.verifyCode(dto.verificationId, dto.code);
+		const verificationData = await this.verifyCode(dto.verificationId, dto.code, dto.deviceId);
 		await this.markVerificationAsConfirmed(dto.verificationId, verificationData);
 
 		const user = await this.userAuthService.findByPhoneNumber(verificationData.phoneNumber);
