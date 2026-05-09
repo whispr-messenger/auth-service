@@ -1,8 +1,16 @@
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+	Injectable,
+	BadRequestException,
+	UnauthorizedException,
+	HttpException,
+	HttpStatus,
+} from '@nestjs/common';
+import { createHash } from 'crypto';
 import { UserAuthService } from '../../common/services/user-auth.service';
 import * as speakeasy from 'speakeasy';
 import * as QRCode from 'qrcode';
 import { BackupCodesService } from '../backup-codes/backup-codes.service';
+import { CacheService } from '../../cache/cache.service';
 
 interface TwoFactorSetup {
 	secret: string;
@@ -10,12 +18,67 @@ interface TwoFactorSetup {
 	qrCodeUrl: string;
 }
 
+// WHISPR-1319: rate limit per-user sur POST /2fa/verify pour bloquer le bruteforce
+// (sans cap, ~1800 tentatives/h sont possibles avec un JWT valide).
+const VERIFY_ATTEMPTS_LIMIT = 5;
+const VERIFY_ATTEMPTS_TTL_SECONDS = 15 * 60; // 15 minutes
+// fenetre TOTP = 90s (window: 2 cote speakeasy = +/- 60s + step 30s).
+// Garder la trace du code utilise un peu plus longtemps que la fenetre suffit.
+const TOTP_REPLAY_TTL_SECONDS = 90;
+
 @Injectable()
 export class TwoFactorAuthenticationService {
 	constructor(
 		private readonly userAuthService: UserAuthService,
-		private readonly backupCodesService: BackupCodesService
+		private readonly backupCodesService: BackupCodesService,
+		private readonly cacheService: CacheService
 	) {}
+
+	private buildAttemptsKey(userId: string): string {
+		return `attempts:2fa:verify:${userId}`;
+	}
+
+	private async assertVerifyRateLimit(userId: string): Promise<void> {
+		const key = this.buildAttemptsKey(userId);
+		const current = await this.cacheService.get<number | string>(key);
+		const count = current ? Number.parseInt(String(current), 10) : 0;
+		if (Number.isFinite(count) && count >= VERIFY_ATTEMPTS_LIMIT) {
+			throw new HttpException(
+				'Trop de tentatives, réessayez dans 15 minutes',
+				HttpStatus.TOO_MANY_REQUESTS
+			);
+		}
+	}
+
+	private async incrementVerifyAttempts(userId: string): Promise<void> {
+		const key = this.buildAttemptsKey(userId);
+		const value = await this.cacheService.incr(key);
+		if (value === 1) {
+			await this.cacheService.expire(key, VERIFY_ATTEMPTS_TTL_SECONDS);
+		}
+	}
+
+	private async resetVerifyAttempts(userId: string): Promise<void> {
+		await this.cacheService.del(this.buildAttemptsKey(userId));
+	}
+
+	private buildReplayKey(userId: string, code: string): string {
+		// hash sha256 pour ne pas stocker le code TOTP en clair dans Redis,
+		// meme si la TTL est courte. userId prefixe sert de salt par-user.
+		const digest = createHash('sha256').update(`${userId}:${code}`).digest('hex');
+		return `2fa:replay:${userId}:${digest}`;
+	}
+
+	private async assertTotpNotReplayed(userId: string, code: string): Promise<void> {
+		const exists = await this.cacheService.exists(this.buildReplayKey(userId, code));
+		if (exists) {
+			throw new BadRequestException('Verification code already used');
+		}
+	}
+
+	private async markTotpAsUsed(userId: string, code: string): Promise<void> {
+		await this.cacheService.set(this.buildReplayKey(userId, code), '1', TOTP_REPLAY_TTL_SECONDS);
+	}
 
 	async setupTwoFactor(userId: string): Promise<TwoFactorSetup> {
 		const user = await this.userAuthService.findById(userId);
@@ -94,6 +157,16 @@ export class TwoFactorAuthenticationService {
 			throw new BadRequestException('Two-factor authentication is not configured');
 		}
 
+		// WHISPR-1319: rate limit per-user — bloque le bruteforce TOTP.
+		// Le check se fait AVANT la verif speakeasy pour ne pas valider de code
+		// quand la limite est atteinte.
+		await this.assertVerifyRateLimit(userId);
+
+		// WHISPR-1319: anti-replay — un meme code TOTP valide ne peut etre rejoue
+		// dans sa fenetre de validite (90s). Protege contre l'usage d'un code
+		// intercepte (ex. shoulder surfing, MITM transitoire).
+		await this.assertTotpNotReplayed(userId, token);
+
 		const isValidTOTP = speakeasy.totp.verify({
 			secret: user.twoFactorSecret,
 			encoding: 'base32',
@@ -102,10 +175,19 @@ export class TwoFactorAuthenticationService {
 		});
 
 		if (isValidTOTP) {
+			await this.markTotpAsUsed(userId, token);
+			await this.resetVerifyAttempts(userId);
 			return true;
 		}
 
-		return this.backupCodesService.verifyBackupCode(userId, token);
+		const isValidBackup = await this.backupCodesService.verifyBackupCode(userId, token);
+		if (isValidBackup) {
+			await this.resetVerifyAttempts(userId);
+			return true;
+		}
+
+		await this.incrementVerifyAttempts(userId);
+		return false;
 	}
 
 	async disableTwoFactor(userId: string, token: string): Promise<void> {
