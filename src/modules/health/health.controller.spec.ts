@@ -1,10 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ServiceUnavailableException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { DataSource } from 'typeorm';
 import { HealthController } from './health.controller';
 import { CacheService } from '../cache/cache.service';
 import { RedisConfig } from '../../config/redis.config';
 import { TwilioHealthIndicator } from './twilio-health.indicator';
+
+// Cle interne du package nestjs/throttler - non exportee par le barrel.
+// Le decorateur stocke un flag par throttler nomme (ex: THROTTLER:SKIPshort).
+const THROTTLER_SKIP = 'THROTTLER:SKIP';
 
 describe('HealthController', () => {
 	let controller: HealthController;
@@ -88,6 +93,20 @@ describe('HealthController', () => {
 
 			await expect(controller.check()).rejects.toThrow(ServiceUnavailableException);
 		});
+	});
+
+	describe('throttler skip metadata', () => {
+		// Garde-fou: avec des throttlers nommes, @SkipThrottle() sans argument
+		// ne skip rien et fait flapper les pods en NotReady (429 sur readiness).
+		it.each(['short', 'medium', 'long'])(
+			'should skip the "%s" named throttler at controller level',
+			(name) => {
+				const reflector = new Reflector();
+				const skipped = reflector.get<boolean>(`${THROTTLER_SKIP}${name}`, HealthController);
+
+				expect(skipped).toBe(true);
+			}
+		);
 	});
 
 	describe('readiness', () => {
