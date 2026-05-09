@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Request, Post, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import {
 	TwoFactorBackupCodesResponseDto,
 	TwoFactorDisableResponseDto,
@@ -24,6 +25,11 @@ import {
 } from './two-factor-authentication.controller.swagger';
 
 @ApiTags('Auth - Two Factor Authentication (2FA)')
+// rate limit strict pour eviter brute-force TOTP 6 chiffres (10^6 codes)
+// throttler global LONG (100/min) ne suffit pas - un JWT vole permettrait
+// 6000 tentatives/h dans la fenetre TOTP de 30s
+// override par methode possible (verify est plus strict, cf ci-dessous)
+@Throttle({ default: { ttl: 60_000, limit: 5 } })
 @Controller('2fa')
 export class TwoFactorAuthenticationController {
 	constructor(private readonly twoFactorService: TwoFactorAuthenticationService) {}
@@ -48,6 +54,8 @@ export class TwoFactorAuthenticationController {
 	}
 
 	@Post('verify')
+	// palier plus strict sur verify : c'est l'endpoint cible pour brute-force TOTP
+	@Throttle({ default: { ttl: 60_000, limit: 3 } })
 	@UseGuards(JwtAuthGuard)
 	@HttpCode(HttpStatus.OK)
 	@ApiVerifyTwoFactorEndpoint()
