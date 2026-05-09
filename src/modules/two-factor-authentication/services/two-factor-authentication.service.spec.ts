@@ -384,4 +384,56 @@ describe('TwoFactorAuthenticationService', () => {
 			expect(result).toBe(0);
 		});
 	});
+
+	// WHISPR-1431: endpoint dédié single-use recovery code
+	describe('useRecoveryCode', () => {
+		const userWith2FA = { ...mockUser, twoFactorEnabled: true, twoFactorSecret: 'SECRET' };
+
+		it('should return true and consume the code when valid and unused', async () => {
+			mockUserAuthService.findById.mockResolvedValue({ ...userWith2FA });
+			mockBackupCodesService.verifyBackupCode.mockResolvedValue(true);
+
+			const result = await service.useRecoveryCode('user-id', 'ABCD-1234');
+
+			expect(result).toBe(true);
+			expect(mockBackupCodesService.verifyBackupCode).toHaveBeenCalledWith('user-id', 'ABCD-1234');
+		});
+
+		it('should return false when code does not match any stored hash', async () => {
+			mockUserAuthService.findById.mockResolvedValue({ ...userWith2FA });
+			mockBackupCodesService.verifyBackupCode.mockResolvedValue(false);
+
+			const result = await service.useRecoveryCode('user-id', 'WRONG-CODE');
+
+			expect(result).toBe(false);
+		});
+
+		it('should return false and not call verifyBackupCode when 2FA is not enabled (timing-safe)', async () => {
+			mockUserAuthService.findById.mockResolvedValue({ ...mockUser, twoFactorEnabled: false });
+
+			const result = await service.useRecoveryCode('user-id', 'ABCD-1234');
+
+			expect(result).toBe(false);
+			expect(mockBackupCodesService.verifyBackupCode).not.toHaveBeenCalled();
+		});
+
+		it('should return false when user is not found (timing-safe)', async () => {
+			mockUserAuthService.findById.mockResolvedValue(null);
+
+			const result = await service.useRecoveryCode('user-id', 'ABCD-1234');
+
+			expect(result).toBe(false);
+			expect(mockBackupCodesService.verifyBackupCode).not.toHaveBeenCalled();
+		});
+
+		it('should return false for an already-used code (no oracle: verifyBackupCode handles this)', async () => {
+			mockUserAuthService.findById.mockResolvedValue({ ...userWith2FA });
+			// verifyBackupCode retourne false si le code est deja marqué used
+			mockBackupCodesService.verifyBackupCode.mockResolvedValue(false);
+
+			const result = await service.useRecoveryCode('user-id', 'USED-CODE');
+
+			expect(result).toBe(false);
+		});
+	});
 });

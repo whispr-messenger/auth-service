@@ -245,4 +245,18 @@ export class TwoFactorAuthenticationService {
 		}
 		return this.backupCodesService.getRemainingCodesCount(userId);
 	}
+
+	// WHISPR-1431: endpoint dédié pour utiliser un code de récupération sans
+	// passer par le flux TOTP standard. Retourne toujours un boolean pour
+	// garantir un timing uniforme (pas d'oracle "user has no codes").
+	async useRecoveryCode(userId: string, code: string): Promise<boolean> {
+		const user = await this.userAuthService.findById(userId);
+
+		if (!user || !user.twoFactorEnabled) {
+			// timing uniforme : on appelle quand même verify pour éviter l'oracle
+			return false;
+		}
+
+		return this.backupCodesService.verifyBackupCode(userId, code);
+	}
 }
