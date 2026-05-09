@@ -30,7 +30,17 @@ export class SmsVerificationStrategy implements VerificationChannelStrategy {
 			// Log the error but don't fail - allow the verification process to continue
 			if (process.env.NODE_ENV !== 'test') {
 				this.logger.error(`Failed to send SMS to ${recipient}:`, error);
-				this.logger.log(`Verification code for ${recipient}: ${code}`);
+				// ne pas exposer le code en clair dans les logs prod/staging.
+				// uniquement en development local pour faciliter le debug manuel.
+				if (process.env.NODE_ENV === 'development') {
+					this.logger.debug(
+						`Verification code for ${recipient}: ${code} (development-only, redacted in other envs)`
+					);
+				} else {
+					this.logger.log(
+						`Verification code generation succeeded for ${recipient} but SMS delivery failed (code redacted)`
+					);
+				}
 			}
 			// Re-throw in production to handle properly
 			if (process.env.NODE_ENV === 'production') {
