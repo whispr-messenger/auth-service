@@ -53,9 +53,6 @@ describe('HealthController', () => {
 			const result = controller.alive();
 
 			expect(result.status).toBe('alive');
-			expect(result.timestamp).toBeDefined();
-			expect(result.uptime).toBeGreaterThanOrEqual(0);
-			expect(result.version).toBeDefined();
 		});
 
 		it('should not check database or cache', () => {
@@ -66,24 +63,37 @@ describe('HealthController', () => {
 			expect(mockCacheService.get).not.toHaveBeenCalled();
 		});
 
-		it('should not include services field in response', () => {
+		it('should not leak runtime metadata (uptime, version, timestamp)', () => {
 			const result = controller.alive();
 
-			expect(result).not.toHaveProperty('services');
+			expect(result).not.toHaveProperty('uptime');
+			expect(result).not.toHaveProperty('version');
+			expect(result).not.toHaveProperty('timestamp');
 		});
 	});
 
 	describe('check (general health)', () => {
-		it('should return 200 when all services are healthy', async () => {
+		it('should return only { status: "ok" } when all services are healthy', async () => {
 			mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
 			mockCacheService.set.mockResolvedValue(undefined);
 			mockCacheService.get.mockResolvedValue('ok');
 
 			const result = await controller.check();
 
-			expect(result.status).toBe('ok');
-			expect(result.services.database).toBe('healthy');
-			expect(result.services.cache).toBe('healthy');
+			expect(result).toEqual({ status: 'ok' });
+		});
+
+		it('should not leak runtime metadata (uptime, memory, version)', async () => {
+			mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
+			mockCacheService.set.mockResolvedValue(undefined);
+			mockCacheService.get.mockResolvedValue('ok');
+
+			const result = (await controller.check()) as Record<string, unknown>;
+
+			expect(result).not.toHaveProperty('uptime');
+			expect(result).not.toHaveProperty('memory');
+			expect(result).not.toHaveProperty('version');
+			expect(result).not.toHaveProperty('services');
 		});
 
 		it('should throw ServiceUnavailableException when database is down', async () => {
