@@ -21,6 +21,7 @@ import {
 	ApiGetTwoFactorStatusEndpoint,
 	ApiRegenerateBackupCodesEndpoint,
 	ApiSetupTwoFactorEndpoint,
+	ApiUseRecoveryCodeEndpoint,
 	ApiVerifyTwoFactorEndpoint,
 } from './two-factor-authentication.controller.swagger';
 
@@ -111,6 +112,22 @@ export class TwoFactorAuthenticationController {
 	async getRemainingBackupCodes(@Request() req: AuthenticatedRequest) {
 		const remaining = await this.twoFactorService.getRemainingBackupCodesCount(req.user.sub);
 		return { remaining };
+	}
+
+	// WHISPR-1431: permet de bypasser la 2FA en utilisant un code de récupération
+	// single-use — flux distinct du POST /verify qui accepte aussi les backup codes
+	// via le fallback, pour pouvoir appliquer un rate limit plus strict (limit: 3).
+	@Post('backup-codes/use')
+	@Throttle({ default: { ttl: 60_000, limit: 3 } })
+	@UseGuards(JwtAuthGuard)
+	@HttpCode(HttpStatus.OK)
+	@ApiUseRecoveryCodeEndpoint()
+	async useRecoveryCode(
+		@Request() req: AuthenticatedRequest,
+		@Body() dto: TwoFactorVerifyDto
+	): Promise<TwoFactorVerifyResponseDto> {
+		const valid = await this.twoFactorService.useRecoveryCode(req.user.sub, dto.token);
+		return { valid };
 	}
 
 	@Get('status')

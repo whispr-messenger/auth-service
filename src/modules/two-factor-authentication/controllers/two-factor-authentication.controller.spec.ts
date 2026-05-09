@@ -15,6 +15,7 @@ describe('TwoFactorAuthenticationController', () => {
 		generateNewBackupCodes: jest.fn(),
 		isTwoFactorEnabled: jest.fn(),
 		getRemainingBackupCodesCount: jest.fn(),
+		useRecoveryCode: jest.fn(),
 	};
 
 	const mockRequest = { user: { sub: 'user-id' } } as unknown as AuthenticatedRequest;
@@ -153,6 +154,42 @@ describe('TwoFactorAuthenticationController', () => {
 			const result = await controller.getTwoFactorStatus(mockRequest);
 
 			expect(result).toEqual({ enabled: false });
+		});
+	});
+
+	// WHISPR-1431: endpoint dédié recovery codes
+	describe('useRecoveryCode', () => {
+		it('should return valid: true when recovery code is correct and unused', async () => {
+			mockTwoFactorService.useRecoveryCode.mockResolvedValue(true);
+
+			const result = await controller.useRecoveryCode(mockRequest, { token: 'ABCD-1234' });
+
+			expect(result).toEqual({ valid: true });
+			expect(mockTwoFactorService.useRecoveryCode).toHaveBeenCalledWith('user-id', 'ABCD-1234');
+		});
+
+		it('should return valid: false when recovery code is already used', async () => {
+			mockTwoFactorService.useRecoveryCode.mockResolvedValue(false);
+
+			const result = await controller.useRecoveryCode(mockRequest, { token: 'USED-1234' });
+
+			expect(result).toEqual({ valid: false });
+		});
+
+		it('should return valid: false for an unknown code (timing-safe, no oracle)', async () => {
+			mockTwoFactorService.useRecoveryCode.mockResolvedValue(false);
+
+			const result = await controller.useRecoveryCode(mockRequest, { token: 'UNKN-0000' });
+
+			expect(result).toEqual({ valid: false });
+		});
+
+		it('should propagate service errors', async () => {
+			mockTwoFactorService.useRecoveryCode.mockRejectedValue(new Error('DB error'));
+
+			await expect(controller.useRecoveryCode(mockRequest, { token: 'ABCD-1234' })).rejects.toThrow(
+				'DB error'
+			);
 		});
 	});
 });
