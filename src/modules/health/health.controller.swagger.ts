@@ -5,7 +5,7 @@ export const ApiHealthCheckEndpoint = () =>
 	applyDecorators(
 		ApiOperation({
 			summary: 'Check service health',
-			description: 'Returns the health status of the service and its dependencies (database and cache)',
+			description: 'Returns a minimal public health status. No runtime metadata is exposed.',
 		}),
 		ApiResponse({ status: 200, description: 'Health check completed successfully' }),
 		ApiResponse({ status: 503, description: 'One or more services are unhealthy' })

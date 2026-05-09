@@ -29,53 +29,34 @@ export class HealthController {
 
 	@Get()
 	@ApiHealthCheckEndpoint()
-	async check() {
-		this.logger.debug('Health check started');
+	async check(): Promise<{ status: 'ok' }> {
+		// Reponse publique minimale - pas d'uptime/memory/version (info disclosure).
+		// Le controle effectif des dependances reste sur /health/ready (probe k8s).
+		let healthy = true;
 
-		const health = {
-			status: 'ok',
-			timestamp: new Date().toISOString(),
-			uptime: process.uptime(),
-			memory: process.memoryUsage(),
-			version: process.env.npm_package_version || '1.0.0',
-			services: {
-				database: 'unknown',
-				cache: 'unknown',
-			},
-		};
-
-		// Check database connection
 		try {
-			this.logger.debug('Checking database connection');
 			await this.dataSource.query('SELECT 1');
-			health.services.database = 'healthy';
-			this.logger.debug('Database check passed');
 		} catch (error) {
 			if (process.env.NODE_ENV !== 'test') {
 				this.logger.error('Database check failed:', error.message);
 			}
-			health.services.database = 'unhealthy';
-			health.status = 'error';
+			healthy = false;
 		}
 
-		// Check cache connection
 		try {
 			await this.checkCacheHealth();
-			health.services.cache = 'healthy';
 		} catch (error) {
 			if (process.env.NODE_ENV !== 'test') {
 				this.logger.error('Cache check failed:', error.message);
 			}
-			health.services.cache = 'unhealthy';
-			health.status = 'error';
+			healthy = false;
 		}
 
-		if (health.status !== 'ok') {
-			throw new ServiceUnavailableException(health);
+		if (!healthy) {
+			throw new ServiceUnavailableException({ status: 'error' });
 		}
 
-		this.logger.debug('Health check completed:', health);
-		return health;
+		return { status: 'ok' };
 	}
 
 	@Get('ready')
@@ -123,12 +104,8 @@ export class HealthController {
 
 	@Get('live')
 	@ApiLivenessEndpoint()
-	alive() {
-		return {
-			status: 'alive',
-			timestamp: new Date().toISOString(),
-			uptime: process.uptime(),
-			version: process.env.npm_package_version || '1.0.0',
-		};
+	alive(): { status: 'alive' } {
+		// Liveness probe k8s - reponse minimale pour eviter info disclosure (version/uptime).
+		return { status: 'alive' };
 	}
 }
