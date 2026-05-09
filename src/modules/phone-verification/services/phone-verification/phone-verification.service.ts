@@ -124,6 +124,13 @@ export class PhoneVerificationService {
 			deviceId
 		);
 
+		// WHISPR-1393: au resend, invalider l'ancien verificationId pour éviter
+		// que deux OTP simultanés restent valides en parallèle (anti-replay).
+		const previous = await this.verificationRepo.findByPhoneAndPurpose(normalizedPhone, purpose);
+		if (previous) {
+			await this.verificationRepo.delete(previous.verificationId);
+		}
+
 		await this.verificationRepo.save(verificationId, verificationData, this.VERIFICATION_TTL_MS);
 
 		await this.incrementRateLimit(normalizedPhone);
