@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, UnauthorizedException } from '@nestjs/common';
 import { TwoFactorAuthenticationService } from './two-factor-authentication.service';
 import { UserAuthService } from '../../common/services/user-auth.service';
 import { BackupCodesService } from '../backup-codes/backup-codes.service';
+import { CacheService } from '../../cache/cache.service';
 import * as speakeasy from 'speakeasy';
 import * as QRCode from 'qrcode';
 
@@ -24,6 +25,17 @@ describe('TwoFactorAuthenticationService', () => {
 		getRemainingCodesCount: jest.fn(),
 	};
 
+	// par defaut: rate limit non atteint. les tests qui veulent simuler un autre
+	// etat overriden les mocks individuellement.
+	const mockCacheService = {
+		get: jest.fn().mockResolvedValue(null),
+		set: jest.fn().mockResolvedValue(undefined),
+		del: jest.fn().mockResolvedValue(undefined),
+		incr: jest.fn().mockResolvedValue(1),
+		expire: jest.fn().mockResolvedValue(undefined),
+		exists: jest.fn().mockResolvedValue(false),
+	};
+
 	const mockUser = {
 		id: 'user-id',
 		phoneNumber: '+33612345678',
@@ -34,12 +46,16 @@ describe('TwoFactorAuthenticationService', () => {
 
 	beforeEach(async () => {
 		jest.clearAllMocks();
+		mockCacheService.get.mockResolvedValue(null);
+		mockCacheService.exists.mockResolvedValue(false);
+		mockCacheService.incr.mockResolvedValue(1);
 
 		const module: TestingModule = await Test.createTestingModule({
 			providers: [
 				TwoFactorAuthenticationService,
 				{ provide: UserAuthService, useValue: mockUserAuthService },
 				{ provide: BackupCodesService, useValue: mockBackupCodesService },
+				{ provide: CacheService, useValue: mockCacheService },
 			],
 		}).compile();
 
@@ -187,6 +203,37 @@ describe('TwoFactorAuthenticationService', () => {
 			mockUserAuthService.findById.mockResolvedValue(null);
 
 			await expect(service.verifyTwoFactor('user-id', '123456')).rejects.toThrow(BadRequestException);
+		});
+
+		// WHISPR-1319 — rate limit per-user (5 attempts / 15 min)
+		it('should throw HttpException 429 when verify attempts already at the limit', async () => {
+			mockUserAuthService.findById.mockResolvedValue(userWith2FA);
+			mockCacheService.get.mockResolvedValue(5);
+
+			const promise = service.verifyTwoFactor('user-id', '000000');
+			await expect(promise).rejects.toBeInstanceOf(HttpException);
+			await expect(promise).rejects.toMatchObject({ status: HttpStatus.TOO_MANY_REQUESTS });
+			expect(speakeasy.totp.verify).not.toHaveBeenCalled();
+		});
+
+		it('should increment attempts counter on failed verify', async () => {
+			mockUserAuthService.findById.mockResolvedValue(userWith2FA);
+			(speakeasy.totp.verify as jest.Mock).mockReturnValue(false);
+			mockBackupCodesService.verifyBackupCode.mockResolvedValue(false);
+
+			const result = await service.verifyTwoFactor('user-id', '000000');
+
+			expect(result).toBe(false);
+			expect(mockCacheService.incr).toHaveBeenCalledWith('attempts:2fa:verify:user-id');
+		});
+
+		it('should reset attempts counter on successful TOTP verify', async () => {
+			mockUserAuthService.findById.mockResolvedValue(userWith2FA);
+			(speakeasy.totp.verify as jest.Mock).mockReturnValue(true);
+
+			await service.verifyTwoFactor('user-id', '123456');
+
+			expect(mockCacheService.del).toHaveBeenCalledWith('attempts:2fa:verify:user-id');
 		});
 	});
 
