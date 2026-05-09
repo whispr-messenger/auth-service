@@ -235,6 +235,28 @@ describe('TwoFactorAuthenticationService', () => {
 
 			expect(mockCacheService.del).toHaveBeenCalledWith('attempts:2fa:verify:user-id');
 		});
+
+		// WHISPR-1319 — TOTP replay protection
+		it('should mark TOTP code as used on success', async () => {
+			mockUserAuthService.findById.mockResolvedValue(userWith2FA);
+			(speakeasy.totp.verify as jest.Mock).mockReturnValue(true);
+
+			await service.verifyTwoFactor('user-id', '123456');
+
+			expect(mockCacheService.set).toHaveBeenCalledWith(
+				expect.stringContaining('2fa:replay:user-id:'),
+				'1',
+				90
+			);
+		});
+
+		it('should reject replayed TOTP code within validity window', async () => {
+			mockUserAuthService.findById.mockResolvedValue(userWith2FA);
+			mockCacheService.exists.mockResolvedValue(true);
+
+			await expect(service.verifyTwoFactor('user-id', '123456')).rejects.toThrow(BadRequestException);
+			expect(speakeasy.totp.verify).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('disableTwoFactor', () => {
