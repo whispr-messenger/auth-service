@@ -245,7 +245,18 @@ export class PhoneVerificationService {
 		} catch (error) {
 			if (process.env.NODE_ENV !== 'test') {
 				this.logger.error('Failed to send verification code:', error);
-				this.logger.log(`Verification code for ${phoneNumber}: ${code}`);
+				// ne jamais logguer le code OTP en clair, meme sur echec d'envoi: en prod
+				// les logs sont aggreges et indexes, c'est equivalent a une fuite credential.
+				// On garde une trace de l'echec sans le code.
+				if (process.env.NODE_ENV === 'development') {
+					this.logger.debug(
+						`Verification code for ${phoneNumber}: ${code} (development-only, redacted in other envs)`
+					);
+				} else {
+					this.logger.log(
+						`Verification code generation succeeded for ${phoneNumber} but SMS delivery failed (code redacted)`
+					);
+				}
 			}
 		}
 	}
