@@ -11,7 +11,10 @@ import {
 	ApiReadinessEndpoint,
 } from './health.controller.swagger';
 
-@SkipThrottle()
+// Les probes kubelet tapent /health/ready toutes les 10s. Avec des throttlers
+// nommes (short/medium/long), @SkipThrottle() sans argument ne skip rien et
+// renvoie 429 apres 3 hits, ce qui fait flapper le pod en NotReady.
+@SkipThrottle({ short: true, medium: true, long: true })
 @ApiTags('Health')
 @Controller('health')
 export class HealthController {
