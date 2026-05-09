@@ -124,32 +124,76 @@ describe('SmsService', () => {
 		});
 	});
 
-	describe('buildMessage (via sendVerificationCode)', () => {
+	describe('buildMessage (via sendVerificationCode prod path)', () => {
+		// WHISPR-1372: les logs ne contiennent plus le message en clair (OTP redacted),
+		// donc on verifie le contenu du message via le body envoye a Twilio en prod.
+		const setupProdAndCaptureBody = async (): Promise<URLSearchParams> => {
+			service = await buildModule({
+				NODE_ENV: 'production',
+				TWILIO_ACCOUNT_SID: 'AC123',
+				TWILIO_AUTH_TOKEN: 'token',
+				TWILIO_FROM_NUMBER: '+1234567890',
+			});
+			let captured: URLSearchParams = new URLSearchParams();
+			jest.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+				captured = init?.body as URLSearchParams;
+				return { ok: true } as any;
+			});
+			return captured;
+		};
+
 		it('should use correct purpose text for registration', async () => {
-			service = await buildModule({ NODE_ENV: 'development' });
-			const logSpy = jest.spyOn(service['logger'], 'log');
+			await setupProdAndCaptureBody();
+			const fetchSpy = globalThis.fetch as jest.Mock;
 
 			await service.sendVerificationCode('+33612345678', '123456', 'registration');
 
-			expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('inscription'));
+			const body = fetchSpy.mock.calls[0][1].body as URLSearchParams;
+			expect(body.get('Body')).toContain('inscription');
 		});
 
 		it('should use correct purpose text for login', async () => {
+			await setupProdAndCaptureBody();
+			const fetchSpy = globalThis.fetch as jest.Mock;
+
+			await service.sendVerificationCode('+33612345678', '123456', 'login');
+
+			const body = fetchSpy.mock.calls[0][1].body as URLSearchParams;
+			expect(body.get('Body')).toContain('connexion');
+		});
+
+		it('should fall back to vérification for unknown purpose', async () => {
+			await setupProdAndCaptureBody();
+			const fetchSpy = globalThis.fetch as jest.Mock;
+
+			await service.sendVerificationCode('+33612345678', '123456', 'unknown');
+
+			const body = fetchSpy.mock.calls[0][1].body as URLSearchParams;
+			expect(body.get('Body')).toContain('vérification');
+		});
+	});
+
+	describe('phone masking in logs (WHISPR-1372)', () => {
+		it('should NEVER log the OTP code in dev mode', async () => {
+			service = await buildModule({ NODE_ENV: 'development' });
+			const logSpy = jest.spyOn(service['logger'], 'log');
+
+			await service.sendVerificationCode('+33612345678', '987654', 'registration');
+
+			const calls = logSpy.mock.calls.flat().join(' ');
+			expect(calls).not.toContain('987654');
+			expect(calls).toContain('[OTP redacted]');
+		});
+
+		it('should mask the phone number in dev logs', async () => {
 			service = await buildModule({ NODE_ENV: 'development' });
 			const logSpy = jest.spyOn(service['logger'], 'log');
 
 			await service.sendVerificationCode('+33612345678', '123456', 'login');
 
-			expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('connexion'));
-		});
-
-		it('should fall back to vérification for unknown purpose', async () => {
-			service = await buildModule({ NODE_ENV: 'development' });
-			const logSpy = jest.spyOn(service['logger'], 'log');
-
-			await service.sendVerificationCode('+33612345678', '123456', 'unknown');
-
-			expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('vérification'));
+			const calls = logSpy.mock.calls.flat().join(' ');
+			expect(calls).toContain('+33***5678');
+			expect(calls).not.toContain('+33612345678');
 		});
 	});
 });
