@@ -1,4 +1,5 @@
 import { VerificationCode } from '../types/verification-code.interface';
+import { VerificationPurpose } from '../types/verification-purpose.type';
 
 /**
  * Repository interface for verification operations.
@@ -21,6 +22,16 @@ export interface VerificationRepository {
 	 * @returns The verification data if found, null otherwise
 	 */
 	findById(id: string): Promise<VerificationCode | null>;
+
+	/**
+	 * WHISPR-1393: lookup inverse pour invalidation au resend.
+	 * Retourne l'identifiant du verification record actif pour (phone, purpose),
+	 * ou null s'il n'y en a pas.
+	 */
+	findByPhoneAndPurpose(
+		phoneNumber: string,
+		purpose: VerificationPurpose
+	): Promise<{ verificationId: string } | null>;
 
 	/**
 	 * Updates an existing verification record.

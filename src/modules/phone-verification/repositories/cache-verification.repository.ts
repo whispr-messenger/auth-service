@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CacheService } from '../../cache/cache.service';
 import { VerificationRepository } from './verification.repository';
 import { VerificationCode } from '../types/verification-code.interface';
+import { VerificationPurpose } from '../types/verification-purpose.type';
 
 /**
  * Cache-based implementation of the VerificationRepository.
@@ -10,6 +11,9 @@ import { VerificationCode } from '../types/verification-code.interface';
 @Injectable()
 export class CacheVerificationRepository implements VerificationRepository {
 	private readonly KEY_PREFIX = 'verification:';
+	// WHISPR-1393: index inverse (phone, purpose) -> verificationId pour invalider
+	// l'ancien OTP au resend (anti-replay).
+	private readonly REVERSE_KEY_PREFIX = 'verification:phone-purpose:';
 
 	constructor(private readonly cacheManager: CacheService) {}
 
@@ -23,6 +27,9 @@ export class CacheVerificationRepository implements VerificationRepository {
 		const key = this.getKey(id);
 		const ttlInSeconds = Math.ceil(ttl / 1000);
 		await this.cacheManager.set(key, data, ttlInSeconds);
+		// maintenir l'index inverse pour permettre l'invalidation au resend
+		const reverseKey = this.getReverseKey(data.phoneNumber, data.purpose);
+		await this.cacheManager.set(reverseKey, id, ttlInSeconds);
 	}
 
 	/**
@@ -35,6 +42,22 @@ export class CacheVerificationRepository implements VerificationRepository {
 		const data = await this.cacheManager.get<VerificationCode>(key);
 
 		return data;
+	}
+
+	/**
+	 * WHISPR-1393: lookup d'un verificationId existant pour (phone, purpose).
+	 * Utilisé au resend pour invalider l'ancien OTP avant d'en créer un nouveau.
+	 */
+	public async findByPhoneAndPurpose(
+		phoneNumber: string,
+		purpose: VerificationPurpose
+	): Promise<{ verificationId: string } | null> {
+		const reverseKey = this.getReverseKey(phoneNumber, purpose);
+		const verificationId = await this.cacheManager.get<string>(reverseKey);
+		if (!verificationId) {
+			return null;
+		}
+		return { verificationId };
 	}
 
 	/**
@@ -53,7 +76,13 @@ export class CacheVerificationRepository implements VerificationRepository {
 	 */
 	public async delete(id: string): Promise<void> {
 		const key = this.getKey(id);
+		// récupère le record avant suppression pour nettoyer l'index inverse
+		const data = await this.cacheManager.get<VerificationCode>(key);
 		await this.cacheManager.del(key);
+		if (data) {
+			const reverseKey = this.getReverseKey(data.phoneNumber, data.purpose);
+			await this.cacheManager.del(reverseKey);
+		}
 	}
 
 	/**
@@ -63,5 +92,9 @@ export class CacheVerificationRepository implements VerificationRepository {
 	 */
 	private getKey(id: string): string {
 		return `${this.KEY_PREFIX}${id}`;
+	}
+
+	private getReverseKey(phoneNumber: string, purpose: VerificationPurpose): string {
+		return `${this.REVERSE_KEY_PREFIX}${phoneNumber}:${purpose}`;
 	}
 }
