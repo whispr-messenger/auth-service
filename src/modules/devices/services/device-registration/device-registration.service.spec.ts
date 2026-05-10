@@ -371,6 +371,28 @@ describe('DeviceRegistrationService', () => {
 				expect(transactionRepository.create).toHaveBeenCalled();
 			});
 
+			it('skips remove gracefully when no oldest device is found during prune', async () => {
+				const registrationData = createRegistrationDataFixture();
+				const newDevice = createDeviceFixture();
+
+				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(10);
+				// Simule une situation de concurrence ou un repo vide
+				transactionRepository.findOldestVerifiedByUserId.mockResolvedValue(null);
+				transactionRepository.create.mockReturnValue(newDevice);
+				transactionRepository.save.mockResolvedValue(newDevice);
+
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
+					return callback(entityManager);
+				});
+
+				await service.registerDevice(registrationData);
+
+				expect(transactionRepository.remove).not.toHaveBeenCalled();
+				expect(tokensService.revokeAllTokensForDevice).not.toHaveBeenCalled();
+				expect(transactionRepository.create).toHaveBeenCalled();
+			});
+
 			it('should not check device count when updating an existing device', async () => {
 				const existingDevice = createDeviceFixture();
 				const registrationData = createRegistrationDataFixture();
