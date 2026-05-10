@@ -10,4 +10,6 @@ export interface DeviceRegistrationData {
 	fcmToken?: string;
 	apnsToken?: string;
 	deviceFingerprint: string;
+	/** User-Agent header du client, utilisé pour nommer les sessions web sans nom explicite */
+	userAgent?: string;
 }
