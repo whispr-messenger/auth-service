@@ -1,5 +1,6 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { maskPhone } from '../../../../utils/mask-phone.util';
 
 @Injectable()
 export class SmsService {
@@ -19,25 +20,29 @@ export class SmsService {
 	}
 
 	async sendVerificationCode(phoneNumber: string, code: string, purpose: string): Promise<void> {
+		// WHISPR-1372: on log uniquement le phone masqué et on redact l'OTP, peu importe
+		// l'env. C'est le seul point de log SMS du parcours OTP, les call-sites amont
+		// (phone-verification.service, sms-verification.strategy) ne loggent plus le code.
 		const message = this.buildMessage(code, purpose);
+		const maskedPhone = maskPhone(phoneNumber);
 
 		if (this.isDemoMode) {
 			this.logger.log(
-				`[DEMO MODE] SMS to ${phoneNumber}: the verification code is in the response payload.`
+				`[DEMO MODE] SMS to ${maskedPhone}: the verification code is in the response payload.`
 			);
 			return;
 		}
 
 		if (this.isDevelopment) {
-			this.logger.log(`[DEV MODE] SMS to ${phoneNumber}: ${message}`);
+			this.logger.log(`[DEV MODE] SMS to ${maskedPhone}: [OTP redacted]`);
 			return;
 		}
 
 		try {
 			await this.sendSms(phoneNumber, message);
-			this.logger.log(`SMS sent successfully to ${phoneNumber}`);
+			this.logger.log(`SMS sent successfully to ${maskedPhone}`);
 		} catch (error) {
-			this.logger.error(`Failed to send SMS to ${phoneNumber}:`, error);
+			this.logger.error(`Failed to send SMS to ${maskedPhone}:`, error);
 			throw new HttpException("Erreur lors de l'envoi du SMS", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
@@ -98,17 +103,19 @@ export class SmsService {
 		};
 
 		const message = messages[alertType];
+		// WHISPR-1372: meme regle pour les security alerts: pas de phone E.164 en clair.
+		const maskedPhone = maskPhone(phoneNumber);
 
 		if (this.isDevelopment) {
-			this.logger.log(`[DEV MODE] Security alert to ${phoneNumber}: ${message}`);
+			this.logger.log(`[DEV MODE] Security alert to ${maskedPhone}: ${message}`);
 			return;
 		}
 
 		try {
 			await this.sendSms(phoneNumber, message);
-			this.logger.log(`Security alert sent to ${phoneNumber}`);
+			this.logger.log(`Security alert sent to ${maskedPhone}`);
 		} catch (error) {
-			this.logger.error(`Failed to send security alert to ${phoneNumber}:`, error);
+			this.logger.error(`Failed to send security alert to ${maskedPhone}:`, error);
 			// Don't throw here as security alerts are not critical for user flow
 		}
 	}

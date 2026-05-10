@@ -68,10 +68,10 @@ export class PhoneAuthenticationService {
 		deviceInfo: DeviceInfo,
 		fingerprint: DeviceFingerprint
 	): Promise<string> {
-		if (deviceInfo.deviceName && deviceInfo.deviceType && deviceInfo.signalKeyBundle) {
+		if (deviceInfo.deviceType && deviceInfo.signalKeyBundle) {
 			const device = await this.deviceRegistrationService.registerDevice({
 				userId,
-				deviceName: deviceInfo.deviceName,
+				deviceName: deviceInfo.deviceName ?? '',
 				deviceType: deviceInfo.deviceType,
 				publicKey: deviceInfo.signalKeyBundle.identityKey,
 				ipAddress: fingerprint.ipAddress,
@@ -81,6 +81,7 @@ export class PhoneAuthenticationService {
 				fcmToken: deviceInfo.fcmToken,
 				apnsToken: deviceInfo.apnsToken,
 				deviceFingerprint: deviceInfo.deviceId ?? randomUUID(),
+				userAgent: fingerprint.userAgent,
 			});
 
 			await this.signalKeyStorageService.storeIdentityKey(

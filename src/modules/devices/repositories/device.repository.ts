@@ -63,4 +63,11 @@ export class DeviceRepository extends Repository<Device> {
 			where: { id: deviceId, userId },
 		});
 	}
+
+	async findOldestVerifiedByUserId(userId: string): Promise<Device | null> {
+		return this.findOne({
+			where: { userId, isVerified: true },
+			order: { createdAt: 'ASC' },
+		});
+	}
 }

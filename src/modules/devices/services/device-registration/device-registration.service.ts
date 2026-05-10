@@ -1,9 +1,11 @@
-import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Device } from '../../entities/device.entity';
 import { DeviceRepository } from '../../repositories/device.repository';
 import { DeviceRegistrationData } from '../../types/device-registration-data.interface';
+import { TokensService } from '../../../tokens/services/tokens.service';
+import { buildWebDeviceName } from '../../utils/ua-device-name.util';
 
 const MAX_DEVICES_PER_USER = 10;
 
@@ -13,6 +15,7 @@ export class DeviceRegistrationService {
 
 	constructor(
 		private readonly deviceRepository: DeviceRepository,
+		private readonly tokensService: TokensService,
 		@InjectDataSource() private readonly dataSource: DataSource
 	) {}
 
@@ -34,14 +37,39 @@ export class DeviceRegistrationService {
 
 			const deviceCount = await transactionRepository.countVerifiedDevices(data.userId);
 			if (deviceCount >= MAX_DEVICES_PER_USER) {
-				throw new ForbiddenException(
-					`Device limit reached. Maximum ${MAX_DEVICES_PER_USER} devices allowed per user.`
-				);
+				await this.pruneOldestDevice(data.userId, transactionRepository);
 			}
 
+			const resolvedName = this.resolveDeviceName(data.deviceName, data.userAgent);
 			this.logger.log(`Registering new device for user: ${data.userId}`);
-			return this.createNewDevice(data, transactionRepository);
+			return this.createNewDevice({ ...data, deviceName: resolvedName }, transactionRepository);
 		});
+	}
+
+	/**
+	 * Supprime le device le plus ancien de l'utilisateur pour libérer une place.
+	 * Invalide également ses tokens (force logout sur ce device).
+	 */
+	private async pruneOldestDevice(userId: string, repository: DeviceRepository): Promise<void> {
+		const oldest = await repository.findOldestVerifiedByUserId(userId);
+		if (!oldest) return;
+
+		this.logger.warn(
+			`device pruned : userId=${userId}, oldDeviceId=${oldest.id}, oldDeviceName=${oldest.deviceName}`
+		);
+
+		// Invalider les tokens avant suppression pour forcer le logout
+		await this.tokensService.revokeAllTokensForDevice(oldest.id);
+		await repository.remove(oldest);
+	}
+
+	/**
+	 * Construit le nom du device.
+	 * Si le client n'en fournit pas (web PWA), on extrait Browser/OS depuis le User-Agent.
+	 */
+	private resolveDeviceName(providedName: string, userAgent?: string): string {
+		if (providedName && providedName.trim().length > 0) return providedName;
+		return buildWebDeviceName(userAgent);
 	}
 
 	private async updateExistingDevice(
