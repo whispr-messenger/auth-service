@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { VerificationChannelStrategy } from './verification-channel.strategy';
 import { SmsService } from '../services/sms/sms.service';
 import { VerificationPurpose } from '../types/verification-purpose.type';
+import { maskPhone } from '../../../utils/mask-phone.util';
 
 /**
  * SMS-based implementation of the VerificationChannelStrategy.
@@ -27,10 +28,10 @@ export class SmsVerificationStrategy implements VerificationChannelStrategy {
 		try {
 			await this.smsService.sendVerificationCode(recipient, code, purpose);
 		} catch (error) {
-			// Log the error but don't fail - allow the verification process to continue
+			// WHISPR-1372: phone masqué et OTP jamais loggué (compliance/RGPD).
+			// Le code OTP n'apparait nulle part dans les logs, peu importe l'env.
 			if (process.env.NODE_ENV !== 'test') {
-				this.logger.error(`Failed to send SMS to ${recipient}:`, error);
-				this.logger.log(`Verification code for ${recipient}: ${code}`);
+				this.logger.error(`Failed to send SMS to ${maskPhone(recipient)}:`, error);
 			}
 			// Re-throw in production to handle properly
 			if (process.env.NODE_ENV === 'production') {
