@@ -1,14 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ForbiddenException, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { DataSource, EntityManager, UpdateResult } from 'typeorm';
 import { DeviceRegistrationService } from './device-registration.service';
 import { DeviceRepository } from '../../repositories/device.repository';
+import { TokensService } from '../../../tokens/services/tokens.service';
 import { Device } from '../../entities/device.entity';
 import { DeviceRegistrationData } from '../../types/device-registration-data.interface';
 
 describe('DeviceRegistrationService', () => {
 	let service: DeviceRegistrationService;
 	let deviceRepository: jest.Mocked<DeviceRepository>;
+	let tokensService: jest.Mocked<TokensService>;
 	let dataSource: jest.Mocked<DataSource>;
 	let entityManager: jest.Mocked<EntityManager>;
 	let transactionRepository: jest.Mocked<DeviceRepository>;
@@ -55,8 +57,10 @@ describe('DeviceRegistrationService', () => {
 		const mockDeviceRepository = {
 			findByUserAndFingerprint: jest.fn(),
 			countVerifiedDevices: jest.fn(),
+			findOldestVerifiedByUserId: jest.fn(),
 			create: jest.fn(),
 			save: jest.fn(),
+			remove: jest.fn(),
 			update: jest.fn(),
 		};
 
@@ -75,12 +79,20 @@ describe('DeviceRegistrationService', () => {
 			transaction: jest.fn(),
 		} as any;
 
+		const mockTokensService = {
+			revokeAllTokensForDevice: jest.fn().mockResolvedValue(undefined),
+		};
+
 		const module: TestingModule = await Test.createTestingModule({
 			providers: [
 				DeviceRegistrationService,
 				{
 					provide: DeviceRepository,
 					useValue: mockDeviceRepository,
+				},
+				{
+					provide: TokensService,
+					useValue: mockTokensService,
 				},
 				{
 					provide: DataSource,
@@ -91,6 +103,7 @@ describe('DeviceRegistrationService', () => {
 
 		service = module.get<DeviceRegistrationService>(DeviceRegistrationService);
 		deviceRepository = module.get(DeviceRepository);
+		tokensService = module.get(TokensService);
 
 		// Mock logger
 		jest.spyOn(Logger.prototype, 'log').mockImplementation();
@@ -282,36 +295,62 @@ describe('DeviceRegistrationService', () => {
 			});
 		});
 
-		describe('Device limit enforcement', () => {
-			it('should throw ForbiddenException when device limit is reached', async () => {
+		describe('Device limit enforcement with auto-prune', () => {
+			it('should prune the oldest device and create a new one when limit is reached', async () => {
 				const registrationData = createRegistrationDataFixture();
+				const oldestDevice = createDeviceFixture({
+					id: 'oldest-device-id',
+					deviceName: 'Old iPhone',
+					createdAt: new Date('2025-01-01T00:00:00Z'),
+				});
+				const newDevice = createDeviceFixture({ id: 'new-device-id' });
 
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
 				transactionRepository.countVerifiedDevices.mockResolvedValue(10);
+				transactionRepository.findOldestVerifiedByUserId.mockResolvedValue(oldestDevice);
+				transactionRepository.remove.mockResolvedValue(oldestDevice);
+				transactionRepository.create.mockReturnValue(newDevice);
+				transactionRepository.save.mockResolvedValue(newDevice);
 
 				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
-				await expect(service.registerDevice(registrationData)).rejects.toThrow(ForbiddenException);
+				const result = await service.registerDevice(registrationData);
+
+				expect(transactionRepository.remove).toHaveBeenCalledWith(oldestDevice);
+				expect(tokensService.revokeAllTokensForDevice).toHaveBeenCalledWith('oldest-device-id');
+				expect(transactionRepository.create).toHaveBeenCalled();
+				expect(result.id).toBe('new-device-id');
 			});
 
-			it('should throw ForbiddenException with descriptive message at limit', async () => {
+			it('devrait logger un warn avec userId, oldDeviceId et oldDeviceName lors du prune', async () => {
 				const registrationData = createRegistrationDataFixture();
+				const oldestDevice = createDeviceFixture({
+					id: 'pruned-id',
+					deviceName: 'Vieux Device',
+				});
+				const newDevice = createDeviceFixture();
 
 				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
 				transactionRepository.countVerifiedDevices.mockResolvedValue(10);
+				transactionRepository.findOldestVerifiedByUserId.mockResolvedValue(oldestDevice);
+				transactionRepository.remove.mockResolvedValue(oldestDevice);
+				transactionRepository.create.mockReturnValue(newDevice);
+				transactionRepository.save.mockResolvedValue(newDevice);
 
 				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
 					return callback(entityManager);
 				});
 
-				await expect(service.registerDevice(registrationData)).rejects.toThrow(
-					'Device limit reached. Maximum 10 devices allowed per user.'
-				);
+				await service.registerDevice(registrationData);
+
+				expect(Logger.prototype.warn).toHaveBeenCalledWith(expect.stringContaining('device pruned'));
+				expect(Logger.prototype.warn).toHaveBeenCalledWith(expect.stringContaining('pruned-id'));
+				expect(Logger.prototype.warn).toHaveBeenCalledWith(expect.stringContaining('Vieux Device'));
 			});
 
-			it('should allow registration when below device limit', async () => {
+			it('should allow registration when below device limit without pruning', async () => {
 				const registrationData = createRegistrationDataFixture();
 				const expectedDevice = createDeviceFixture();
 
@@ -326,6 +365,8 @@ describe('DeviceRegistrationService', () => {
 
 				const result = await service.registerDevice(registrationData);
 
+				expect(transactionRepository.findOldestVerifiedByUserId).not.toHaveBeenCalled();
+				expect(transactionRepository.remove).not.toHaveBeenCalled();
 				expect(result).toBeDefined();
 				expect(transactionRepository.create).toHaveBeenCalled();
 			});
@@ -344,6 +385,82 @@ describe('DeviceRegistrationService', () => {
 				await service.registerDevice(registrationData);
 
 				expect(transactionRepository.countVerifiedDevices).not.toHaveBeenCalled();
+			});
+		});
+
+		describe('UA-based device naming', () => {
+			it('utilise le deviceName fourni par le client si non vide', async () => {
+				const registrationData = createRegistrationDataFixture({
+					deviceName: 'Mon iPhone',
+					userAgent:
+						'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36',
+				});
+				const expectedDevice = createDeviceFixture({ deviceName: 'Mon iPhone' });
+
+				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
+				transactionRepository.create.mockReturnValue(expectedDevice);
+				transactionRepository.save.mockResolvedValue(expectedDevice);
+
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
+					return callback(entityManager);
+				});
+
+				await service.registerDevice(registrationData);
+
+				expect(transactionRepository.create).toHaveBeenCalledWith(
+					expect.objectContaining({ deviceName: 'Mon iPhone' })
+				);
+			});
+
+			it('construit un nom depuis le User-Agent Chrome/Windows quand deviceName est vide', async () => {
+				const chromeUa =
+					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+				const registrationData = createRegistrationDataFixture({
+					deviceName: '',
+					userAgent: chromeUa,
+				});
+				const expectedDevice = createDeviceFixture({
+					deviceName: 'Web (Chrome 124 / Windows 10/11)',
+				});
+
+				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
+				transactionRepository.create.mockReturnValue(expectedDevice);
+				transactionRepository.save.mockResolvedValue(expectedDevice);
+
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
+					return callback(entityManager);
+				});
+
+				await service.registerDevice(registrationData);
+
+				expect(transactionRepository.create).toHaveBeenCalledWith(
+					expect.objectContaining({ deviceName: 'Web (Chrome 124 / Windows 10/11)' })
+				);
+			});
+
+			it('retourne "Web (Inconnu)" quand deviceName est vide et userAgent absent', async () => {
+				const registrationData = createRegistrationDataFixture({
+					deviceName: '',
+					userAgent: undefined,
+				});
+				const expectedDevice = createDeviceFixture({ deviceName: 'Web (Inconnu)' });
+
+				transactionRepository.findByUserAndFingerprint.mockResolvedValue(null);
+				transactionRepository.countVerifiedDevices.mockResolvedValue(0);
+				transactionRepository.create.mockReturnValue(expectedDevice);
+				transactionRepository.save.mockResolvedValue(expectedDevice);
+
+				(dataSource.transaction as jest.Mock).mockImplementation(async (callback) => {
+					return callback(entityManager);
+				});
+
+				await service.registerDevice(registrationData);
+
+				expect(transactionRepository.create).toHaveBeenCalledWith(
+					expect.objectContaining({ deviceName: 'Web (Inconnu)' })
+				);
 			});
 		});
 
