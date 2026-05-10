@@ -71,4 +71,45 @@ describe('buildWebDeviceName', () => {
 			expect(buildWebDeviceName(ua)).toBe('Web (Samsung Browser 25 / Android 14)');
 		});
 	});
+
+	describe('branches de fallback (version absente)', () => {
+		it('retourne "iOS" sans numero si la version OS manque dans le UA iPhone', () => {
+			// UA synthétique sans "OS X_Y" -> extractOs retourne "iOS" sans version
+			expect(buildWebDeviceName('Mozilla/5.0 (iPhone; CPU like Mac OS X) Safari/604.1')).toBe(
+				'Web (iOS)'
+			);
+		});
+
+		it('retourne "Android" sans numero si la version Android manque', () => {
+			// UA synthétique sans "Android X.Y" -> extractOs retourne "Android" sans version
+			expect(buildWebDeviceName('Mozilla/5.0 (Linux; Android) Mobile Safari/537.36')).toBe(
+				'Web (Android)'
+			);
+		});
+
+		it('retourne "Windows X" pour une version NT non mappee', () => {
+			// NT 5.1 = XP, non dans la map -> utilise le numero brut
+			const ua = 'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 Chrome/49.0.0.0 Safari/537.36';
+			expect(buildWebDeviceName(ua)).toBe('Web (Chrome 49 / Windows 5.1)');
+		});
+
+		it('retourne "Windows" seul si la version NT est absente', () => {
+			// Force label=null: "Windows NT" sans numero de version
+			const ua = 'Mozilla/5.0 (Windows NT) Chrome/120.0.0.0 Safari/537.36';
+			expect(buildWebDeviceName(ua)).toBe('Web (Chrome 120 / Windows)');
+		});
+
+		it('retourne "macOS" sans version si le UA Mac ne contient pas de version parsable', () => {
+			// UA synthétique sans "Mac OS X X_Y_Z"
+			const ua =
+				'Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit/537.36 Chrome/100.0.0.0 Safari/537.36';
+			expect(buildWebDeviceName(ua)).toBe('Web (Chrome 100 / macOS)');
+		});
+
+		it('retourne navigateur seul si OS non identifie (navigateur connu sans OS reconnu)', () => {
+			// UA avec Firefox mais aucun OS reconnu
+			const ua = 'Mozilla/5.0 Firefox/125.0';
+			expect(buildWebDeviceName(ua)).toBe('Web (Firefox 125)');
+		});
+	});
 });
