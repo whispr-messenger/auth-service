@@ -139,4 +139,27 @@ describe('DeviceRepository', () => {
 			expect(result).toBeNull();
 		});
 	});
+
+	describe('findOldestVerifiedByUserId', () => {
+		it('should return the oldest verified device ordered by createdAt ASC', async () => {
+			const device = { id: 'oldest-device', userId: 'user-id', isVerified: true } as Device;
+			(repository.findOne as jest.Mock).mockResolvedValue(device);
+
+			const result = await repository.findOldestVerifiedByUserId('user-id');
+
+			expect(result).toEqual(device);
+			expect(repository.findOne).toHaveBeenCalledWith({
+				where: { userId: 'user-id', isVerified: true },
+				order: { createdAt: 'ASC' },
+			});
+		});
+
+		it('should return null when user has no verified devices', async () => {
+			(repository.findOne as jest.Mock).mockResolvedValue(null);
+
+			const result = await repository.findOldestVerifiedByUserId('user-id');
+
+			expect(result).toBeNull();
+		});
+	});
 });
