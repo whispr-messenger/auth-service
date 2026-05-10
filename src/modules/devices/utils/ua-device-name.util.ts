@@ -21,13 +21,20 @@ const BROWSER_RULES: [RegExp, string][] = [
 	[/Firefox\/(\d+)/, 'Firefox'],
 	[/SamsungBrowser\/(\d+)/, 'Samsung Browser'],
 	[/Chrome\/(\d+)/, 'Chrome'],
-	[/Version\/(\d+).*Safari/, 'Safari'],
 ];
+
+const SAFARI_VERSION = /Version\/(\d+)/;
 
 function extractBrowser(ua: string): string | null {
 	for (const [re, name] of BROWSER_RULES) {
 		const m = ua.match(re);
 		if (m) return `${name} ${m[1]}`;
+	}
+	// Safari : tester separement la presence du marker Safari et extraire Version/
+	// pour eviter un pattern regex avec backtracking (.*Safari).
+	if (ua.includes('Safari')) {
+		const m = ua.match(SAFARI_VERSION);
+		if (m) return `Safari ${m[1]}`;
 	}
 	return null;
 }
