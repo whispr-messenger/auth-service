@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, UnauthorizedException } from '@nestjs/common';
 import { TwoFactorAuthenticationService } from './two-factor-authentication.service';
 import { UserAuthService } from '../../common/services/user-auth.service';
 import { BackupCodesService } from '../backup-codes/backup-codes.service';
+import { CacheService } from '../../cache/cache.service';
 import * as speakeasy from 'speakeasy';
 import * as QRCode from 'qrcode';
 
@@ -24,6 +25,17 @@ describe('TwoFactorAuthenticationService', () => {
 		getRemainingCodesCount: jest.fn(),
 	};
 
+	// par defaut: rate limit non atteint. les tests qui veulent simuler un autre
+	// etat overriden les mocks individuellement.
+	const mockCacheService = {
+		get: jest.fn().mockResolvedValue(null),
+		set: jest.fn().mockResolvedValue(undefined),
+		del: jest.fn().mockResolvedValue(undefined),
+		incr: jest.fn().mockResolvedValue(1),
+		expire: jest.fn().mockResolvedValue(undefined),
+		exists: jest.fn().mockResolvedValue(false),
+	};
+
 	const mockUser = {
 		id: 'user-id',
 		phoneNumber: '+33612345678',
@@ -34,12 +46,16 @@ describe('TwoFactorAuthenticationService', () => {
 
 	beforeEach(async () => {
 		jest.clearAllMocks();
+		mockCacheService.get.mockResolvedValue(null);
+		mockCacheService.exists.mockResolvedValue(false);
+		mockCacheService.incr.mockResolvedValue(1);
 
 		const module: TestingModule = await Test.createTestingModule({
 			providers: [
 				TwoFactorAuthenticationService,
 				{ provide: UserAuthService, useValue: mockUserAuthService },
 				{ provide: BackupCodesService, useValue: mockBackupCodesService },
+				{ provide: CacheService, useValue: mockCacheService },
 			],
 		}).compile();
 
@@ -188,6 +204,59 @@ describe('TwoFactorAuthenticationService', () => {
 
 			await expect(service.verifyTwoFactor('user-id', '123456')).rejects.toThrow(BadRequestException);
 		});
+
+		// WHISPR-1319 — rate limit per-user (5 attempts / 15 min)
+		it('should throw HttpException 429 when verify attempts already at the limit', async () => {
+			mockUserAuthService.findById.mockResolvedValue(userWith2FA);
+			mockCacheService.get.mockResolvedValue(5);
+
+			const promise = service.verifyTwoFactor('user-id', '000000');
+			await expect(promise).rejects.toBeInstanceOf(HttpException);
+			await expect(promise).rejects.toMatchObject({ status: HttpStatus.TOO_MANY_REQUESTS });
+			expect(speakeasy.totp.verify).not.toHaveBeenCalled();
+		});
+
+		it('should increment attempts counter on failed verify', async () => {
+			mockUserAuthService.findById.mockResolvedValue(userWith2FA);
+			(speakeasy.totp.verify as jest.Mock).mockReturnValue(false);
+			mockBackupCodesService.verifyBackupCode.mockResolvedValue(false);
+
+			const result = await service.verifyTwoFactor('user-id', '000000');
+
+			expect(result).toBe(false);
+			expect(mockCacheService.incr).toHaveBeenCalledWith('attempts:2fa:verify:user-id');
+		});
+
+		it('should reset attempts counter on successful TOTP verify', async () => {
+			mockUserAuthService.findById.mockResolvedValue(userWith2FA);
+			(speakeasy.totp.verify as jest.Mock).mockReturnValue(true);
+
+			await service.verifyTwoFactor('user-id', '123456');
+
+			expect(mockCacheService.del).toHaveBeenCalledWith('attempts:2fa:verify:user-id');
+		});
+
+		// WHISPR-1319 — TOTP replay protection
+		it('should mark TOTP code as used on success', async () => {
+			mockUserAuthService.findById.mockResolvedValue(userWith2FA);
+			(speakeasy.totp.verify as jest.Mock).mockReturnValue(true);
+
+			await service.verifyTwoFactor('user-id', '123456');
+
+			expect(mockCacheService.set).toHaveBeenCalledWith(
+				expect.stringContaining('2fa:replay:user-id:'),
+				'1',
+				90
+			);
+		});
+
+		it('should reject replayed TOTP code within validity window', async () => {
+			mockUserAuthService.findById.mockResolvedValue(userWith2FA);
+			mockCacheService.exists.mockResolvedValue(true);
+
+			await expect(service.verifyTwoFactor('user-id', '123456')).rejects.toThrow(BadRequestException);
+			expect(speakeasy.totp.verify).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('disableTwoFactor', () => {
@@ -313,6 +382,58 @@ describe('TwoFactorAuthenticationService', () => {
 			const result = await service.getRemainingBackupCodesCount('user-id');
 
 			expect(result).toBe(0);
+		});
+	});
+
+	// WHISPR-1431: endpoint dédié single-use recovery code
+	describe('useRecoveryCode', () => {
+		const userWith2FA = { ...mockUser, twoFactorEnabled: true, twoFactorSecret: 'SECRET' };
+
+		it('should return true and consume the code when valid and unused', async () => {
+			mockUserAuthService.findById.mockResolvedValue({ ...userWith2FA });
+			mockBackupCodesService.verifyBackupCode.mockResolvedValue(true);
+
+			const result = await service.useRecoveryCode('user-id', 'ABCD-1234');
+
+			expect(result).toBe(true);
+			expect(mockBackupCodesService.verifyBackupCode).toHaveBeenCalledWith('user-id', 'ABCD-1234');
+		});
+
+		it('should return false when code does not match any stored hash', async () => {
+			mockUserAuthService.findById.mockResolvedValue({ ...userWith2FA });
+			mockBackupCodesService.verifyBackupCode.mockResolvedValue(false);
+
+			const result = await service.useRecoveryCode('user-id', 'WRONG-CODE');
+
+			expect(result).toBe(false);
+		});
+
+		it('should return false and not call verifyBackupCode when 2FA is not enabled (timing-safe)', async () => {
+			mockUserAuthService.findById.mockResolvedValue({ ...mockUser, twoFactorEnabled: false });
+
+			const result = await service.useRecoveryCode('user-id', 'ABCD-1234');
+
+			expect(result).toBe(false);
+			expect(mockBackupCodesService.verifyBackupCode).not.toHaveBeenCalled();
+		});
+
+		it('should return false when user is not found (timing-safe)', async () => {
+			mockUserAuthService.findById.mockResolvedValue(null);
+
+			const result = await service.useRecoveryCode('user-id', 'ABCD-1234');
+
+			expect(result).toBe(false);
+			expect(mockBackupCodesService.verifyBackupCode).not.toHaveBeenCalled();
+		});
+
+		it('should return false for an already-used code (no oracle: verifyBackupCode handles this)', async () => {
+			mockUserAuthService.findById.mockResolvedValue({ ...userWith2FA });
+			// verifyBackupCode retourne false si le code est deja marqué used
+			mockBackupCodesService.verifyBackupCode.mockResolvedValue(false);
+
+			const result = await service.useRecoveryCode('user-id', 'USED-CODE');
+
+			expect(result).toBe(false);
 		});
 	});
 });

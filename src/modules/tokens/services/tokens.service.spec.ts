@@ -379,6 +379,80 @@ describe('TokensService', () => {
 				'ERROR_DEVICE_FINGERPRINT_MISMATCH'
 			);
 		});
+
+		// WHISPR-1401 : cap absolu 90j sur la session pour eviter session zombie
+		// quand un refresh token vole reste valide indefiniment via refresh roulants.
+		it('should propagate firstIssuedAt from old refresh to the new pair', async () => {
+			const tokenId = 'token-id';
+			const firstIssuedAt = Date.now() - 30 * 24 * 60 * 60 * 1000; // 30j old
+			const fp = 'fpfpfpfpfpfp';
+
+			jwtService.verify.mockReturnValue({ type: 'refresh', tokenId, firstIssuedAt });
+			cacheService.getReliable.mockResolvedValue({
+				userId: 'u',
+				deviceId: 'd',
+				fingerprint: fp,
+				firstIssuedAt,
+			});
+			cacheService.del.mockResolvedValue(undefined);
+			cacheService.set.mockResolvedValue(undefined);
+			jwtService.sign.mockReturnValueOnce('new-access').mockReturnValueOnce('new-refresh');
+			jest.spyOn(service as any, 'generateDeviceFingerprint').mockReturnValue(fp);
+
+			await service.refreshAccessToken('some-token', mockFingerprint);
+
+			// nouveau refresh payload doit contenir le firstIssuedAt original (pas reset)
+			const refreshSignCall = jwtService.sign.mock.calls[1][0] as Record<string, unknown>;
+			expect(refreshSignCall.firstIssuedAt).toBe(firstIssuedAt);
+
+			// stored data Redis aussi doit contenir le firstIssuedAt original
+			const cachedPayload = cacheService.set.mock.calls[0][1] as Record<string, unknown>;
+			expect(cachedPayload.firstIssuedAt).toBe(firstIssuedAt);
+		});
+
+		it('should throw ERROR_SESSION_EXPIRED_ABSOLUTE when session is older than 90 days', async () => {
+			const tokenId = 'token-id';
+			const firstIssuedAt = Date.now() - 91 * 24 * 60 * 60 * 1000; // 91j old, > cap 90j
+			const fp = 'fpfpfpfpfpfp';
+
+			jwtService.verify.mockReturnValue({ type: 'refresh', tokenId, firstIssuedAt });
+			cacheService.getReliable.mockResolvedValue({
+				userId: 'u',
+				deviceId: 'd',
+				fingerprint: fp,
+				firstIssuedAt,
+			});
+			cacheService.del.mockResolvedValue(undefined);
+			jest.spyOn(service as any, 'generateDeviceFingerprint').mockReturnValue(fp);
+
+			await expect(service.refreshAccessToken('some-token', mockFingerprint)).rejects.toThrow(
+				'ERROR_SESSION_EXPIRED_ABSOLUTE'
+			);
+			// le refresh token doit etre revoke avant le throw
+			expect(cacheService.del).toHaveBeenCalledWith(`refresh_token:${tokenId}`);
+		});
+
+		it('should seed firstIssuedAt to Date.now() for legacy sessions without it', async () => {
+			const tokenId = 'token-id';
+			const fp = 'fpfpfpfpfpfp';
+
+			// payload signe et stored data SANS firstIssuedAt (ancienne session)
+			jwtService.verify.mockReturnValue({ type: 'refresh', tokenId });
+			cacheService.getReliable.mockResolvedValue({ userId: 'u', deviceId: 'd', fingerprint: fp });
+			cacheService.del.mockResolvedValue(undefined);
+			cacheService.set.mockResolvedValue(undefined);
+			jwtService.sign.mockReturnValueOnce('new-access').mockReturnValueOnce('new-refresh');
+			jest.spyOn(service as any, 'generateDeviceFingerprint').mockReturnValue(fp);
+
+			const before = Date.now();
+			await service.refreshAccessToken('some-token', mockFingerprint);
+			const after = Date.now();
+
+			// le nouveau payload doit avoir un firstIssuedAt seede a now (entre before/after)
+			const refreshSignCall = jwtService.sign.mock.calls[1][0] as { firstIssuedAt: number };
+			expect(refreshSignCall.firstIssuedAt).toBeGreaterThanOrEqual(before);
+			expect(refreshSignCall.firstIssuedAt).toBeLessThanOrEqual(after);
+		});
 	});
 
 	describe('revokeToken', () => {

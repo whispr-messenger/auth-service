@@ -14,6 +14,7 @@ describe('PhoneVerificationService', () => {
 	const mockVerificationRepo = {
 		save: jest.fn(),
 		findById: jest.fn(),
+		findByPhoneAndPurpose: jest.fn().mockResolvedValue(null),
 		update: jest.fn(),
 		delete: jest.fn(),
 	};
@@ -192,6 +193,28 @@ describe('PhoneVerificationService', () => {
 			await expect(
 				service.requestRegistrationVerification({ phoneNumber: '+33612345678' }, '203.0.113.42')
 			).rejects.toThrow(HttpException);
+		});
+
+		// WHISPR-1393: anti-replay au resend
+		it('should invalidate the previous verificationId when one already exists for the phone+purpose', async () => {
+			mockUserAuthService.findByPhoneNumber.mockResolvedValue(null);
+			mockRateLimitService.checkLimit.mockResolvedValue(undefined);
+			mockRateLimitService.increment.mockResolvedValue(undefined);
+			mockVerificationRepo.findByPhoneAndPurpose.mockResolvedValueOnce({
+				verificationId: 'old-verification-id',
+			});
+			mockVerificationRepo.delete.mockResolvedValue(undefined);
+			mockVerificationRepo.save.mockResolvedValue(undefined);
+			mockVerificationChannel.sendVerification.mockResolvedValue(undefined);
+
+			await service.requestRegistrationVerification({ phoneNumber: '+33612345678' });
+
+			expect(mockVerificationRepo.findByPhoneAndPurpose).toHaveBeenCalledWith(
+				'+33612345678',
+				'registration'
+			);
+			expect(mockVerificationRepo.delete).toHaveBeenCalledWith('old-verification-id');
+			expect(mockVerificationRepo.save).toHaveBeenCalledTimes(1);
 		});
 	});
 

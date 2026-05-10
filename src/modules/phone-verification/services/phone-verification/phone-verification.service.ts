@@ -20,6 +20,7 @@ import { UserAuthService } from '../../../common/services/user-auth.service';
 import { VerificationCodeGeneratorService } from '../verification-code-generator/verification-code-generator.service';
 import { PhoneNumberService } from '../phone-number/phone-number.service';
 import { RateLimitService } from '../rate-limit/rate-limit.service';
+import { maskPhone } from '../../../../utils/mask-phone.util';
 import type { VerificationRepository } from '../../repositories/verification.repository';
 import type { VerificationChannelStrategy } from '../../strategies/verification-channel.strategy';
 import { VerificationPurpose, VerificationCode, VerificationCreationResult } from '../../types';
@@ -122,6 +123,13 @@ export class PhoneVerificationService {
 			purpose,
 			deviceId
 		);
+
+		// WHISPR-1393: au resend, invalider l'ancien verificationId pour éviter
+		// que deux OTP simultanés restent valides en parallèle (anti-replay).
+		const previous = await this.verificationRepo.findByPhoneAndPurpose(normalizedPhone, purpose);
+		if (previous) {
+			await this.verificationRepo.delete(previous.verificationId);
+		}
 
 		await this.verificationRepo.save(verificationId, verificationData, this.VERIFICATION_TTL_MS);
 
@@ -236,16 +244,20 @@ export class PhoneVerificationService {
 		purpose: VerificationPurpose
 	): Promise<void> {
 		if (this.otpBypassCode) {
-			this.logger.warn(`[OTP BYPASS] Skipping SMS for ${phoneNumber} — bypass mode is active.`);
+			// WHISPR-1372: log du bypass sans phone E.164 en clair (compliance/RGPD).
+			this.logger.warn(
+				`[OTP BYPASS] Skipping SMS for ${maskPhone(phoneNumber)} - bypass mode is active.`
+			);
 			return;
 		}
 
 		try {
 			await this.verificationChannel.sendVerification(phoneNumber, code, purpose);
 		} catch (error) {
+			// WHISPR-1372: pas de log dupliquant l'OTP. sms.service est l'unique
+			// point qui logge l'envoi (avec phone masqué et OTP redacted).
 			if (process.env.NODE_ENV !== 'test') {
 				this.logger.error('Failed to send verification code:', error);
-				this.logger.log(`Verification code for ${phoneNumber}: ${code}`);
 			}
 		}
 	}

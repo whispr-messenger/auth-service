@@ -101,26 +101,20 @@ describe('AuthController (e2e)', () => {
 	});
 
 	describe('GET /auth/v1/health', () => {
-		it('should return ok with healthy services when database and cache are up', async () => {
+		it('should return only { status: "ok" } when database and cache are up', async () => {
 			const response = await request(app.getHttpServer()).get('/auth/v1/health').expect(200);
 
-			expect(response.body.status).toBe('ok');
-			expect(response.body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-			expect(Date.parse(response.body.timestamp)).not.toBeNaN();
-			expect(Number.isFinite(response.body.uptime)).toBe(true);
-			expect(response.body.uptime).toBeGreaterThanOrEqual(0);
-			expect(response.body.version).toMatch(/^\d+\.\d+\.\d+(-[\w.]+)?(\+[\w.]+)?$/);
-			expect(response.body.memory).toEqual(
-				expect.objectContaining({
-					rss: expect.any(Number),
-					heapTotal: expect.any(Number),
-					heapUsed: expect.any(Number),
-				})
-			);
-			expect(response.body.services).toEqual({
-				database: 'healthy',
-				cache: 'healthy',
-			});
+			expect(response.body).toEqual({ status: 'ok' });
+		});
+
+		it('should not leak runtime metadata (uptime, memory, version, services)', async () => {
+			const response = await request(app.getHttpServer()).get('/auth/v1/health').expect(200);
+
+			expect(response.body).not.toHaveProperty('uptime');
+			expect(response.body).not.toHaveProperty('memory');
+			expect(response.body).not.toHaveProperty('version');
+			expect(response.body).not.toHaveProperty('timestamp');
+			expect(response.body).not.toHaveProperty('services');
 		});
 
 		it('should return 503 when database is unhealthy', async () => {
@@ -129,21 +123,19 @@ describe('AuthController (e2e)', () => {
 			const response = await request(app.getHttpServer()).get('/auth/v1/health').expect(503);
 
 			expect(response.body.status).toBe('error');
-			expect(response.body.services.database).toBe('unhealthy');
+			// Pas de fuite des details services dans la reponse publique d'erreur.
+			expect(response.body).not.toHaveProperty('services');
 		});
 	});
 
 	describe('GET /auth/v1/health/live', () => {
-		it('should return alive status without checking dependencies', async () => {
+		it('should return only { status: "alive" } without checking dependencies or leaking metadata', async () => {
 			const response = await request(app.getHttpServer()).get('/auth/v1/health/live').expect(200);
 
-			expect(response.body.status).toBe('alive');
-			expect(response.body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-			expect(Date.parse(response.body.timestamp)).not.toBeNaN();
-			expect(Number.isFinite(response.body.uptime)).toBe(true);
-			expect(response.body.uptime).toBeGreaterThanOrEqual(0);
-			expect(response.body.version).toMatch(/^\d+\.\d+\.\d+(-[\w.]+)?(\+[\w.]+)?$/);
-			expect(response.body).not.toHaveProperty('services');
+			expect(response.body).toEqual({ status: 'alive' });
+			expect(response.body).not.toHaveProperty('uptime');
+			expect(response.body).not.toHaveProperty('version');
+			expect(response.body).not.toHaveProperty('timestamp');
 		});
 	});
 });

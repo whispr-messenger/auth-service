@@ -95,3 +95,17 @@ export const ApiGetTwoFactorStatusEndpoint = () =>
 		ApiOkResponse({ type: TwoFactorStatusResponseDto, description: 'Returns 2FA enabled status' }),
 		ApiResponse({ status: 401, description: 'Unauthorized' })
 	);
+
+export const ApiUseRecoveryCodeEndpoint = () =>
+	applyDecorators(
+		ApiBearerAuth(),
+		ApiOperation({
+			summary: 'Use a single-use recovery code to bypass 2FA',
+			description:
+				'Consumes one backup code and marks it used. Returns valid:false for any invalid/used/unknown code (timing-safe - no oracle leak).',
+		}),
+		ApiBody({ type: TwoFactorVerifyDto }),
+		ApiOkResponse({ type: TwoFactorVerifyResponseDto, description: 'Recovery code valid or invalid' }),
+		ApiResponse({ status: 401, description: 'Unauthorized' }),
+		ApiResponse({ status: 429, description: 'Rate limit exceeded (3 attempts / 60s)' })
+	);

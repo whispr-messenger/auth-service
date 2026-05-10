@@ -9,7 +9,7 @@ import { LessThan } from 'typeorm';
  *
  * Handles automatic cleanup and monitoring:
  * - Daily cleanup of expired SignedPreKeys
- * - Hourly check for users with low prekeys
+ * - Daily check for users with low prekeys
  * - Weekly cleanup of old unused prekeys
  */
 @Injectable()
@@ -54,13 +54,14 @@ export class SignalKeySchedulerService {
 	}
 
 	/**
-	 * Check for devices with low prekeys every hour
+	 * Check for devices with low prekeys daily at 3 AM
 	 *
 	 * Monitors prekey availability and logs warnings for devices that need
 	 * to replenish their prekeys. In a production system, this would
 	 * trigger notifications to clients.
 	 */
-	@Cron(CronExpression.EVERY_HOUR)
+	// freq daily car emitter consume cote mobile gere foreground (WHISPR-1399)
+	@Cron(CronExpression.EVERY_DAY_AT_3AM)
 	async checkUsersWithLowPrekeys(): Promise<void> {
 		this.logger.debug('Checking devices with low prekeys');
 
@@ -176,13 +177,11 @@ export class SignalKeySchedulerService {
 	} {
 		const now = new Date();
 		const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-		const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
 
-		// Consider unhealthy if cleanup hasn't run in more than 25 hours
-		// or prekey check hasn't run in more than 2 hours
+		// les deux jobs tournent quotidiennement -> meme fenetre 24h
 		const isHealthy =
 			(!this.lastCleanupTime || this.lastCleanupTime > oneDayAgo) &&
-			(!this.lastPreKeyCheckTime || this.lastPreKeyCheckTime > twoHoursAgo);
+			(!this.lastPreKeyCheckTime || this.lastPreKeyCheckTime > oneDayAgo);
 
 		return {
 			lastCleanupTime: this.lastCleanupTime,

@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
+import helmet from 'helmet';
 import { AppModule } from './modules/app/app.module';
 import { createSwaggerDocumentation } from './swagger';
 import { LoggingInterceptor } from './interceptors';
@@ -24,6 +25,26 @@ async function bootstrap() {
 	const globalPrefix = 'auth';
 
 	app.setGlobalPrefix(globalPrefix);
+
+	// WHISPR-1347 : entêtes de sécurité HTTP (CSP, HSTS, X-Frame-Options, etc.)
+	// alignés sur user-service / media-service. CSP désactivée quand Swagger
+	// est servi en non-prod pour ne pas bloquer le SwaggerUI inline.
+	const swaggerEnabled = configService.get<string>('SWAGGER_ENABLED', 'true') !== 'false';
+	app.use(
+		helmet({
+			contentSecurityPolicy: swaggerEnabled
+				? {
+						directives: {
+							defaultSrc: ["'self'"],
+							scriptSrc: ["'self'", "'unsafe-inline'"],
+							styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
+							imgSrc: ["'self'", 'data:'],
+						},
+					}
+				: undefined,
+			crossOriginEmbedderPolicy: swaggerEnabled ? false : undefined,
+		})
+	);
 
 	const corsOrigins = configService
 		.get<string>('CORS_ORIGINS', '')

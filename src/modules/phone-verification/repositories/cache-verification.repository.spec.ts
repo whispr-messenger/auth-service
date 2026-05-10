@@ -54,6 +54,41 @@ describe('CacheVerificationRepository', () => {
 				901
 			);
 		});
+
+		// WHISPR-1393
+		it('should also write the reverse phone-purpose index for resend invalidation', async () => {
+			mockCacheService.set.mockResolvedValue(undefined);
+
+			await repository.save('verification-id', verificationData, 900000);
+
+			expect(mockCacheService.set).toHaveBeenCalledWith(
+				'verification:phone-purpose:+33612345678:registration',
+				'verification-id',
+				900
+			);
+		});
+	});
+
+	// WHISPR-1393
+	describe('findByPhoneAndPurpose', () => {
+		it('should return the active verificationId when reverse index is present', async () => {
+			mockCacheService.get.mockResolvedValue('active-id');
+
+			const result = await repository.findByPhoneAndPurpose('+33612345678', 'registration');
+
+			expect(result).toEqual({ verificationId: 'active-id' });
+			expect(mockCacheService.get).toHaveBeenCalledWith(
+				'verification:phone-purpose:+33612345678:registration'
+			);
+		});
+
+		it('should return null when no reverse index exists', async () => {
+			mockCacheService.get.mockResolvedValue(null);
+
+			const result = await repository.findByPhoneAndPurpose('+33612345678', 'login');
+
+			expect(result).toBeNull();
+		});
 	});
 
 	describe('findById', () => {
@@ -90,12 +125,27 @@ describe('CacheVerificationRepository', () => {
 	});
 
 	describe('delete', () => {
-		it('should delete the verification key', async () => {
+		it('should delete the verification key and clear the reverse index', async () => {
+			mockCacheService.get.mockResolvedValue(verificationData);
 			mockCacheService.del.mockResolvedValue(undefined);
 
 			await repository.delete('verification-id');
 
 			expect(mockCacheService.del).toHaveBeenCalledWith('verification:verification-id');
+			expect(mockCacheService.del).toHaveBeenCalledWith(
+				'verification:phone-purpose:+33612345678:registration'
+			);
+		});
+
+		// WHISPR-1393: protection si l'enregistrement a déjà expiré
+		it('should still delete the main key when verification record is missing', async () => {
+			mockCacheService.get.mockResolvedValue(null);
+			mockCacheService.del.mockResolvedValue(undefined);
+
+			await repository.delete('verification-id');
+
+			expect(mockCacheService.del).toHaveBeenCalledWith('verification:verification-id');
+			expect(mockCacheService.del).toHaveBeenCalledTimes(1);
 		});
 	});
 });
