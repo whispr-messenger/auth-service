@@ -12,6 +12,10 @@ import { JwksService } from '../../jwks/jwks.service';
 export class TokensService {
 	private readonly ACCESS_TOKEN_TTL = 60 * 60;
 	private readonly REFRESH_TOKEN_TTL = 30 * 24 * 60 * 60;
+	// cap absolu pour eviter session zombie sur refresh token vole : meme
+	// si l'utilisateur reste actif, on borne la duree totale d'une session
+	// a partir du login initial (firstIssuedAt) — au-dela, re-auth obligatoire.
+	private readonly ABSOLUTE_SESSION_CAP_MS = 90 * 24 * 60 * 60 * 1000;
 	// Court-vivant — WHISPR-1214. Le token transite dans la query string
 	// Phoenix Channels, donc reverse-proxies, HAR exports et Sentry
 	// breadcrumbs le capturent ; 60 s borne le préjudice d'une fuite.
@@ -36,11 +40,15 @@ export class TokensService {
 	async generateTokenPair(
 		userId: string,
 		deviceId: string,
-		fingerprint: DeviceFingerprint
+		fingerprint: DeviceFingerprint,
+		firstIssuedAt?: number
 	): Promise<TokenPair> {
 		const deviceFingerprint = this.generateDeviceFingerprint(fingerprint);
 		const accessTokenId = uuidv4();
 		const refreshTokenId = uuidv4();
+		// firstIssuedAt = timestamp du login initial (ms epoch). Propage au refresh
+		// pour enforcer le cap absolu independamment du nombre de refresh.
+		const sessionFirstIssuedAt = firstIssuedAt ?? Date.now();
 
 		const accessTokenPayload: JwtPayload = {
 			sub: userId,
@@ -59,6 +67,7 @@ export class TokensService {
 			type: 'refresh',
 			iat: Math.floor(Date.now() / 1000),
 			exp: Math.floor(Date.now() / 1000) + this.REFRESH_TOKEN_TTL,
+			firstIssuedAt: sessionFirstIssuedAt,
 		};
 
 		const kid = this.jwksService.getKid();
@@ -75,7 +84,7 @@ export class TokensService {
 
 		await this.cacheService.set(
 			`refresh_token:${refreshTokenId}`,
-			{ userId, deviceId, fingerprint: deviceFingerprint },
+			{ userId, deviceId, fingerprint: deviceFingerprint, firstIssuedAt: sessionFirstIssuedAt },
 			this.REFRESH_TOKEN_TTL
 		);
 
@@ -115,12 +124,18 @@ export class TokensService {
 				throw new UnauthorizedException('ERROR_INVALID_REFRESH_TOKEN');
 			}
 
-			let storedData: { userId: string; deviceId: string; fingerprint: string } | null;
+			let storedData: {
+				userId: string;
+				deviceId: string;
+				fingerprint: string;
+				firstIssuedAt?: number;
+			} | null;
 			try {
 				storedData = await this.cacheService.getReliable<{
 					userId: string;
 					deviceId: string;
 					fingerprint: string;
+					firstIssuedAt?: number;
 				}>(`refresh_token:${decoded.tokenId}`);
 			} catch {
 				// Redis indisponible : ne pas confondre avec une révocation. Sinon
@@ -138,9 +153,27 @@ export class TokensService {
 				throw new UnauthorizedException('ERROR_DEVICE_FINGERPRINT_MISMATCH');
 			}
 
+			// cap absolu : on prefere la valeur du claim signe (immuable cote client)
+			// puis fallback sur le stored data ; backward compat = sessions sans
+			// firstIssuedAt sont seedees a Date.now() au prochain refresh (pas hard-fail).
+			const sessionFirstIssuedAt: number =
+				typeof decoded.firstIssuedAt === 'number'
+					? decoded.firstIssuedAt
+					: (storedData.firstIssuedAt ?? Date.now());
+
+			if (Date.now() - sessionFirstIssuedAt > this.ABSOLUTE_SESSION_CAP_MS) {
+				await this.revokeRefreshToken(decoded.tokenId);
+				throw new UnauthorizedException('ERROR_SESSION_EXPIRED_ABSOLUTE');
+			}
+
 			await this.revokeRefreshToken(decoded.tokenId);
 
-			return this.generateTokenPair(storedData.userId, storedData.deviceId, fingerprint);
+			return this.generateTokenPair(
+				storedData.userId,
+				storedData.deviceId,
+				fingerprint,
+				sessionFirstIssuedAt
+			);
 		} catch (error) {
 			if (error instanceof UnauthorizedException) {
 				throw error;

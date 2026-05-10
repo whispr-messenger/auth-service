@@ -1,8 +1,10 @@
+import { Logger } from '@nestjs/common';
 import { IdentityKeyRepository } from './identity-key.repository';
 import { IdentityKey } from '../entities/identity-key.entity';
 
 describe('IdentityKeyRepository', () => {
 	let repository: IdentityKeyRepository;
+	let warnSpy: jest.SpyInstance;
 
 	const mockManager = {
 		connection: {
@@ -26,6 +28,11 @@ describe('IdentityKeyRepository', () => {
 		jest.spyOn(repository, 'save').mockImplementation(mockManager.save);
 		jest.spyOn(repository, 'create').mockImplementation(mockManager.create);
 		jest.spyOn(repository, 'delete').mockImplementation(mockManager.delete);
+		warnSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+	});
+
+	afterEach(() => {
+		warnSpy.mockRestore();
 	});
 
 	describe('findByUserIdAndDeviceId', () => {
@@ -51,12 +58,12 @@ describe('IdentityKeyRepository', () => {
 	});
 
 	describe('upsertIdentityKey', () => {
-		it('should update existing key when it exists', async () => {
+		it('should log warn and update existing key on rotation', async () => {
 			const existing = {
 				userId: 'user-1',
 				deviceId: 'device-1',
 				publicKey: 'old-key',
-				updatedAt: new Date('2024-01-01'),
+				updatedAt: new Date('2024-01-01T00:00:00.000Z'),
 			} as IdentityKey;
 			const updated = { ...existing, publicKey: 'new-key' } as IdentityKey;
 			mockManager.findOne.mockResolvedValue(existing);
@@ -66,9 +73,33 @@ describe('IdentityKeyRepository', () => {
 
 			expect(result.publicKey).toBe('new-key');
 			expect(repository.save).toHaveBeenCalledWith(expect.objectContaining({ publicKey: 'new-key' }));
+			expect(warnSpy).toHaveBeenCalledTimes(1);
+			const warnMsg = warnSpy.mock.calls[0][0];
+			expect(warnMsg).toContain('Identity key rotated');
+			expect(warnMsg).toContain('user=user-1');
+			expect(warnMsg).toContain('device=device-1');
+			expect(warnMsg).toContain('oldFingerprint=');
+			expect(warnMsg).toContain('newFingerprint=');
+			expect(warnMsg).toContain('previousUpdatedAt=2024-01-01T00:00:00.000Z');
 		});
 
-		it('should create a new key when it does not exist', async () => {
+		it('should be a no-op when the key is identical (idempotent)', async () => {
+			const existing = {
+				userId: 'user-1',
+				deviceId: 'device-1',
+				publicKey: 'same-key',
+				updatedAt: new Date('2024-01-01'),
+			} as IdentityKey;
+			mockManager.findOne.mockResolvedValue(existing);
+
+			const result = await repository.upsertIdentityKey('user-1', 'device-1', 'same-key');
+
+			expect(result).toBe(existing);
+			expect(repository.save).not.toHaveBeenCalled();
+			expect(warnSpy).not.toHaveBeenCalled();
+		});
+
+		it('should create a new key without warn when it does not exist', async () => {
 			const newKey = { userId: 'user-1', deviceId: 'device-1', publicKey: 'new-key' } as IdentityKey;
 			mockManager.findOne.mockResolvedValue(null);
 			mockManager.create.mockReturnValue(newKey);
@@ -83,6 +114,7 @@ describe('IdentityKeyRepository', () => {
 				publicKey: 'new-key',
 			});
 			expect(repository.save).toHaveBeenCalledWith(newKey);
+			expect(warnSpy).not.toHaveBeenCalled();
 		});
 	});
 

@@ -78,6 +78,8 @@ function getDataSourceOptions(configService: ConfigService): DataSourceOptions {
 		// Indicates if database schema should be auto created on every application launch.
 		// Be careful with this option and don't use this in production - otherwise you can lose production data.
 		synchronize: configService.get('DB_SYNCHRONIZE', 'false') === 'true',
+		// Log queries qui prennent plus de 500ms via le logger NestJS pour detecter les slow queries en prod.
+		maxQueryExecutionTime: 500,
 	};
 }
 
