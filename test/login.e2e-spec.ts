@@ -361,6 +361,44 @@ describe('Login Flow (e2e)', () => {
 			expect(response.body).toHaveProperty('message');
 		});
 
+		it('should return 400 when signedPreKey.keyId exceeds int32 max (9999999999)', async () => {
+			const response = await request(app.getHttpServer())
+				.post('/auth/v1/login')
+				.send({
+					verificationId: VERIFICATION_ID,
+					deviceName: 'Test Device',
+					deviceType: 'mobile',
+					signalKeyBundle: {
+						identityKey: 'base64-identity-key',
+						signedPreKey: { keyId: 9999999999, publicKey: 'base64-spk', signature: 'base64-sig' },
+						preKeys: [{ keyId: 1, publicKey: 'base64-pk1' }],
+					},
+				})
+				.set('User-Agent', 'Test Agent');
+
+			expect(response.status).toBe(400);
+			expect(response.body).toHaveProperty('message');
+		});
+
+		it('should return 400 when preKeys[].keyId exceeds int32 max (2147483648)', async () => {
+			const response = await request(app.getHttpServer())
+				.post('/auth/v1/login')
+				.send({
+					verificationId: VERIFICATION_ID,
+					deviceName: 'Test Device',
+					deviceType: 'mobile',
+					signalKeyBundle: {
+						identityKey: 'base64-identity-key',
+						signedPreKey: { keyId: 1, publicKey: 'base64-spk', signature: 'base64-sig' },
+						preKeys: [{ keyId: 2147483648, publicKey: 'base64-pk1' }],
+					},
+				})
+				.set('User-Agent', 'Test Agent');
+
+			expect(response.status).toBe(400);
+			expect(response.body).toHaveProperty('message');
+		});
+
 		it('should return 200 without User-Agent header', async () => {
 			const response = await request(app.getHttpServer())
 				.post('/auth/v1/login')
