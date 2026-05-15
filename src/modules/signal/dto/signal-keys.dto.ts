@@ -1,10 +1,14 @@
-import { IsString, IsNumber, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsArray, ValidateNested, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
+const PG_INT32_MAX = 2147483647;
+
 export class PreKeyDto {
 	@ApiProperty({ description: 'One-time prekey identifier', example: 1 })
-	@IsNumber()
+	@IsInt()
+	@Min(0)
+	@Max(PG_INT32_MAX)
 	keyId: number;
 
 	@ApiProperty({ description: 'Base64-encoded public key', example: 'BZrt9...def456' })
@@ -14,7 +18,9 @@ export class PreKeyDto {
 
 export class SignedPreKeyDto {
 	@ApiProperty({ description: 'Signed prekey identifier', example: 1 })
-	@IsNumber()
+	@IsInt()
+	@Min(0)
+	@Max(PG_INT32_MAX)
 	keyId: number;
 
 	@ApiProperty({ description: 'Base64-encoded public key', example: 'BQXm8...abc123' })
