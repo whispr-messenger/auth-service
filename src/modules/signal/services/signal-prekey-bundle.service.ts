@@ -143,6 +143,11 @@ export class SignalPreKeyBundleService {
 		};
 	}
 
+	async listDevicesForUser(userId: string): Promise<{ userId: string; deviceIds: string[] }> {
+		const deviceIds = await this.keyStorage.listUserDevicesWithKeys(userId);
+		return { userId, deviceIds };
+	}
+
 	/**
 	 * Check if a device needs to replenish their prekeys
 	 *

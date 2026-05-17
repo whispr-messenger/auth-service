@@ -20,6 +20,15 @@ export class SignalKeysController {
 
 	constructor(private readonly prKeyBundleService: SignalPreKeyBundleService) {}
 
+	@Get(':userId/devices')
+	@HttpCode(HttpStatus.OK)
+	async listDevicesForUser(
+		@Param('userId') userId: string
+	): Promise<{ userId: string; deviceIds: string[] }> {
+		this.logger.log(`Request for Signal device list: userId=${userId}`);
+		return this.prKeyBundleService.listDevicesForUser(userId);
+	}
+
 	@Get(':userId/devices/:deviceId')
 	@HttpCode(HttpStatus.OK)
 	@ApiGetKeyBundleForDeviceEndpoint()

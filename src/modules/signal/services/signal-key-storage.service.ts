@@ -123,6 +123,21 @@ export class SignalKeyStorageService {
 	}
 
 	/**
+	 * List device IDs for which a user has registered Signal keys.
+	 *
+	 * This is used by senders to encrypt per-device (multi-device fanout).
+	 */
+	async listUserDevicesWithKeys(userId: string): Promise<string[]> {
+		this.logger.debug(`Listing Signal devices for user ${userId}`);
+		try {
+			return await this.identityKeyRepository.listDeviceIdsForUser(userId);
+		} catch (error) {
+			this.logger.error(`Failed to list devices for user ${userId}`, error.stack);
+			throw error;
+		}
+	}
+
+	/**
 	 * Retrieve the most recent active (non-expired) signed prekey for a user and device
 	 *
 	 * @param userId - The user's unique identifier

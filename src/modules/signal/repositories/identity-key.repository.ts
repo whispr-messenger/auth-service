@@ -20,6 +20,19 @@ export class IdentityKeyRepository extends Repository<IdentityKey> {
 	}
 
 	/**
+	 * List device IDs for which a user has an identity key registered.
+	 */
+	async listDeviceIdsForUser(userId: string): Promise<string[]> {
+		const rows = await this.createQueryBuilder('ik')
+			.select('ik.deviceId', 'deviceId')
+			.where('ik.userId = :userId', { userId })
+			.groupBy('ik.deviceId')
+			.getRawMany<{ deviceId: string }>();
+
+		return rows.map((r) => r.deviceId).filter((d) => typeof d === 'string' && d.length > 0);
+	}
+
+	/**
 	 * Create or update an identity key for a user and device.
 	 *
 	 * Une rotation (publicKey existante remplacee par une nouvelle) emet un log
